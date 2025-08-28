@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    font-family: 'Inter_400Regular';
+  }
+}
+
+@layer utilities {
+  .neon-glow {
+    box-shadow: 0 0 10px theme('colors.primary.DEFAULT'),
+                0 0 20px theme('colors.primary.DEFAULT'),
+                0 0 30px theme('colors.primary.DEFAULT');
+  }
+  
+  .neon-text {
+    text-shadow: 0 0 10px theme('colors.primary.DEFAULT'),
+                 0 0 20px theme('colors.primary.DEFAULT');
+  }
+}

@@ -1,215 +1,341 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Animated, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { GameController, EnvelopeSimple, Lock, User } from 'phosphor-react-native';
 import { useAuth } from '@/hooks/useAuth';
 
 export function AuthScreen() {
-  const [isLogin, setIsLogin] = useState(true);
+  const { user, login, register, logout } = useAuth();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [username, setUsername] = useState('');
-  const [loading, setLoading] = useState(false);
-  
-  const { login, register } = useAuth();
+  const [name, setName] = useState('');
+  const [isLogin, setIsLogin] = useState(true);
 
-  const handleSubmit = async () => {
-    if (!email || !password || (!isLogin && !username)) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
+  const loggedInUser = user ? { name: user.username } : null;
 
-    setLoading(true);
-    try {
-      if (isLogin) {
-        await login(email, password);
+  // No animated glow; keeping the background prominent and the UI clean
+
+  const backgrounds = [
+    'https://preview.redd.it/assassins-creed-shadow-key-art-v0-xs75tqogbn0d1.jpg?width=1080&crop=smart&auto=webp&s=83d6606f199ce0a2a1644c4e789fb56aea589f11',
+    'https://www.ytechb.com/wp-content/uploads/2023/12/GTA-6-Wallpaper-1-YTECHB.webp',
+    'https://wallpapers.com/images/hd/god-of-war-ragnarok-fierce-battle-4w87svqna0kscg9k.jpg',
+    'https://i.pinimg.com/736x/b3/12/3b/b3123b9bf6acc15205794996b0fc2659.jpg',
+    'https://img1.wallspic.com/previews/6/1/0/4/7/174016/174016-cyberpunk_2077-johnny_silverhand-cyberpunk_edgerunners-cyberpunk-building-500x.jpg',
+    'https://i.pinimg.com/736x/d2/95/e8/d295e8e12d8bb09e97bf98b9b082f047.jpg',
+    'https://www.chromethemer.com/wallpapers/phone/images/640/last-of-us.png',
+    'https://i.pinimg.com/736x/5d/0d/0a/5d0d0a137a41d7c312a06598c98d8359.jpg',
+  ];
+
+  // Double-buffered crossfade (two persistent layers, no unmounting)
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [nextIndex, setNextIndex] = useState(1);
+  const [src0, setSrc0] = useState(backgrounds[0]);
+  const [src1, setSrc1] = useState(backgrounds[1]);
+  const [activeLayer, setActiveLayer] = useState<0 | 1>(0);
+  const opacity0 = useRef(new Animated.Value(1)).current;
+  const opacity1 = useRef(new Animated.Value(0)).current;
+  const targetLayerRef = useRef<0 | 1>(1);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const candidate = (currentIndex + 1) % backgrounds.length;
+      setNextIndex(candidate);
+      const target = activeLayer === 0 ? 1 : 0;
+      targetLayerRef.current = target;
+      const nextUri = backgrounds[candidate];
+      if (target === 0) {
+        setSrc0(nextUri);
       } else {
-        await register(email, password, username);
+        setSrc1(nextUri);
       }
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Authentication failed');
-    } finally {
-      setLoading(false);
-    }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [backgrounds, currentIndex, activeLayer]);
+
+  const handleLoaded = (layer: 0 | 1) => {
+    if (layer !== targetLayerRef.current) return;
+    const fadeIn = layer === 0 ? opacity0 : opacity1;
+    const fadeOut = layer === 0 ? opacity1 : opacity0;
+    fadeIn.setValue(0);
+    Animated.parallel([
+      Animated.timing(fadeIn, { toValue: 1, duration: 900, useNativeDriver: true }),
+      Animated.timing(fadeOut, { toValue: 0, duration: 900, useNativeDriver: true }),
+    ]).start(() => {
+      setActiveLayer(layer);
+      setCurrentIndex(nextIndex);
+      // Prefetch one ahead, fire and forget
+      const ahead = (nextIndex + 1) % backgrounds.length;
+      try { (global as any).Image?.prefetch?.(backgrounds[ahead]); } catch {}
+    });
   };
 
+  // Minimal infinite title animation (gentle pulse)
+  const titleOpacityRef = useRef(new Animated.Value(1));
+  const titleScaleRef = useRef(new Animated.Value(1));
+  // Tubelight glow animation for accent line
+  const glowPulse = useRef(new Animated.Value(0.8)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(titleOpacityRef.current, { toValue: 0.9, duration: 1400, useNativeDriver: true }),
+          Animated.timing(titleOpacityRef.current, { toValue: 1, duration: 1400, useNativeDriver: true }),
+        ]),
+        Animated.sequence([
+          Animated.timing(titleScaleRef.current, { toValue: 1.02, duration: 1400, useNativeDriver: true }),
+          Animated.timing(titleScaleRef.current, { toValue: 1, duration: 1400, useNativeDriver: true }),
+        ]),
+      ])
+    );
+    loop.start();
+    return () => { loop.stop(); };
+  }, []);
+
+  useEffect(() => {
+    const glowLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowPulse, { toValue: 1, duration: 900, useNativeDriver: true }),
+        Animated.timing(glowPulse, { toValue: 0.75, duration: 800, useNativeDriver: true }),
+        // subtle quick flickers to emulate a tube light shimmer
+        Animated.timing(glowPulse, { toValue: 1, duration: 120, useNativeDriver: true }),
+        Animated.timing(glowPulse, { toValue: 0.85, duration: 150, useNativeDriver: true }),
+      ])
+    );
+    glowLoop.start();
+    return () => glowLoop.stop();
+  }, [glowPulse]);
+
   return (
-    <LinearGradient
-      colors={['#0A0F1F', '#22D3EE', '#F43F5E']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.content}>
-          {/* Logo */}
-          <View style={styles.logoContainer}>
-            <GameController size={60} color="#E2E8F0" weight="bold" />
-            <Text style={styles.logoText}>GameLog</Text>
-            <Text style={styles.tagline}>Track • Discover • Share</Text>
+    <View style={styles.bg}>
+      {/* Layer 0 */}
+      <Animated.Image
+        source={{ uri: src0 }}
+        style={[styles.bgLayer, { opacity: opacity0 }]}
+        onLoad={() => handleLoaded(0)}
+        resizeMode="cover"
+        blurRadius={0.5}
+      />
+      {/* Layer 1 */}
+      <Animated.Image
+        source={{ uri: src1 }}
+        style={[styles.bgLayer, { opacity: opacity1 }]}
+        onLoad={() => handleLoaded(1)}
+        resizeMode="cover"
+        blurRadius={0.5}
+      />
+      {/* Subtle brightness/contrast overlays */}
+      <View pointerEvents="none" style={styles.brightLayer} />
+      {/* Bottom dark-blue fade above the image (not too high) */}
+      <LinearGradient
+        colors={["rgba(0,0,0,0)", "rgba(5,14,28,0.85)"]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={styles.bottomFade}
+      />
+      <LinearGradient
+        colors={["rgba(0,0,0,0.15)", "rgba(0,0,0,0.75)"]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={styles.overlay}
+      />
+
+      <KeyboardAvoidingView behavior={Platform.select({ ios: 'padding', android: 'height' })} style={styles.root} keyboardVerticalOffset={Platform.select({ ios: 64, android: 0 }) as number}>
+        <ScrollView contentContainerStyle={styles.centerWrap} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <View style={styles.headerWrap}>
+            <Animated.Text
+              style={[
+                styles.title,
+                {
+                  opacity: titleOpacityRef.current ?? 1,
+                  transform: [{ scale: titleScaleRef.current ?? 1 }],
+                } as any,
+              ]}
+            >
+              GameLog
+            </Animated.Text>
+            <Text style={styles.subtitle}>{loggedInUser ? `Welcome back, ${loggedInUser.name}` : 'Track • Discover • Share'}</Text>
           </View>
 
-          {/* Form */}
-          <View style={styles.formContainer}>
-            <Text style={styles.formTitle}>
-              {isLogin ? 'Welcome Back' : 'Join GameLog'}
+          <LinearGradient
+            colors={["rgba(34,211,238,0.25)", "rgba(244,63,94,0.25)"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.cardOuter}
+          >
+          <View style={styles.card}>
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor="#7aa1b8"
+            value={email}
+            onChangeText={(text) => setEmail(text)}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            placeholderTextColor="#7aa1b8"
+            value={password}
+            onChangeText={(text) => setPassword(text)}
+            secureTextEntry
+          />
+          {!isLogin && (
+            <TextInput
+              style={styles.input}
+              placeholder="Name (for sign up)"
+              placeholderTextColor="#7aa1b8"
+              value={name}
+              onChangeText={(text) => setName(text)}
+            />
+          )}
+
+          <LinearGradient colors={isLogin ? ["#22D3EE", "#0EA5E9"] : ["#F43F5E", "#FB7185"]} start={{x:0,y:0}} end={{x:1,y:1}} style={styles.buttonWrap}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => (isLogin ? login(email, password) : register(email, password, name))}
+            >
+              <Text style={styles.buttonText}>{isLogin ? 'Sign In' : 'Create Account'}</Text>
+            </TouchableOpacity>
+          </LinearGradient>
+
+          <TouchableOpacity style={styles.linkBtn} onPress={() => setIsLogin(!isLogin)}>
+            <Text style={styles.linkText}>
+              {isLogin ? "Don't have an account? Create an account" : 'Already have an account? Sign in here'}
             </Text>
-
-            {!isLogin && (
-              <View style={styles.inputContainer}>
-                <User size={20} color="#94A3B8" weight="bold" />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Username"
-                  placeholderTextColor="#94A3B8"
-                  value={username}
-                  onChangeText={setUsername}
-                  autoCapitalize="none"
-                />
-              </View>
-            )}
-
-            <View style={styles.inputContainer}>
-              <EnvelopeSimple size={20} color="#94A3B8" weight="bold" />
-              <TextInput
-                style={styles.input}
-                placeholder="Email"
-                placeholderTextColor="#94A3B8"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Lock size={20} color="#94A3B8" weight="bold" />
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor="#94A3B8"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-              />
-            </View>
-
-            <TouchableOpacity 
-              style={styles.submitButton} 
-              onPress={handleSubmit}
-              disabled={loading}
-            >
-              <LinearGradient
-                colors={['#22D3EE', '#0EA5E9']}
-                style={styles.submitGradient}
-              >
-                <Text style={styles.submitText}>
-                  {loading ? 'Loading...' : (isLogin ? 'Sign In' : 'Sign Up')}
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.switchButton}
-              onPress={() => setIsLogin(!isLogin)}
-            >
-              <Text style={styles.switchText}>
-                {isLogin ? 'Need an account? Sign Up' : 'Already have an account? Sign In'}
-              </Text>
-            </TouchableOpacity>
+          </TouchableOpacity>
           </View>
-        </View>
-      </SafeAreaView>
-    </LinearGradient>
+          </LinearGradient>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  bg: {
     flex: 1,
   },
-  safeArea: {
-    flex: 1,
+  bgLayer: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
   },
-  content: {
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  brightLayer: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  bottomFade: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '28%',
+  },
+  root: {
     flex: 1,
+    padding: 20,
     justifyContent: 'center',
-    paddingHorizontal: 24,
   },
-  logoContainer: {
+  centerWrap: {
+    justifyContent: 'center',
+    paddingBottom: 24,
+    flexGrow: 1,
+  },
+  headerWrap: {
+    marginBottom: 18,
     alignItems: 'center',
-    marginBottom: 48,
   },
-  logoText: {
-    fontFamily: 'Orbitron_900Black',
+  title: {
+    fontFamily: 'Audiowide_400Regular',
     fontSize: 36,
     color: '#E2E8F0',
     textShadowColor: '#22D3EE',
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 15,
-    marginTop: 16,
+    textShadowRadius: 12,
   },
-  tagline: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 14,
-    color: '#94A3B8',
-    letterSpacing: 2,
+  accentBar: {
+    height: 4,
+    width: 120,
+    borderRadius: 4,
     marginTop: 8,
+    marginBottom: 6,
   },
-  formContainer: {
-    backgroundColor: 'rgba(26, 34, 56, 0.8)',
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: '#374151',
-  },
-  formTitle: {
-    fontFamily: 'Orbitron_700Bold',
-    fontSize: 24,
-    color: '#E2E8F0',
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  inputContainer: {
-    flexDirection: 'row',
+  accentWrap: {
+    position: 'relative',
+    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#111827',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    marginBottom: 16,
+  },
+  accentGlow: {
+    position: 'absolute',
+    height: 14,
+    width: 160,
+    borderRadius: 10,
+    backgroundColor: 'rgba(34,211,238,0.35)',
+    opacity: 0.85,
+    shadowColor: '#22D3EE',
+    shadowOpacity: 1,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  subtitle: {
+    marginTop: 8,
+    color: '#B6C6D6',
+    fontFamily: 'Inter_500Medium',
+  },
+  card: {
+    backgroundColor: 'rgba(6, 10, 18, 0.7)',
+    borderRadius: 16,
+    padding: 18,
     borderWidth: 1,
-    borderColor: '#374151',
+    borderColor: 'rgba(34, 211, 238, 0.25)',
+    shadowColor: '#000',
+    shadowOpacity: 0.45,
+    shadowOffset: { width: 0, height: 18 },
+    shadowRadius: 28,
+  },
+  cardOuter: {
+    borderRadius: 18,
+    padding: 1,
+    marginHorizontal: 2,
+    marginBottom: 8,
   },
   input: {
-    flex: 1,
-    marginLeft: 12,
-    color: '#E2E8F0',
-    fontFamily: 'Inter_400Regular',
-    fontSize: 16,
-  },
-  submitButton: {
-    marginTop: 8,
+    backgroundColor: 'rgba(2, 6, 14, 0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(34, 211, 238, 0.25)',
     borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+    color: '#E6F1FF',
+    fontFamily: 'Inter_400Regular',
+  },
+  buttonWrap: {
+    borderRadius: 14,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 18,
   },
-  submitGradient: {
-    paddingVertical: 18,
+  button: {
+    paddingVertical: 14,
     alignItems: 'center',
   },
-  submitText: {
+  buttonText: {
+    color: '#061220',
     fontFamily: 'Orbitron_700Bold',
-    fontSize: 16,
-    color: '#0A0F1F',
+    fontSize: 14,
+    letterSpacing: 1,
   },
-  switchButton: {
-    marginTop: 24,
+  linkBtn: {
+    marginTop: 16,
     alignItems: 'center',
   },
-  switchText: {
+  linkText: {
+    color: '#9CC2FF',
     fontFamily: 'Inter_500Medium',
-    fontSize: 14,
-    color: '#22D3EE',
   },
 });

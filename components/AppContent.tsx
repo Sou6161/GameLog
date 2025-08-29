@@ -4,7 +4,11 @@ import { AuthScreen } from './AuthScreen';
 import { LoadingScreen } from './LoadingScreen';
 import { Slot } from 'expo-router';
 
-export function AppContent() {
+export interface AppContentProps {
+  children?: React.ReactNode;
+}
+
+export function AppContent({ children }: AppContentProps): JSX.Element {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
@@ -15,5 +19,7 @@ export function AppContent() {
     return <AuthScreen />;
   }
 
-  return <Slot />;
+  return children ? <>{children}</> : <Slot />;
 }
+
+export default AppContent;

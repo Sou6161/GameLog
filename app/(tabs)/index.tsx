@@ -4,7 +4,31 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FeedCard } from '@/components/FeedCard';
 import { Header } from '@/components/Header';
-import { AppContent } from '@/components/AppContent';
+import AppContent from '@/components/AppContent';
+import { StatusBar } from 'expo-status-bar';
+import { Client, Account, ID } from 'react-native-appwrite';
+
+let client: Client;
+let account: Account;
+
+client = new Client();
+client
+  .setEndpoint('https://fra.cloud.appwrite.io/v1')
+  .setProject('68b0097200050372bc5c')   // Your Project ID
+  .setPlatform('com.company.gamelog');   // Your package name / bundle identifier
+
+account = new Account(client);
+
+export async function login(email: string, password: string) {
+  await account.createEmailPasswordSession(email, password);
+  return await account.get();
+}
+
+export async function register(email: string, password: string, name: string) {
+  await account.create(ID.unique(), email, password, name);
+  await account.createEmailPasswordSession(email, password);
+  return await account.get();
+}
 
 const mockFeedData = [
   {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
-import { ArrowsUpDown, List } from 'phosphor-react-native';
+import { ArrowsDownUp, List } from 'phosphor-react-native';
 
 interface List {
   id: string;
@@ -37,7 +37,7 @@ export function ListCard({ list }: ListCardProps) {
           <View style={styles.titleRow}>
             <Text style={styles.listName}>{list.name}</Text>
             {list.isRanked && (
-              <ArrowsUpDown size={16} color="#22D3EE" weight="bold" />
+              <ArrowsDownUp size={16} color="#22D3EE" weight="bold" />
             )}
           </View>
           <Text style={styles.description} numberOfLines={2}>{list.description}</Text>

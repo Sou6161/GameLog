@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Settings, Trophy, Clock, Star, Steam } from 'phosphor-react-native';
+import { Gear, Trophy, Clock, Star, SteamLogo } from 'phosphor-react-native';
 import { Header } from '@/components/Header';
 import { StatCard } from '@/components/StatCard';
+import { useAuth } from '@/hooks/useAuth';
 
 const mockUser = {
   username: 'GamerPro',
@@ -22,6 +23,8 @@ const mockStats = [
 ];
 
 export default function ProfileScreen() {
+  const { logout, user } = useAuth();
+  const [showSettings, setShowSettings] = useState(false);
   return (
     <LinearGradient
       colors={['#0A0F1F', '#111827']}
@@ -30,9 +33,16 @@ export default function ProfileScreen() {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Profile</Text>
-          <TouchableOpacity style={styles.settingsButton}>
-            <Settings size={24} color="#22D3EE" weight="bold" />
+          <TouchableOpacity style={styles.settingsButton} onPress={() => setShowSettings(!showSettings)}>
+            <Gear size={24} color="#22D3EE" weight="bold" />
           </TouchableOpacity>
+          {showSettings && (
+            <View style={styles.settingsMenu}>
+              <TouchableOpacity style={styles.settingsItem} onPress={logout}>
+                <Text style={styles.settingsItemText}>Log out</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
         
         <ScrollView 
@@ -49,13 +59,13 @@ export default function ProfileScreen() {
                 </View>
               </View>
               
-              <Text style={styles.username}>{mockUser.username}</Text>
+              <Text style={styles.username}>{user?.username || mockUser.username}</Text>
               <Text style={styles.bio}>{mockUser.bio}</Text>
               
               {/* Steam Badge */}
               {mockUser.steamConnected && (
                 <View style={styles.steamBadge}>
-                  <Steam size={16} color="#22D3EE" weight="bold" />
+                  <SteamLogo size={16} color="#22D3EE" weight="bold" />
                   <Text style={styles.steamText}>Steam Connected</Text>
                 </View>
               )}
@@ -111,6 +121,27 @@ const styles = StyleSheet.create({
   },
   settingsButton: {
     padding: 8,
+  },
+  settingsMenu: {
+    position: 'absolute',
+    top: 48,
+    right: 16,
+    backgroundColor: '#1A2238',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#374151',
+    paddingVertical: 8,
+    minWidth: 140,
+    zIndex: 10,
+  },
+  settingsItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  settingsItemText: {
+    color: '#E2E8F0',
+    fontFamily: 'Inter_500Medium',
+    fontSize: 14,
   },
   scrollView: {
     flex: 1,

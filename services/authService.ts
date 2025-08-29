@@ -1,5 +1,5 @@
-import { account } from './appwrite';
-import { ID } from 'appwrite';
+import { appwrite, login as rnLogin, register as rnRegister, logout as rnLogout, getCurrentUserSafe } from '@/lib/appwrite';
+import { ID } from 'react-native-appwrite';
 
 export interface LoginCredentials {
   email: string;
@@ -16,7 +16,7 @@ class AuthService {
   // Register new user
   async register({ email, password, username }: RegisterCredentials) {
     try {
-      const user = await account.create(ID.unique(), email, password, username);
+      const user = await rnRegister(email, password, username);
       return user;
     } catch (error) {
       console.error('Registration error:', error);
@@ -27,8 +27,8 @@ class AuthService {
   // Login user
   async login({ email, password }: LoginCredentials) {
     try {
-      const session = await account.createEmailSession(email, password);
-      return session;
+      const user = await rnLogin(email, password);
+      return user;
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -38,7 +38,7 @@ class AuthService {
   // Logout user
   async logout() {
     try {
-      await account.deleteSession('current');
+      await rnLogout();
     } catch (error) {
       console.error('Logout error:', error);
       throw error;
@@ -48,7 +48,7 @@ class AuthService {
   // Get current user
   async getCurrentUser() {
     try {
-      const user = await account.get();
+      const user = await getCurrentUserSafe();
       return user;
     } catch (error) {
       console.error('Get current user error:', error);
@@ -59,8 +59,8 @@ class AuthService {
   // Check if user is authenticated
   async isAuthenticated(): Promise<boolean> {
     try {
-      await account.get();
-      return true;
+      const user = await getCurrentUserSafe();
+      return !!user;
     } catch {
       return false;
     }

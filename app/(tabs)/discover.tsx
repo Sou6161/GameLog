@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MagnifyingGlass, TrendingUp, Fire } from 'phosphor-react-native';
+import { MagnifyingGlass, TrendUp, Fire } from 'phosphor-react-native';
 import { Header } from '@/components/Header';
 import { GameCard } from '@/components/GameCard';
 
@@ -61,7 +61,7 @@ export default function DiscoverScreen() {
             {/* Trending Section */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <TrendingUp size={24} color="#22D3EE" weight="bold" />
+                <TrendUp size={24} color="#22D3EE" weight="bold" />
                 <Text style={styles.sectionTitle}>Trending Now</Text>
               </View>
               

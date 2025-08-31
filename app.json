@@ -8,11 +8,6 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/images/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#6c5ce7"
-    },
     "ios": {
       "supportsTablet": true
     },
@@ -24,6 +19,15 @@
     "plugins": ["expo-router", "expo-font", "expo-web-browser"],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d3e2232d-e04d-441c-aa47-0f0d722376da"
+      }
+    },
+    "android": {
+      "package": "com.sourabh6161.gamelog"
     }
   }
 }

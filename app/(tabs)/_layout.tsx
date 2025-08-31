@@ -39,7 +39,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ size, color, focused }) => (
+          tabBarIcon: ({ size, color, focused }: { size: number; color: string; focused: boolean }) => (
             <House 
               size={size} 
               color={color} 
@@ -52,7 +52,7 @@ export default function TabLayout() {
         name="discover"
         options={{
           title: 'Discover',
-          tabBarIcon: ({ size, color, focused }) => (
+          tabBarIcon: ({ size, color, focused }: { size: number; color: string; focused: boolean }) => (
             <Compass 
               size={size} 
               color={color} 
@@ -65,7 +65,7 @@ export default function TabLayout() {
         name="log"
         options={{
           title: '',
-          tabBarIcon: ({ size, color, focused }) => (
+          tabBarIcon: ({ size, color, focused }: { size: number; color: string; focused: boolean }) => (
             <Plus 
               size={size} 
               color={color} 
@@ -78,7 +78,7 @@ export default function TabLayout() {
         name="lists"
         options={{
           title: 'Lists',
-          tabBarIcon: ({ size, color, focused }) => (
+          tabBarIcon: ({ size, color, focused }: { size: number; color: string; focused: boolean }) => (
             <ListBullets 
               size={size} 
               color={color} 
@@ -91,7 +91,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ size, color, focused }) => (
+          tabBarIcon: ({ size, color, focused }: { size: number; color: string; focused: boolean }) => (
             <User 
               size={size} 
               color={color} 

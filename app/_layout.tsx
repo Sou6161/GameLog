@@ -61,17 +61,19 @@ export default function RootLayout() {
     'Audiowide_400Regular': Audiowide_400Regular,
   });
 
+  // Hide native splash screen immediately when fonts are loaded
   useEffect(() => {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
 
-  // Ensure a brief splash on cold start regardless of auth speed
-  const [splashReady, setSplashReady] = useState(false);
+  // Show our custom splash screen for the full animation duration
+  const [showCustomSplash, setShowCustomSplash] = useState(true);
   useEffect(() => {
     if (fontsLoaded || fontError) {
-      const timer = setTimeout(() => setSplashReady(true), 900);
+      // Wait for full animation: entrance(0.6s) + glow(0.4s) + 1 pulse(2s) = ~2s
+      const timer = setTimeout(() => setShowCustomSplash(false), 2000);
       return () => clearTimeout(timer);
     }
   }, [fontsLoaded, fontError]);
@@ -84,7 +86,7 @@ export default function RootLayout() {
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
         <SafeAreaProvider>
-          {splashReady ? <AuthGate /> : <LoadingScreen />}
+          {showCustomSplash ? <LoadingScreen /> : <AuthGate />}
           <StatusBar style="light" />
         </SafeAreaProvider>
       </QueryClientProvider>

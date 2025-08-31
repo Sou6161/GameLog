@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { House, Compass, Plus, ListBullets, User } from 'phosphor-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -13,18 +14,23 @@ export default function TabLayout() {
         headerShown: false,
         tabBarHideOnKeyboard: true,
         tabBarStyle: {
-          backgroundColor: '#111827',
-          borderTopColor: '#22D3EE',
-          borderTopWidth: 1,
+          backgroundColor: '#000000',
+          borderTopColor: '#FF1493',
+          borderTopWidth: 2,
           paddingBottom: bottomInset,
           paddingTop: 8,
           height: tabBarHeight,
+          elevation: 8,
+          shadowColor: '#FF1493',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
         },
-        tabBarActiveTintColor: '#22D3EE',
+        tabBarActiveTintColor: '#FFD700',
         tabBarInactiveTintColor: '#94A3B8',
         tabBarLabelStyle: {
-          fontFamily: 'Inter_500Medium',
-          fontSize: 12,
+          fontFamily: 'Inter_600SemiBold',
+          fontSize: 11,
           marginTop: 4,
         },
       }}
@@ -33,8 +39,12 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ size, color }) => (
-            <House size={size} color={color} weight="bold" />
+          tabBarIcon: ({ size, color, focused }) => (
+            <House 
+              size={size} 
+              color={color} 
+              weight={focused ? "fill" : "bold"} 
+            />
           ),
         }}
       />
@@ -42,17 +52,25 @@ export default function TabLayout() {
         name="discover"
         options={{
           title: 'Discover',
-          tabBarIcon: ({ size, color }) => (
-            <Compass size={size} color={color} weight="bold" />
+          tabBarIcon: ({ size, color, focused }) => (
+            <Compass 
+              size={size} 
+              color={color} 
+              weight={focused ? "fill" : "bold"} 
+            />
           ),
         }}
       />
       <Tabs.Screen
         name="log"
         options={{
-          title: 'Log',
-          tabBarIcon: ({ size, color }) => (
-            <Plus size={size} color={color} weight="bold" />
+          title: '',
+          tabBarIcon: ({ size, color, focused }) => (
+            <Plus 
+              size={size} 
+              color={color} 
+              weight={focused ? "fill" : "bold"} 
+            />
           ),
         }}
       />
@@ -60,8 +78,12 @@ export default function TabLayout() {
         name="lists"
         options={{
           title: 'Lists',
-          tabBarIcon: ({ size, color }) => (
-            <ListBullets size={size} color={color} weight="bold" />
+          tabBarIcon: ({ size, color, focused }) => (
+            <ListBullets 
+              size={size} 
+              color={color} 
+              weight={focused ? "fill" : "bold"} 
+            />
           ),
         }}
       />
@@ -69,8 +91,12 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ size, color }) => (
-            <User size={size} color={color} weight="bold" />
+          tabBarIcon: ({ size, color, focused }) => (
+            <User 
+              size={size} 
+              color={color} 
+              weight={focused ? "fill" : "bold"} 
+            />
           ),
         }}
       />

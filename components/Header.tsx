@@ -1,5 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { GameController } from 'phosphor-react-native';
 
 interface HeaderProps {
   title: string;
@@ -8,26 +10,42 @@ interface HeaderProps {
 export function Header({ title }: HeaderProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
+      <View style={styles.content}>
+        <View style={styles.iconContainer}>
+          <GameController size={20} color="#865EF6" weight="fill" />
+        </View>
+        <Text style={styles.title}>{title}</Text>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#22D3EE',
-    backgroundColor: 'rgba(17, 24, 39, 0.8)',
+    borderBottomColor: '#333333',
+    backgroundColor: '#000000',
+  },
+  content: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  iconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(134, 94, 246, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
-    fontFamily: 'Orbitron_700Bold',
-    fontSize: 24,
-    color: '#22D3EE',
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 20,
+    color: '#F1F5F9',
     textAlign: 'center',
-    textShadowColor: '#22D3EE',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
   },
 });

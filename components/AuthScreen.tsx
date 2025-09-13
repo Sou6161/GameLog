@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Animated, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Animated, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -106,11 +106,12 @@ export function AuthScreen() {
   }, [glowPulse]);
 
   return (
-    <View style={styles.bg}>
+    <View className="flex-1">
       {/* Layer 0 */}
       <Animated.Image
         source={{ uri: src0 }}
-        style={[styles.bgLayer, { opacity: opacity0 }]}
+        className="absolute inset-0 w-full h-full"
+        style={{ opacity: opacity0 }}
         onLoad={() => handleLoaded(0)}
         resizeMode="cover"
         blurRadius={0.5}
@@ -118,33 +119,34 @@ export function AuthScreen() {
       {/* Layer 1 */}
       <Animated.Image
         source={{ uri: src1 }}
-        style={[styles.bgLayer, { opacity: opacity1 }]}
+        className="absolute inset-0 w-full h-full"
+        style={{ opacity: opacity1 }}
         onLoad={() => handleLoaded(1)}
         resizeMode="cover"
         blurRadius={0.5}
       />
       {/* Subtle brightness/contrast overlays */}
-      <View pointerEvents="none" style={styles.brightLayer} />
+      <View pointerEvents="none" className="absolute inset-0 bg-white/[0.06]" />
       {/* Bottom dark-blue fade above the image (not too high) */}
       <LinearGradient
         colors={["rgba(0,0,0,0)", "rgba(5,14,28,0.85)"]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
-        style={styles.bottomFade}
+        className="absolute left-0 right-0 bottom-0 h-[28%]"
       />
       <LinearGradient
         colors={["rgba(0,0,0,0.15)", "rgba(0,0,0,0.75)"]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
-        style={styles.overlay}
+        className="absolute inset-0"
       />
 
-      <KeyboardAvoidingView behavior={Platform.select({ ios: 'padding', android: 'height' })} style={styles.root} keyboardVerticalOffset={Platform.select({ ios: 64, android: 0 }) as number}>
-        <ScrollView contentContainerStyle={styles.centerWrap} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <View style={styles.headerWrap}>
+      <KeyboardAvoidingView behavior={Platform.select({ ios: 'padding', android: 'height' })} className="flex-1 p-5 justify-center" keyboardVerticalOffset={Platform.select({ ios: 64, android: 0 }) as number}>
+        <ScrollView contentContainerStyle={{ justifyContent: 'center', paddingBottom: 24, flexGrow: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <View className="mb-[18px] items-center">
             <Animated.Text
+              className="font-[Audiowide_400Regular] text-[36px] text-[#E2E8F0] shadow-neon-cyan"
               style={[
-                styles.title,
                 {
                   opacity: titleOpacityRef.current ?? 1,
                   transform: [{ scale: titleScaleRef.current ?? 1 }],
@@ -153,25 +155,25 @@ export function AuthScreen() {
             >
               GameLog
             </Animated.Text>
-            <Text style={styles.subtitle}>{loggedInUser ? `Welcome back, ${loggedInUser.name}` : 'Track • Discover • Share'}</Text>
+            <Text className="mt-2 text-[#B6C6D6] font-medium">{loggedInUser ? `Welcome back, ${loggedInUser.name}` : 'Track • Discover • Share'}</Text>
           </View>
 
           <LinearGradient
             colors={["rgba(34,211,238,0.25)", "rgba(244,63,94,0.25)"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.cardOuter}
+            className="rounded-[18px] p-[1px] mx-0.5 mb-2"
           >
-          <View style={styles.card}>
+          <View className="bg-[rgba(6,10,18,0.7)] rounded-2xl p-[18px] border border-[rgba(34,211,238,0.25)] shadow-2xl">
           <TextInput
-            style={styles.input}
+            className="bg-[rgba(2,6,14,0.85)] border border-[rgba(34,211,238,0.25)] rounded-xl py-[14px] px-[14px] mb-3 text-[#E6F1FF] font-normal"
             placeholder="Email"
             placeholderTextColor="#7aa1b8"
             value={email}
             onChangeText={(text) => setEmail(text)}
           />
           <TextInput
-            style={styles.input}
+            className="bg-[rgba(2,6,14,0.85)] border border-[rgba(34,211,238,0.25)] rounded-xl py-[14px] px-[14px] mb-3 text-[#E6F1FF] font-normal"
             placeholder="Password"
             placeholderTextColor="#7aa1b8"
             value={password}
@@ -180,7 +182,7 @@ export function AuthScreen() {
           />
           {!isLogin && (
             <TextInput
-              style={styles.input}
+              className="bg-[rgba(2,6,14,0.85)] border border-[rgba(34,211,238,0.25)] rounded-xl py-[14px] px-[14px] mb-3 text-[#E6F1FF] font-normal"
               placeholder="Name (for sign up)"
               placeholderTextColor="#7aa1b8"
               value={name}
@@ -188,17 +190,17 @@ export function AuthScreen() {
             />
           )}
 
-          <LinearGradient colors={isLogin ? ["#22D3EE", "#0EA5E9"] : ["#F43F5E", "#FB7185"]} start={{x:0,y:0}} end={{x:1,y:1}} style={styles.buttonWrap}>
+          <LinearGradient colors={isLogin ? ["#22D3EE", "#0EA5E9"] : ["#F43F5E", "#FB7185"]} start={{x:0,y:0}} end={{x:1,y:1}} className="rounded-[14px] overflow-hidden shadow-xl">
             <TouchableOpacity
-              style={styles.button}
+              className="py-[14px] items-center"
               onPress={() => (isLogin ? login(email, password) : register(email, password, name))}
             >
-              <Text style={styles.buttonText}>{isLogin ? 'Sign In' : 'Create Account'}</Text>
+              <Text className="text-[#061220] font-bold text-sm tracking-wider">{isLogin ? 'Sign In' : 'Create Account'}</Text>
             </TouchableOpacity>
           </LinearGradient>
 
-          <TouchableOpacity style={styles.linkBtn} onPress={() => setIsLogin(!isLogin)}>
-            <Text style={styles.linkText}>
+          <TouchableOpacity className="mt-4 items-center" onPress={() => setIsLogin(!isLogin)}>
+            <Text className="text-[#9CC2FF] font-medium">
               {isLogin ? "Don't have an account? Create an account" : 'Already have an account? Sign in here'}
             </Text>
           </TouchableOpacity>
@@ -209,133 +211,3 @@ export function AuthScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  bg: {
-    flex: 1,
-  },
-  bgLayer: {
-    ...StyleSheet.absoluteFillObject,
-    width: '100%',
-    height: '100%',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  brightLayer: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  bottomFade: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: '28%',
-  },
-  root: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-  },
-  centerWrap: {
-    justifyContent: 'center',
-    paddingBottom: 24,
-    flexGrow: 1,
-  },
-  headerWrap: {
-    marginBottom: 18,
-    alignItems: 'center',
-  },
-  title: {
-    fontFamily: 'Audiowide_400Regular',
-    fontSize: 36,
-    color: '#E2E8F0',
-    textShadowColor: '#22D3EE',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 12,
-  },
-  accentBar: {
-    height: 4,
-    width: 120,
-    borderRadius: 4,
-    marginTop: 8,
-    marginBottom: 6,
-  },
-  accentWrap: {
-    position: 'relative',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  accentGlow: {
-    position: 'absolute',
-    height: 14,
-    width: 160,
-    borderRadius: 10,
-    backgroundColor: 'rgba(34,211,238,0.35)',
-    opacity: 0.85,
-    shadowColor: '#22D3EE',
-    shadowOpacity: 1,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 0 },
-  },
-  subtitle: {
-    marginTop: 8,
-    color: '#B6C6D6',
-    fontFamily: 'Inter_500Medium',
-  },
-  card: {
-    backgroundColor: 'rgba(6, 10, 18, 0.7)',
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(34, 211, 238, 0.25)',
-    shadowColor: '#000',
-    shadowOpacity: 0.45,
-    shadowOffset: { width: 0, height: 18 },
-    shadowRadius: 28,
-  },
-  cardOuter: {
-    borderRadius: 18,
-    padding: 1,
-    marginHorizontal: 2,
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: 'rgba(2, 6, 14, 0.85)',
-    borderWidth: 1,
-    borderColor: 'rgba(34, 211, 238, 0.25)',
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    marginBottom: 12,
-    color: '#E6F1FF',
-    fontFamily: 'Inter_400Regular',
-  },
-  buttonWrap: {
-    borderRadius: 14,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.35,
-    shadowOffset: { width: 0, height: 10 },
-    shadowRadius: 18,
-  },
-  button: {
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#061220',
-    fontFamily: 'Orbitron_700Bold',
-    fontSize: 14,
-    letterSpacing: 1,
-  },
-  linkBtn: {
-    marginTop: 16,
-    alignItems: 'center',
-  },
-  linkText: {
-    color: '#9CC2FF',
-    fontFamily: 'Inter_500Medium',
-  },
-});

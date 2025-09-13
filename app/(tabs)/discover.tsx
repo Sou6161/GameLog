@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MagnifyingGlass, TrendUp, Fire, X } from 'phosphor-react-native';
@@ -164,10 +164,10 @@ export default function DiscoverScreen() {
 
     if (isSearching) {
       return (
-        <View style={styles.searchResultsContainer}>
-          <View style={styles.loadingContainer}>
+        <View className="flex-1 justify-center items-center px-5">
+          <View className="items-center">
             <ActivityIndicator size="large" color="#00D2FF" />
-            <Text style={styles.loadingText}>Searching games...</Text>
+            <Text className="text-[#00D2FF] text-lg font-medium mt-4">Searching games...</Text>
           </View>
         </View>
       );
@@ -175,10 +175,10 @@ export default function DiscoverScreen() {
 
     if (searchResults.length === 0 && searchQuery.trim().length > 0) {
       return (
-        <View style={styles.searchResultsContainer}>
-          <View style={styles.noResultsContainer}>
-            <Text style={styles.noResultsText}>No games found</Text>
-            <Text style={styles.noResultsSubtext}>Try searching with different keywords</Text>
+        <View className="flex-1 justify-center items-center px-5">
+          <View className="items-center">
+            <Text className="text-white text-xl font-bold mb-2">No games found</Text>
+            <Text className="text-gray-400 text-base text-center">Try searching with different keywords</Text>
           </View>
         </View>
       );
@@ -186,16 +186,16 @@ export default function DiscoverScreen() {
 
     if (searchResults.length > 0) {
       return (
-        <View style={styles.searchResultsContainer}>
-          <View style={styles.searchResultsHeader}>
-            <Text style={styles.searchResultsTitle}>
+        <View className="flex-1 px-5">
+          <View className="mb-4">
+            <Text className="text-white text-xl font-bold">
               Search Results ({searchResults.length})
             </Text>
           </View>
           <ScrollView 
             horizontal 
             showsHorizontalScrollIndicator={false}
-            style={styles.horizontalScroll}
+            className="-mx-5"
           >
             {searchResults.map((game) => (
               <GameCard key={game.id} game={game} />
@@ -210,20 +210,21 @@ export default function DiscoverScreen() {
 
   return (
     <LinearGradient
-      colors={['#6c5ce7','black','#6c5ce7']}
-      style={styles.container}
+            colors={['#0F0F1F', '#121631', '#0A2342']}
+
+      className="flex-1"
     >
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView className="flex-1">
         <ScrollView 
-          style={styles.scrollView}
+          className="flex-1"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.content}>
+          <View className="px-5 pb-8">
             {/* Search Bar */}
-            <View style={styles.searchContainer}>
+            <View className="flex-row items-center bg-[#1A2238] rounded-xl px-4 py-3 mb-6 border border-[#374151]">
               <MagnifyingGlass size={20} color="#94A3B8" weight="bold" />
               <TextInput
-                style={styles.searchInput}
+                className="flex-1 ml-3 text-white font-normal text-base"
                 placeholder="Search games..."
                 placeholderTextColor="#94A3B8"
                 value={searchQuery}
@@ -233,7 +234,7 @@ export default function DiscoverScreen() {
                 returnKeyType="search"
               />
               {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
+                <TouchableOpacity onPress={clearSearch} className="ml-2">
                   <X size={16} color="#94A3B8" weight="bold" />
                 </TouchableOpacity>
               )}
@@ -244,16 +245,16 @@ export default function DiscoverScreen() {
 
             {/* Trending Section - Only show when not searching */}
             {!hasSearched && (
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
+              <View className="mb-8">
+                <View className="flex-row items-center mb-4">
                   <TrendUp size={24} color="#00D2FF" weight="bold" />
-                  <Text style={styles.sectionTitle}>Trending Now</Text>
+                  <Text className="text-white text-xl font-bold ml-3">Trending Now</Text>
                 </View>
                 
                 <ScrollView 
                   horizontal 
                   showsHorizontalScrollIndicator={false}
-                  style={styles.horizontalScroll}
+                  className="-mx-5"
                 >
                   {mockTrendingGames.map((game) => (
                     <GameCard key={game.id} game={game} />
@@ -264,16 +265,16 @@ export default function DiscoverScreen() {
 
             {/* New Releases - Only show when not searching */}
             {!hasSearched && (
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
+              <View className="mb-8">
+                <View className="flex-row items-center mb-4">
                   <Fire size={24} color="#FF6B6B" weight="bold" />
-                  <Text style={styles.sectionTitle}>New Releases</Text>
+                  <Text className="text-white text-xl font-bold ml-3">New Releases</Text>
                 </View>
                 
                 <ScrollView 
                   horizontal 
                   showsHorizontalScrollIndicator={false}
-                  style={styles.horizontalScroll}
+                  className="-mx-5"
                 >
                   {mockNewReleases.map((game) => (
                     <GameCard key={game.id} game={game} />
@@ -287,93 +288,3 @@ export default function DiscoverScreen() {
     </LinearGradient>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1A2238',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#374151',
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 12,
-    color: '#E2E8F0',
-    fontFamily: 'Inter_400Regular',
-    fontSize: 16,
-  },
-  clearButton: {
-    padding: 4,
-  },
-  searchResultsContainer: {
-    marginBottom: 24,
-  },
-  searchResultsHeader: {
-    marginBottom: 16,
-  },
-  searchResultsTitle: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 18,
-    color: '#FFFFFF',
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  loadingText: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 14,
-    color: '#94A3B8',
-    marginTop: 12,
-  },
-  noResultsContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  noResultsText: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 16,
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  noResultsSubtext: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 14,
-    color: '#94A3B8',
-  },
-  section: {
-    marginBottom: 32,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 20,
-    color: '#FFFFFF',
-    marginLeft: 8,
-  },
-  horizontalScroll: {
-    marginLeft: -16,
-    paddingLeft: 16,
-  },
-});

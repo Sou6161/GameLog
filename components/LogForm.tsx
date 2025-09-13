@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MagnifyingGlass, Clock, GameController } from 'phosphor-react-native';
 
@@ -13,14 +13,14 @@ export function LogForm({ selectedStatus }: LogFormProps) {
   const [notes, setNotes] = useState('');
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1">
       {/* Game Search */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Search Game</Text>
-        <View style={styles.searchContainer}>
+      <View className="mb-6">
+        <Text className="font-medium text-base text-[#E2E8F0] mb-2">Search Game</Text>
+        <View className="flex-row items-center bg-[#1A2238] rounded-xl px-4 py-3 border border-[#374151]">
           <MagnifyingGlass size={20} color="#94A3B8" weight="bold" />
           <TextInput
-            style={styles.searchInput}
+            className="flex-1 ml-3 text-[#E2E8F0] font-normal text-base"
             placeholder="Type game name..."
             placeholderTextColor="#94A3B8"
             value={searchGame}
@@ -30,12 +30,12 @@ export function LogForm({ selectedStatus }: LogFormProps) {
       </View>
 
       {/* Hours Played */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Hours Played</Text>
-        <View style={styles.inputContainer}>
+      <View className="mb-6">
+        <Text className="font-medium text-base text-[#E2E8F0] mb-2">Hours Played</Text>
+        <View className="flex-row items-center bg-[#1A2238] rounded-xl px-4 py-3 border border-[#374151]">
           <Clock size={20} color="#94A3B8" weight="bold" />
           <TextInput
-            style={styles.input}
+            className="flex-1 ml-3 text-[#E2E8F0] font-normal text-base"
             placeholder="0"
             placeholderTextColor="#94A3B8"
             value={hours}
@@ -46,109 +46,30 @@ export function LogForm({ selectedStatus }: LogFormProps) {
       </View>
 
       {/* Notes */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Notes (Optional)</Text>
+      <View className="mb-6">
+        <Text className="font-medium text-base text-[#E2E8F0] mb-2">Notes (Optional)</Text>
         <TextInput
-          style={styles.textArea}
+          className="bg-[#1A2238] rounded-xl px-4 py-3 border border-[#374151] text-[#E2E8F0] font-normal text-base min-h-[100px]"
           placeholder="Any thoughts or comments..."
           placeholderTextColor="#94A3B8"
           value={notes}
           onChangeText={setNotes}
           multiline
           numberOfLines={4}
+          textAlignVertical="top"
         />
       </View>
 
       {/* Submit Button */}
-      <TouchableOpacity style={styles.submitButton}>
+      <TouchableOpacity className="mt-8 rounded-xl overflow-hidden">
         <LinearGradient
           colors={['#22D3EE', '#0EA5E9']}
-          style={styles.submitGradient}
+          className="flex-row items-center justify-center py-[18px] px-6"
         >
           <GameController size={24} color="#0A0F1F" weight="bold" />
-          <Text style={styles.submitText}>Log Session</Text>
+          <Text className="font-bold text-lg text-[#0A0F1F] ml-2">Log Session</Text>
         </LinearGradient>
       </TouchableOpacity>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  inputGroup: {
-    marginBottom: 24,
-  },
-  label: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 16,
-    color: '#E2E8F0',
-    marginBottom: 8,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1A2238',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: '#374151',
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 12,
-    color: '#E2E8F0',
-    fontFamily: 'Inter_400Regular',
-    fontSize: 16,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1A2238',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: '#374151',
-  },
-  input: {
-    flex: 1,
-    marginLeft: 12,
-    color: '#E2E8F0',
-    fontFamily: 'Inter_400Regular',
-    fontSize: 16,
-  },
-  textArea: {
-    backgroundColor: '#1A2238',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: '#374151',
-    color: '#E2E8F0',
-    fontFamily: 'Inter_400Regular',
-    fontSize: 16,
-    textAlignVertical: 'top',
-    minHeight: 100,
-  },
-  submitButton: {
-    marginTop: 32,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  submitGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 18,
-    paddingHorizontal: 24,
-  },
-  submitText: {
-    fontFamily: 'Orbitron_700Bold',
-    fontSize: 18,
-    color: '#0A0F1F',
-    marginLeft: 8,
-  },
-});

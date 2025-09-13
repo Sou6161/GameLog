@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Switch, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
@@ -93,26 +93,26 @@ export default function SettingsScreen() {
     destructive?: boolean;
   }) => (
     <TouchableOpacity 
-      style={[styles.settingItem, destructive && styles.settingItemDestructive]} 
+      className={`flex-row items-center justify-between p-4 bg-[#1A2238] rounded-xl mb-2 border border-[#374151] ${destructive ? 'border-red-500' : ''}`} 
       onPress={onPress}
       disabled={showSwitch}
     >
-      <View style={styles.settingItemLeft}>
-        <View style={[styles.settingIcon, destructive && styles.settingIconDestructive]}>
+      <View className="flex-row items-center flex-1">
+        <View className={`w-10 h-10 rounded-full justify-center items-center mr-3 ${destructive ? 'bg-red-500/20' : 'bg-[#865EF6]/20'}`}>
           <Icon size={20} color={destructive ? '#EF4444' : '#865EF6'} weight="fill" />
         </View>
-        <View style={styles.settingContent}>
-          <Text style={[styles.settingTitle, destructive && styles.settingTitleDestructive]}>
+        <View className="flex-1">
+          <Text className={`font-semibold text-base ${destructive ? 'text-red-500' : 'text-white'}`}>
             {title}
           </Text>
           {subtitle && (
-            <Text style={[styles.settingSubtitle, destructive && styles.settingSubtitleDestructive]}>
+            <Text className={`text-sm mt-1 ${destructive ? 'text-red-400' : 'text-gray-400'}`}>
               {subtitle}
             </Text>
           )}
         </View>
       </View>
-      <View style={styles.settingItemRight}>
+      <View className="ml-3">
         {showSwitch ? (
           <Switch
             value={switchValue}
@@ -121,16 +121,18 @@ export default function SettingsScreen() {
             thumbColor={switchValue ? '#FFFFFF' : '#9CA3AF'}
           />
         ) : showArrow ? (
-          <ArrowLeft size={20} color="#6B7280" style={styles.arrowIcon} />
+          <View className="rotate-180">
+            <ArrowLeft size={20} color="#6B7280" />
+          </View>
         ) : null}
       </View>
     </TouchableOpacity>
   );
 
   const renderSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.sectionContent}>
+    <View className="mb-6">
+      <Text className="font-bold text-lg text-white mb-3 px-1">{title}</Text>
+      <View className="space-y-2">
         {children}
       </View>
     </View>
@@ -139,26 +141,26 @@ export default function SettingsScreen() {
   return (
     <LinearGradient
       colors={['#6c5ce7','black','#6c5ce7']}
-      style={styles.container}
+      className="flex-1"
     >
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView className="flex-1">
         {/* Header */}
-        <View style={styles.header}>
+        <View className="flex-row items-center justify-between px-5 py-4">
           <TouchableOpacity 
-            style={styles.backButton} 
+            className="w-10 h-10 rounded-full justify-center items-center" 
             onPress={() => router.back()}
           >
             <ArrowLeft size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Settings</Text>
-          <View style={styles.headerSpacer} />
+          <Text className="font-bold text-xl text-white">Settings</Text>
+          <View className="w-10" />
         </View>
         
         <ScrollView 
-          style={styles.scrollView}
+          className="flex-1"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.content}>
+          <View className="px-5 pb-8">
             {/* Account Settings */}
             {renderSection({
               title: 'Account',
@@ -377,109 +379,3 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#865EF6',
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    flex: 1,
-    fontFamily: 'Orbitron_700Bold',
-    fontSize: 24,
-    color: '#FFFFFF',
-    textAlign: 'center',
-  },
-  headerSpacer: {
-    width: 40,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-  },
-  section: {
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    fontFamily: 'Orbitron_700Bold',
-    fontSize: 18,
-    color: '#FFFFFF',
-    marginBottom: 12,
-    marginLeft: 4,
-  },
-  sectionContent: {
-    backgroundColor: '#1F2937',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#374151',
-    overflow: 'hidden',
-  },
-  settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#374151',
-  },
-  settingItemDestructive: {
-    borderBottomColor: '#7F1D1D',
-  },
-  settingItemLeft: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  settingIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#374151',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  settingIconDestructive: {
-    backgroundColor: '#7F1D1D',
-  },
-  settingContent: {
-    flex: 1,
-  },
-  settingTitle: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 16,
-    color: '#FFFFFF',
-    marginBottom: 2,
-  },
-  settingTitleDestructive: {
-    color: '#EF4444',
-  },
-  settingSubtitle: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 14,
-    color: '#A1A1AA',
-  },
-  settingSubtitleDestructive: {
-    color: '#F87171',
-  },
-  settingItemRight: {
-    alignItems: 'center',
-  },
-  arrowIcon: {
-    transform: [{ rotate: '180deg' }],
-  },
-});

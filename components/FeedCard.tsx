@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { Star, Heart } from 'phosphor-react-native';
 
 interface FeedItem {
@@ -23,129 +23,37 @@ interface FeedCardProps {
 
 export function FeedCard({ item }: FeedCardProps) {
   return (
-    <TouchableOpacity style={styles.container}>
-      <View style={styles.header}>
-        <Image source={{ uri: item.user.avatar }} style={styles.userAvatar} />
-        <View style={styles.userInfo}>
-          <Text style={styles.username}>{item.user.username}</Text>
-          <Text style={styles.action}>
-            {item.action} <Text style={styles.gameTitle}>{item.game.title}</Text>
+    <TouchableOpacity className="bg-[#1A2238] rounded-xl p-4 mb-4 border border-[#374151]">
+      <View className="flex-row items-center mb-3">
+        <Image source={{ uri: item.user.avatar }} className="w-10 h-10 rounded-full border-2 border-[#22D3EE]" />
+        <View className="flex-1 ml-3">
+          <Text className="font-bold text-base text-[#E2E8F0]">{item.user.username}</Text>
+          <Text className="font-normal text-sm text-[#94A3B8] mt-0.5">
+            {item.action} <Text className="font-bold text-base text-[#22D3EE]">{item.game.title}</Text>
           </Text>
-          <Text style={styles.timeAgo}>{item.timeAgo}</Text>
+          <Text className="font-normal text-xs text-[#94A3B8] mt-0.5">{item.timeAgo}</Text>
         </View>
       </View>
       
-      <View style={styles.content}>
-        <Image source={{ uri: item.game.coverUrl }} style={styles.gameCover} />
-        <View style={styles.gameInfo}>
-          <Text style={styles.gameTitle}>{item.game.title}</Text>
+      <View className="flex-row mb-3">
+        <Image source={{ uri: item.game.coverUrl }} className="w-[60px] h-[80px] rounded-lg border border-[#22D3EE]" />
+        <View className="flex-1 ml-3 justify-center">
+          <Text className="font-bold text-base text-[#22D3EE] mb-1">{item.game.title}</Text>
           {item.rating && (
-            <View style={styles.ratingContainer}>
+            <View className="flex-row items-center">
               <Star size={16} color="#F59E0B" weight="fill" />
-              <Text style={styles.rating}>{item.rating}/10</Text>
+              <Text className="font-medium text-sm text-[#F59E0B] ml-1">{item.rating}/10</Text>
             </View>
           )}
         </View>
       </View>
       
-      <View style={styles.actions}>
-        <TouchableOpacity style={styles.actionButton}>
+      <View className="flex-row justify-end">
+        <TouchableOpacity className="flex-row items-center px-3 py-1.5">
           <Heart size={20} color="#94A3B8" weight="bold" />
-          <Text style={styles.actionText}>12</Text>
+          <Text className="font-medium text-sm text-[#94A3B8] ml-1">12</Text>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#1A2238',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#374151',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  userAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#22D3EE',
-  },
-  userInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  username: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: 16,
-    color: '#E2E8F0',
-  },
-  action: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 14,
-    color: '#94A3B8',
-    marginTop: 2,
-  },
-  timeAgo: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 12,
-    color: '#94A3B8',
-    marginTop: 2,
-  },
-  content: {
-    flexDirection: 'row',
-    marginBottom: 12,
-  },
-  gameCover: {
-    width: 60,
-    height: 80,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#22D3EE',
-  },
-  gameInfo: {
-    flex: 1,
-    marginLeft: 12,
-    justifyContent: 'center',
-  },
-  gameTitle: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: 16,
-    color: '#22D3EE',
-    marginBottom: 4,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  rating: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 14,
-    color: '#F59E0B',
-    marginLeft: 4,
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  actionText: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 14,
-    color: '#94A3B8',
-    marginLeft: 4,
-  },
-});

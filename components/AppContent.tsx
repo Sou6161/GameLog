@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { JSX } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { AuthScreen } from './AuthScreen';
-import { LoadingScreen } from './LoadingScreen';
 import { Slot } from 'expo-router';
 
 export interface AppContentProps {
@@ -12,7 +11,7 @@ export function AppContent({ children }: AppContentProps): JSX.Element {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return <LoadingScreen />;
+    return <></>;
   }
 
   if (!isAuthenticated) {

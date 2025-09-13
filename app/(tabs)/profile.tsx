@@ -1,15 +1,23 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image, FlatList, Modal } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  FlatList,
+  Modal,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { 
-  Gear, 
-  Trophy, 
-  Clock, 
-  Star, 
-  GameController, 
-  Heart, 
-  Medal, 
+import {
+  Gear,
+  Trophy,
+  Clock,
+  Star,
+  GameController,
+  Heart,
+  Medal,
   Calendar,
   ArrowRight,
   Play,
@@ -19,14 +27,15 @@ import {
   Target,
   Fire,
   Camera,
-  X
+  X,
 } from 'phosphor-react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 
 const mockUser = {
   username: 'GamerPro',
-  avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=120&h=120&crop=face',
+  avatar:
+    'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=120&h=120&crop=face',
   bio: 'RPG enthusiast and indie game explorer 🎮',
   joinDate: 'March 2023',
   totalPlaytime: '1,247 hours',
@@ -47,7 +56,8 @@ const mockRecentActivity = [
     action: 'Wrote a review',
     rating: 5,
     date: '2 hours ago',
-    gameImage: 'https://images.pexels.com/photos/3165335/pexels-photo-3165335.jpeg?auto=compress&cs=tinysrgb&w=150&h=200'
+    gameImage:
+      'https://images.pexels.com/photos/3165335/pexels-photo-3165335.jpeg?auto=compress&cs=tinysrgb&w=150&h=200',
   },
   {
     id: '2',
@@ -55,7 +65,8 @@ const mockRecentActivity = [
     game: 'Cyberpunk 2077',
     action: 'Started playing',
     date: '1 day ago',
-    gameImage: 'https://images.pexels.com/photos/3165335/pexels-photo-3165335.jpeg?auto=compress&cs=tinysrgb&w=150&h=200'
+    gameImage:
+      'https://images.pexels.com/photos/3165335/pexels-photo-3165335.jpeg?auto=compress&cs=tinysrgb&w=150&h=200',
   },
   {
     id: '3',
@@ -63,7 +74,8 @@ const mockRecentActivity = [
     game: 'Created list',
     action: 'My Top 10 RPGs',
     date: '3 days ago',
-    gameImage: 'https://images.pexels.com/photos/3165335/pexels-photo-3165335.jpeg?auto=compress&cs=tinysrgb&w=150&h=200'
+    gameImage:
+      'https://images.pexels.com/photos/3165335/pexels-photo-3165335.jpeg?auto=compress&cs=tinysrgb&w=150&h=200',
   },
   {
     id: '4',
@@ -72,8 +84,9 @@ const mockRecentActivity = [
     action: 'Unlocked achievement',
     achievement: 'Legendary Warrior',
     date: '1 week ago',
-    gameImage: 'https://images.pexels.com/photos/3165335/pexels-photo-3165335.jpeg?auto=compress&cs=tinysrgb&w=150&h=200'
-  }
+    gameImage:
+      'https://images.pexels.com/photos/3165335/pexels-photo-3165335.jpeg?auto=compress&cs=tinysrgb&w=150&h=200',
+  },
 ];
 
 const mockFavoriteGames = [
@@ -83,7 +96,8 @@ const mockFavoriteGames = [
     genre: 'RPG',
     rating: 5,
     playtime: '120h',
-    image: 'https://images.pexels.com/photos/3165335/pexels-photo-3165335.jpeg?auto=compress&cs=tinysrgb&w=150&h=200'
+    image:
+      'https://images.pexels.com/photos/3165335/pexels-photo-3165335.jpeg?auto=compress&cs=tinysrgb&w=150&h=200',
   },
   {
     id: '2',
@@ -91,7 +105,8 @@ const mockFavoriteGames = [
     genre: 'Action',
     rating: 5,
     playtime: '85h',
-    image: 'https://images.pexels.com/photos/3165335/pexels-photo-3165335.jpeg?auto=compress&cs=tinysrgb&w=150&h=200'
+    image:
+      'https://images.pexels.com/photos/3165335/pexels-photo-3165335.jpeg?auto=compress&cs=tinysrgb&w=150&h=200',
   },
   {
     id: '3',
@@ -99,15 +114,44 @@ const mockFavoriteGames = [
     genre: 'Indie',
     rating: 4,
     playtime: '45h',
-    image: 'https://images.pexels.com/photos/3165335/pexels-photo-3165335.jpeg?auto=compress&cs=tinysrgb&w=150&h=200'
-  }
+    image:
+      'https://images.pexels.com/photos/3165335/pexels-photo-3165335.jpeg?auto=compress&cs=tinysrgb&w=150&h=200',
+  },
 ];
 
 const mockAchievements = [
-  { id: '1', title: 'Review Master', description: 'Wrote 20 reviews', icon: Star, color: '#F59E0B', unlocked: true },
-  { id: '2', title: 'List Creator', description: 'Created 5 lists', icon: Trophy, color: '#22C55E', unlocked: true },
-  { id: '3', title: 'Streak Master', description: '7 day activity streak', icon: Fire, color: '#F43F5E', unlocked: true },
-  { id: '4', title: 'Completionist', description: '100% completion in 10 games', icon: Crown, color: '#8B5CF6', unlocked: false },
+  {
+    id: '1',
+    title: 'Review Master',
+    description: 'Wrote 20 reviews',
+    icon: Star,
+    color: '#F59E0B',
+    unlocked: true,
+  },
+  {
+    id: '2',
+    title: 'List Creator',
+    description: 'Created 5 lists',
+    icon: Trophy,
+    color: '#22C55E',
+    unlocked: true,
+  },
+  {
+    id: '3',
+    title: 'Streak Master',
+    description: '7 day activity streak',
+    icon: Fire,
+    color: '#F43F5E',
+    unlocked: true,
+  },
+  {
+    id: '4',
+    title: 'Completionist',
+    description: '100% completion in 10 games',
+    icon: Crown,
+    color: '#8B5CF6',
+    unlocked: false,
+  },
 ];
 
 const avatarOptions = [
@@ -137,61 +181,86 @@ export default function ProfileScreen() {
   };
 
   const renderActivityItem = ({ item }: { item: any }) => (
-    <View style={styles.activityItem}>
-      <Image source={{ uri: item.gameImage }} style={styles.activityGameImage} />
-      <View style={styles.activityContent}>
-        <Text style={styles.activityGame}>{item.game}</Text>
-        <Text style={styles.activityAction}>{item.action}</Text>
+    <View className="flex-row p-3 mb-3 bg-[#1A2238] rounded-xl border border-[#374151]">
+      <Image
+        source={{ uri: item.gameImage }}
+        className="w-16 h-16 rounded-lg"
+      />
+      <View className="flex-1 ml-3 justify-center">
+        <Text className="font-bold text-base text-white">{item.game}</Text>
+        <Text className="text-sm text-gray-400">{item.action}</Text>
         {item.rating && (
-          <View style={styles.activityRating}>
+          <View className="flex-row mt-1">
             {[1, 2, 3, 4, 5].map((star) => (
-              <Star 
-                key={star} 
-                size={12} 
-                color={star <= item.rating ? '#F59E0B' : '#374151'} 
-                weight={star <= item.rating ? 'fill' : 'regular'} 
+              <Star
+                key={star}
+                size={12}
+                color={star <= item.rating ? '#F59E0B' : '#374151'}
+                weight={star <= item.rating ? 'fill' : 'regular'}
               />
             ))}
           </View>
         )}
-        <Text style={styles.activityDate}>{item.date}</Text>
+        <Text className="text-xs text-gray-500 mt-1">{item.date}</Text>
       </View>
     </View>
   );
 
   const renderFavoriteGame = ({ item }: { item: any }) => (
-    <View style={styles.favoriteGameItem}>
-      <Image source={{ uri: item.image }} style={styles.favoriteGameImage} />
-      <View style={styles.favoriteGameContent}>
-        <Text style={styles.favoriteGameTitle}>{item.title}</Text>
-        <Text style={styles.favoriteGameGenre}>{item.genre}</Text>
-        <View style={styles.favoriteGameMeta}>
-          <View style={styles.favoriteGameRating}>
+    <View className="w-48 mr-3 bg-[#1A2238] rounded-xl overflow-hidden">
+      <Image
+        source={{ uri: item.image }}
+        className="w-full h-28 rounded-t-xl"
+      />
+      <View className="p-3">
+        <Text className="font-bold text-sm text-white mb-1">{item.title}</Text>
+        <Text className="text-xs text-[#00D2FF] mb-2">{item.genre}</Text>
+        <View className="flex-row justify-between items-center">
+          <View className="flex-row">
             {[1, 2, 3, 4, 5].map((star) => (
-              <Star 
-                key={star} 
-                size={10} 
-                color={star <= item.rating ? '#F59E0B' : '#374151'} 
-                weight={star <= item.rating ? 'fill' : 'regular'} 
+              <Star
+                key={star}
+                size={10}
+                color={star <= item.rating ? '#F59E0B' : '#374151'}
+                weight={star <= item.rating ? 'fill' : 'regular'}
               />
             ))}
           </View>
-          <Text style={styles.favoriteGamePlaytime}>{item.playtime}</Text>
+          <Text className="text-xs text-gray-400">{item.playtime}</Text>
         </View>
       </View>
     </View>
   );
 
   const renderAchievement = ({ item }: { item: any }) => (
-    <View style={[styles.achievementItem, !item.unlocked && styles.achievementLocked]}>
-      <View style={[styles.achievementIcon, { backgroundColor: item.unlocked ? item.color : '#374151' }]}>
-        <item.icon size={20} color={item.unlocked ? '#FFFFFF' : '#6B7280'} weight="fill" />
+    <View
+      className={`w-56 mr-3 p-3 bg-[#1A2238] rounded-xl border flex-row items-center ${
+        !item.unlocked ? 'opacity-50 border-[#374151]' : 'border-[#865EF6]'
+      }`}
+    >
+      <View
+        className={`w-10 h-10 rounded-full justify-center items-center mr-3`}
+        style={{ backgroundColor: item.unlocked ? item.color : '#374151' }}
+      >
+        <item.icon
+          size={20}
+          color={item.unlocked ? '#FFFFFF' : '#6B7280'}
+          weight="fill"
+        />
       </View>
-      <View style={styles.achievementContent}>
-        <Text style={[styles.achievementTitle, !item.unlocked && styles.achievementTitleLocked]}>
+      <View className="flex-1">
+        <Text
+          className={`font-bold text-sm ${
+            !item.unlocked ? 'text-gray-400' : 'text-white'
+          }`}
+        >
           {item.title}
         </Text>
-        <Text style={[styles.achievementDescription, !item.unlocked && styles.achievementDescriptionLocked]}>
+        <Text
+          className={`text-xs mt-1 ${
+            !item.unlocked ? 'text-gray-500' : 'text-gray-400'
+          }`}
+        >
           {item.description}
         </Text>
       </View>
@@ -200,29 +269,37 @@ export default function ProfileScreen() {
   );
 
   const renderOverview = () => (
-    <View style={styles.tabContent}>
+    <View className="mt-2">
       {/* Current Streak */}
-      <View style={styles.streakSection}>
-        <Text style={styles.sectionTitle}>Activity Streak</Text>
-        <View style={styles.streakCard}>
+      <View className="mb-6">
+        <Text className="font-bold text-lg text-white mb-3">
+          Activity Streak
+        </Text>
+        <View className="rounded-xl overflow-hidden">
           <LinearGradient
             colors={['#F43F5E', '#E11D48']}
-            style={styles.streakGradient}
+            className="p-4 items-center"
           >
             <Fire size={32} color="#FFFFFF" weight="fill" />
-            <Text style={styles.streakDays}>{mockUser.currentStreak} days</Text>
-            <Text style={styles.streakLabel}>Current Streak</Text>
-            <Text style={styles.streakBest}>Best: {mockUser.longestStreak} days</Text>
+            <Text className="font-bold text-3xl text-white mt-2">
+              {mockUser.currentStreak} days
+            </Text>
+            <Text className="text-white/80 text-sm mt-1">Current Streak</Text>
+            <Text className="text-white/60 text-xs mt-2">
+              Best: {mockUser.longestStreak} days
+            </Text>
           </LinearGradient>
         </View>
       </View>
 
       {/* Favorite Games */}
-      <View style={styles.favoritesSection}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Favorite Games</Text>
-          <TouchableOpacity style={styles.seeAllButton}>
-            <Text style={styles.seeAllText}>See All</Text>
+      <View className="mb-6">
+        <View className="flex-row justify-between items-center mb-3">
+          <Text className="font-bold text-lg text-white">Favorite Games</Text>
+          <TouchableOpacity className="flex-row items-center">
+            <Text className="text-[#865EF6] font-medium text-sm mr-1">
+              See All
+            </Text>
             <ArrowRight size={16} color="#865EF6" />
           </TouchableOpacity>
         </View>
@@ -232,16 +309,20 @@ export default function ProfileScreen() {
           keyExtractor={(item) => item.id}
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.favoritesList}
+          contentContainerStyle={{ paddingVertical: 8 }}
         />
       </View>
 
       {/* Recent Achievements */}
-      <View style={styles.achievementsSection}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recent Achievements</Text>
-          <TouchableOpacity style={styles.seeAllButton}>
-            <Text style={styles.seeAllText}>See All</Text>
+      <View className="mb-6">
+        <View className="flex-row justify-between items-center mb-3">
+          <Text className="font-bold text-lg text-white">
+            Recent Achievements
+          </Text>
+          <TouchableOpacity className="flex-row items-center">
+            <Text className="text-[#865EF6] font-medium text-sm mr-1">
+              See All
+            </Text>
             <ArrowRight size={16} color="#865EF6" />
           </TouchableOpacity>
         </View>
@@ -251,43 +332,51 @@ export default function ProfileScreen() {
           keyExtractor={(item) => item.id}
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.achievementsList}
+          contentContainerStyle={{ paddingVertical: 8 }}
         />
       </View>
     </View>
   );
 
   const renderActivity = () => (
-    <View style={styles.tabContent}>
+    <View className="mt-2">
       <FlatList
         data={mockRecentActivity}
         renderItem={renderActivityItem}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.activityList}
+        contentContainerStyle={{ paddingVertical: 8 }}
       />
     </View>
   );
 
   const renderStats = () => (
-    <View style={styles.tabContent}>
-      <Text style={styles.sectionTitle}>Detailed Statistics</Text>
-      <View style={styles.detailedStats}>
-        <View style={styles.detailedStatItem}>
-          <Text style={styles.detailedStatLabel}>Member Since</Text>
-          <Text style={styles.detailedStatValue}>{mockUser.joinDate}</Text>
+    <View className="mt-2">
+      <Text className="font-bold text-lg text-white mb-3">
+        Detailed Statistics
+      </Text>
+      <View className="bg-[#1A2238] rounded-xl p-4 divide-y divide-gray-700">
+        <View className="flex-row justify-between items-center py-3">
+          <Text className="text-gray-400">Member Since</Text>
+          <Text className="font-medium text-white">{mockUser.joinDate}</Text>
         </View>
-        <View style={styles.detailedStatItem}>
-          <Text style={styles.detailedStatLabel}>Lists Created</Text>
-          <Text style={styles.detailedStatValue}>{mockUser.listsCreated}</Text>
+        <View className="flex-row justify-between items-center py-3">
+          <Text className="text-gray-400">Lists Created</Text>
+          <Text className="font-medium text-white">
+            {mockUser.listsCreated}
+          </Text>
         </View>
-        <View style={styles.detailedStatItem}>
-          <Text style={styles.detailedStatLabel}>Favorite Genres</Text>
-          <Text style={styles.detailedStatValue}>{mockUser.favoriteGenres.join(', ')}</Text>
+        <View className="flex-row justify-between items-center py-3">
+          <Text className="text-gray-400">Favorite Genres</Text>
+          <Text className="font-medium text-white">
+            {mockUser.favoriteGenres.join(', ')}
+          </Text>
         </View>
-        <View style={styles.detailedStatItem}>
-          <Text style={styles.detailedStatLabel}>Total Playtime</Text>
-          <Text style={styles.detailedStatValue}>{mockUser.totalPlaytime}</Text>
+        <View className="flex-row justify-between items-center py-3">
+          <Text className="text-gray-400">Total Playtime</Text>
+          <Text className="font-medium text-white">
+            {mockUser.totalPlaytime}
+          </Text>
         </View>
       </View>
     </View>
@@ -295,65 +384,87 @@ export default function ProfileScreen() {
 
   return (
     <LinearGradient
-      colors={['#6c5ce7','black','#6c5ce7']}
-      style={styles.container}
+      colors={['#0F0F1F', '#121631', '#0A2342']}
+      className="flex-1"
     >
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView className="flex-1">
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Profile</Text>
-          <TouchableOpacity 
-            style={styles.settingsButton} 
+        <View className="flex-row items-center justify-between px-5 py-4">
+          <Text className="font-bold text-xl text-white">Profile</Text>
+          <TouchableOpacity
+            className="w-10 h-10 rounded-full justify-center items-center"
             onPress={() => router.push('/settings' as any)}
           >
             <Gear size={24} color="#FFFFFF" weight="bold" />
           </TouchableOpacity>
         </View>
-        
-        <ScrollView 
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.content}>
+
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+          <View className="px-5 pb-8">
             {/* Profile Header */}
-            <View style={styles.profileHeader}>
-              <TouchableOpacity 
-                style={styles.avatarContainer}
+            <View className="items-center mb-6">
+              <TouchableOpacity
+                className="relative mb-4"
                 onPress={() => setShowAvatarModal(true)}
               >
-                <Image source={{ uri: selectedAvatar }} style={styles.avatar} />
-                <View style={styles.avatarEditOverlay}>
+                <Image
+                  source={{ uri: selectedAvatar }}
+                  className="w-24 h-24 rounded-full border-4 border-white"
+                />
+                <View className="absolute bottom-0 right-0 w-8 h-8 bg-[#00D2FF] rounded-full justify-center items-center border-2 border-white">
                   <Camera size={16} color="#FFFFFF" weight="fill" />
                 </View>
               </TouchableOpacity>
-              
-              <Text style={styles.username}>{user?.username || mockUser.username}</Text>
-              <Text style={styles.bio}>{mockUser.bio}</Text>
+
+              <Text className="font-bold text-2xl text-white mb-2">
+                {user?.username || mockUser.username}
+              </Text>
+              <Text className="text-gray-400 text-base text-center">
+                {mockUser.bio}
+              </Text>
             </View>
 
             {/* Navigation Tabs */}
-            <View style={styles.tabContainer}>
-              <TouchableOpacity 
-                style={[styles.tab, activeTab === 'overview' && styles.activeTab]} 
+            <View className="flex-row mb-6">
+              <TouchableOpacity
+                className={`flex-1 py-3 rounded-xl mr-2 ${
+                  activeTab === 'overview' ? 'bg-[#00D2FF]' : 'bg-[#1A2238]'
+                }`}
                 onPress={() => setActiveTab('overview')}
               >
-                <Text style={[styles.tabText, activeTab === 'overview' && styles.activeTabText]}>
+                <Text
+                  className={`font-semibold text-center ${
+                    activeTab === 'overview' ? 'text-black' : 'text-white'
+                  }`}
+                >
                   Overview
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.tab, activeTab === 'activity' && styles.activeTab]} 
+              <TouchableOpacity
+                className={`flex-1 py-3 rounded-xl mx-1 ${
+                  activeTab === 'activity' ? 'bg-[#00D2FF]' : 'bg-[#1A2238]'
+                }`}
                 onPress={() => setActiveTab('activity')}
               >
-                <Text style={[styles.tabText, activeTab === 'activity' && styles.activeTabText]}>
+                <Text
+                  className={`font-semibold text-center ${
+                    activeTab === 'activity' ? 'text-black' : 'text-white'
+                  }`}
+                >
                   Activity
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.tab, activeTab === 'stats' && styles.activeTab]} 
+              <TouchableOpacity
+                className={`flex-1 py-3 rounded-xl ml-2 ${
+                  activeTab === 'stats' ? 'bg-[#00D2FF]' : 'bg-[#1A2238]'
+                }`}
                 onPress={() => setActiveTab('stats')}
               >
-                <Text style={[styles.tabText, activeTab === 'stats' && styles.activeTabText]}>
+                <Text
+                  className={`font-semibold text-center ${
+                    activeTab === 'stats' ? 'text-black' : 'text-white'
+                  }`}
+                >
                   Stats
                 </Text>
               </TouchableOpacity>
@@ -373,39 +484,47 @@ export default function ProfileScreen() {
           animationType="slide"
           onRequestClose={() => setShowAvatarModal(false)}
         >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Choose Avatar</Text>
-                <TouchableOpacity 
-                  style={styles.closeButton}
+          <View className="flex-1 bg-black/50 justify-end">
+            <View className="bg-[#1A2238] rounded-t-3xl p-6">
+              <View className="flex-row items-center justify-between mb-6">
+                <Text className="font-bold text-xl text-white">
+                  Choose Avatar
+                </Text>
+                <TouchableOpacity
+                  className="w-10 h-10 rounded-full justify-center items-center"
                   onPress={() => setShowAvatarModal(false)}
                 >
                   <X size={24} color="#FFFFFF" />
                 </TouchableOpacity>
               </View>
-              
-              <View style={styles.avatarGrid}>
+
+              <View className="flex-row flex-wrap gap-4">
                 {avatarOptions.map((avatar, index) => (
                   <TouchableOpacity
                     key={index}
-                    style={[
-                      styles.avatarOption,
-                      selectedAvatar === avatar && styles.selectedAvatar
-                    ]}
+                    className={`w-16 h-16 rounded-full border-2 ${
+                      selectedAvatar === avatar
+                        ? 'border-[#00D2FF]'
+                        : 'border-gray-600'
+                    }`}
                     onPress={() => handleAvatarSelect(avatar)}
                   >
-                    <Image source={{ uri: avatar }} style={styles.avatarOptionImage} />
+                    <Image
+                      source={{ uri: avatar }}
+                      className="w-full h-full rounded-full"
+                    />
                   </TouchableOpacity>
                 ))}
-            </View>
+              </View>
 
-              <TouchableOpacity 
-                style={styles.uploadButton}
+              <TouchableOpacity
+                className="mt-6 bg-[#865EF6] py-3 px-4 rounded-xl flex-row items-center justify-center"
                 onPress={handleUploadPhoto}
               >
                 <Camera size={20} color="#FFFFFF" weight="fill" />
-                <Text style={styles.uploadButtonText}>Upload Your Photo</Text>
+                <Text className="text-white font-medium ml-2">
+                  Upload Your Photo
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -414,383 +533,3 @@ export default function ProfileScreen() {
     </LinearGradient>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#865EF6',
-  },
-  headerTitle: {
-    fontFamily: 'Orbitron_700Bold',
-    fontSize: 24,
-    color: '#FFFFFF',
-  },
-  settingsButton: {
-    padding: 8,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-  },
-  profileHeader: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginBottom: 16,
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 3,
-    borderColor: '#865EF6',
-  },
-  avatarEditOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: '#865EF6',
-    borderRadius: 20,
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#000000',
-  },
-  username: {
-    fontFamily: 'Orbitron_700Bold',
-    fontSize: 24,
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  bio: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 16,
-    color: '#A1A1AA',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#1F2937',
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 24,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderRadius: 8,
-  },
-  activeTab: {
-    backgroundColor: '#865EF6',
-  },
-  tabText: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 14,
-    color: '#A1A1AA',
-  },
-  activeTabText: {
-    color: '#FFFFFF',
-  },
-  tabContent: {
-    minHeight: 400,
-  },
-  sectionTitle: {
-    fontFamily: 'Orbitron_700Bold',
-    fontSize: 20,
-    color: '#FFFFFF',
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  seeAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  seeAllText: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 14,
-    color: '#865EF6',
-    marginRight: 4,
-  },
-  streakSection: {
-    marginBottom: 24,
-  },
-  streakCard: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  streakGradient: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  streakDays: {
-    fontFamily: 'Orbitron_700Bold',
-    fontSize: 28,
-    color: '#FFFFFF',
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  streakLabel: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 14,
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  streakBest: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 12,
-    color: '#FBBF24',
-  },
-  favoritesSection: {
-    marginBottom: 24,
-  },
-  favoritesList: {
-    paddingRight: 16,
-  },
-  favoriteGameItem: {
-    width: 120,
-    marginRight: 12,
-    backgroundColor: '#1F2937',
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#374151',
-  },
-  favoriteGameImage: {
-    width: '100%',
-    height: 80,
-  },
-  favoriteGameContent: {
-    padding: 8,
-  },
-  favoriteGameTitle: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 12,
-    color: '#FFFFFF',
-    marginBottom: 2,
-  },
-  favoriteGameGenre: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 10,
-    color: '#A1A1AA',
-    marginBottom: 4,
-  },
-  favoriteGameMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  favoriteGameRating: {
-    flexDirection: 'row',
-  },
-  favoriteGamePlaytime: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 10,
-    color: '#A1A1AA',
-  },
-  achievementsSection: {
-    marginBottom: 24,
-  },
-  achievementsList: {
-    paddingRight: 16,
-  },
-  achievementItem: {
-    width: 200,
-    marginRight: 12,
-    backgroundColor: '#1F2937',
-    borderRadius: 12,
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#374151',
-  },
-  achievementLocked: {
-    opacity: 0.6,
-  },
-  achievementIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  achievementContent: {
-    flex: 1,
-  },
-  achievementTitle: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 14,
-    color: '#FFFFFF',
-    marginBottom: 2,
-  },
-  achievementTitleLocked: {
-    color: '#6B7280',
-  },
-  achievementDescription: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 12,
-    color: '#A1A1AA',
-  },
-  achievementDescriptionLocked: {
-    color: '#6B7280',
-  },
-  activityList: {
-    paddingBottom: 16,
-  },
-  activityItem: {
-    flexDirection: 'row',
-    backgroundColor: '#1F2937',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#374151',
-  },
-  activityGameImage: {
-    width: 50,
-    height: 70,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  activityContent: {
-    flex: 1,
-  },
-  activityGame: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 16,
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  activityAction: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 14,
-    color: '#A1A1AA',
-    marginBottom: 4,
-  },
-  activityRating: {
-    flexDirection: 'row',
-    marginBottom: 4,
-  },
-  activityDate: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  detailedStats: {
-    backgroundColor: '#1F2937',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#374151',
-  },
-  detailedStatItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#374151',
-  },
-  detailedStatLabel: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 14,
-    color: '#A1A1AA',
-  },
-  detailedStatValue: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 14,
-    color: '#FFFFFF',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#1F2937',
-    borderRadius: 16,
-    padding: 20,
-    width: '90%',
-    maxHeight: '80%',
-    borderWidth: 1,
-    borderColor: '#374151',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontFamily: 'Orbitron_700Bold',
-    fontSize: 20,
-    color: '#FFFFFF',
-  },
-  closeButton: {
-    padding: 4,
-  },
-  avatarGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  avatarOption: {
-    width: '30%',
-    aspectRatio: 1,
-    marginBottom: 10,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    overflow: 'hidden',
-  },
-  selectedAvatar: {
-    borderColor: '#865EF6',
-  },
-  avatarOptionImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 10,
-  },
-  uploadButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#865EF6',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  uploadButtonText: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 16,
-    color: '#FFFFFF',
-    marginLeft: 8,
-  },
-});

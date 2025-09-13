@@ -1,8 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Modal, Alert, Image } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Modal,
+  Alert,
+  Image,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Plus, ListBullets, Star, Heart, Clock, GameController, X, Check, Trash, PencilSimple, MagnifyingGlass } from 'phosphor-react-native';
+import {
+  Plus,
+  ListBullets,
+  Star,
+  Heart,
+  Clock,
+  GameController,
+  X,
+  Check,
+  Trash,
+  PencilSimple,
+  MagnifyingGlass,
+} from 'phosphor-react-native';
 import { router } from 'expo-router';
 
 // Mock data for activity feed
@@ -13,7 +34,8 @@ const mockActivityFeed = [
     game: {
       id: '1',
       title: 'Cyberpunk 2077',
-      coverUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
+      coverUrl:
+        'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
       rating: 4.5,
     },
     review: 'Amazing open world with incredible storytelling!',
@@ -26,7 +48,8 @@ const mockActivityFeed = [
     game: {
       id: '2',
       title: 'Elden Ring',
-      coverUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=600&fit=crop',
+      coverUrl:
+        'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=600&fit=crop',
       rating: 5.0,
     },
     review: 'Masterpiece of a game. FromSoftware at their best!',
@@ -39,7 +62,8 @@ const mockActivityFeed = [
     game: {
       id: '3',
       title: 'God of War Ragnarök',
-      coverUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=600&fit=crop',
+      coverUrl:
+        'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=600&fit=crop',
       rating: 4.8,
     },
     review: 'Epic conclusion to Kratos and Atreus journey.',
@@ -52,22 +76,25 @@ const mockActivityFeed = [
 const mockLibrary = [
   {
     id: '1',
-    title: 'Baldur\'s Gate 3',
-    coverUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=600&fit=crop',
+    title: "Baldur's Gate 3",
+    coverUrl:
+      'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=600&fit=crop',
     genre: 'RPG',
     addedDate: '2024-01-15',
   },
   {
     id: '2',
     title: 'Spider-Man 2',
-    coverUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=600&fit=crop',
+    coverUrl:
+      'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=600&fit=crop',
     genre: 'Action',
     addedDate: '2024-01-10',
   },
   {
     id: '3',
     title: 'Alan Wake 2',
-    coverUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
+    coverUrl:
+      'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
     genre: 'Horror',
     addedDate: '2024-01-05',
   },
@@ -80,8 +107,18 @@ const mockCustomLists = [
     name: 'Action & Adventure',
     description: 'Epic action games with amazing stories',
     games: [
-      { id: '1', title: 'God of War Ragnarök', coverUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=600&fit=crop' },
-      { id: '2', title: 'Spider-Man 2', coverUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=600&fit=crop' },
+      {
+        id: '1',
+        title: 'God of War Ragnarök',
+        coverUrl:
+          'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=600&fit=crop',
+      },
+      {
+        id: '2',
+        title: 'Spider-Man 2',
+        coverUrl:
+          'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=600&fit=crop',
+      },
     ],
   },
   {
@@ -89,8 +126,18 @@ const mockCustomLists = [
     name: 'FPS & High Octane',
     description: 'Fast-paced first-person shooters',
     games: [
-      { id: '3', title: 'Call of Duty: Modern Warfare III', coverUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop' },
-      { id: '4', title: 'Doom Eternal', coverUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=600&fit=crop' },
+      {
+        id: '3',
+        title: 'Call of Duty: Modern Warfare III',
+        coverUrl:
+          'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
+      },
+      {
+        id: '4',
+        title: 'Doom Eternal',
+        coverUrl:
+          'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=600&fit=crop',
+      },
     ],
   },
   {
@@ -98,23 +145,88 @@ const mockCustomLists = [
     name: 'Upcoming 2024',
     description: 'Games I want to play this year',
     games: [
-      { id: '5', title: 'Final Fantasy VII Rebirth', coverUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop' },
+      {
+        id: '5',
+        title: 'Final Fantasy VII Rebirth',
+        coverUrl:
+          'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
+      },
     ],
   },
 ];
 
 // Mock games for search
 const mockGamesForSearch = [
-  { id: '1', title: 'Cyberpunk 2077', coverUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop', genre: 'RPG' },
-  { id: '2', title: 'Elden Ring', coverUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=600&fit=crop', genre: 'Action RPG' },
-  { id: '3', title: 'God of War Ragnarök', coverUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=600&fit=crop', genre: 'Action Adventure' },
-  { id: '4', title: 'The Witcher 3', coverUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop', genre: 'RPG' },
-  { id: '5', title: 'Baldur\'s Gate 3', coverUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=600&fit=crop', genre: 'RPG' },
-  { id: '6', title: 'Spider-Man 2', coverUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=600&fit=crop', genre: 'Action' },
-  { id: '7', title: 'Alan Wake 2', coverUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop', genre: 'Horror' },
-  { id: '8', title: 'Call of Duty: Modern Warfare III', coverUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop', genre: 'FPS' },
-  { id: '9', title: 'Doom Eternal', coverUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=600&fit=crop', genre: 'FPS' },
-  { id: '10', title: 'Final Fantasy VII Rebirth', coverUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop', genre: 'RPG' },
+  {
+    id: '1',
+    title: 'Cyberpunk 2077',
+    coverUrl:
+      'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
+    genre: 'RPG',
+  },
+  {
+    id: '2',
+    title: 'Elden Ring',
+    coverUrl:
+      'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=600&fit=crop',
+    genre: 'Action RPG',
+  },
+  {
+    id: '3',
+    title: 'God of War Ragnarök',
+    coverUrl:
+      'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=600&fit=crop',
+    genre: 'Action Adventure',
+  },
+  {
+    id: '4',
+    title: 'The Witcher 3',
+    coverUrl:
+      'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
+    genre: 'RPG',
+  },
+  {
+    id: '5',
+    title: "Baldur's Gate 3",
+    coverUrl:
+      'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=600&fit=crop',
+    genre: 'RPG',
+  },
+  {
+    id: '6',
+    title: 'Spider-Man 2',
+    coverUrl:
+      'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=600&fit=crop',
+    genre: 'Action',
+  },
+  {
+    id: '7',
+    title: 'Alan Wake 2',
+    coverUrl:
+      'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
+    genre: 'Horror',
+  },
+  {
+    id: '8',
+    title: 'Call of Duty: Modern Warfare III',
+    coverUrl:
+      'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
+    genre: 'FPS',
+  },
+  {
+    id: '9',
+    title: 'Doom Eternal',
+    coverUrl:
+      'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=600&fit=crop',
+    genre: 'FPS',
+  },
+  {
+    id: '10',
+    title: 'Final Fantasy VII Rebirth',
+    coverUrl:
+      'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
+    genre: 'RPG',
+  },
 ];
 
 export default function ActivityScreen() {
@@ -124,7 +236,7 @@ export default function ActivityScreen() {
   const [newListDescription, setNewListDescription] = useState('');
   const [customLists, setCustomLists] = useState(mockCustomLists);
   const [editingList, setEditingList] = useState<any>(null);
-  
+
   // Game search state
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -138,9 +250,10 @@ export default function ActivityScreen() {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchQuery.trim().length >= 2) {
-        const results = mockGamesForSearch.filter(game =>
-          game.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          game.genre.toLowerCase().includes(searchQuery.toLowerCase())
+        const results = mockGamesForSearch.filter(
+          (game) =>
+            game.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            game.genre.toLowerCase().includes(searchQuery.toLowerCase())
         );
         setSearchResults(results);
       } else {
@@ -158,16 +271,19 @@ export default function ActivityScreen() {
     }
 
     if (editingList) {
-      // Update existing list
-      const updatedLists = customLists.map(list => 
-        list.id === editingList.id 
-          ? { ...list, name: newListName, description: newListDescription, games: selectedGames }
+      const updatedLists = customLists.map((list) =>
+        list.id === editingList.id
+          ? {
+              ...list,
+              name: newListName,
+              description: newListDescription,
+              games: selectedGames,
+            }
           : list
       );
       setCustomLists(updatedLists);
       Alert.alert('Success', 'List updated successfully!');
     } else {
-      // Create new list
       const newList = {
         id: Date.now().toString(),
         name: newListName,
@@ -178,7 +294,6 @@ export default function ActivityScreen() {
       Alert.alert('Success', 'List created successfully!');
     }
 
-    // Reset form
     setNewListName('');
     setNewListDescription('');
     setSelectedGames([]);
@@ -197,37 +312,32 @@ export default function ActivityScreen() {
   };
 
   const handleDeleteList = (listId: string) => {
-    Alert.alert(
-      'Delete List',
-      'Are you sure you want to delete this list?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            setCustomLists(customLists.filter(list => list.id !== listId));
-          },
+    Alert.alert('Delete List', 'Are you sure you want to delete this list?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          setCustomLists(customLists.filter((list) => list.id !== listId));
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleAddGameToList = (game: any) => {
-    if (!selectedGames.find(g => g.id === game.id)) {
+    if (!selectedGames.find((g) => g.id === game.id)) {
       setSelectedGames([...selectedGames, game]);
     }
   };
 
   const handleRemoveGameFromList = (gameId: string) => {
-    setSelectedGames(selectedGames.filter(game => game.id !== gameId));
+    setSelectedGames(selectedGames.filter((game) => game.id !== gameId));
   };
 
   const handleReviewNow = (game: any) => {
-    // Navigate to the log page (review page) with the selected game
     router.push({
       pathname: '/log',
-      params: { game: JSON.stringify(game) }
+      params: { game: JSON.stringify(game) },
     });
   };
 
@@ -241,7 +351,7 @@ export default function ActivityScreen() {
           text: 'Remove',
           style: 'destructive',
           onPress: () => {
-            setLibraryGames(libraryGames.filter(game => game.id !== gameId));
+            setLibraryGames(libraryGames.filter((game) => game.id !== gameId));
             Alert.alert('Success', 'Game removed from library!');
           },
         },
@@ -255,36 +365,45 @@ export default function ActivityScreen() {
 
   const renderReviewsTab = () => (
     <ScrollView showsVerticalScrollIndicator={false}>
-      <View style={styles.tabContent}>
+      <View className="px-5 pb-8">
         {mockActivityFeed.map((activity) => (
-          <View key={activity.id} style={styles.activityItem}>
-            <View style={styles.activityHeader}>
-              <View style={styles.userAvatar}>
+          <View key={activity.id} className="mb-6 bg-[#232946] rounded-2xl p-4">
+            <View className="flex-row items-center mb-2">
+              <View className="w-8 h-8 rounded-full bg-[#121629] justify-center items-center mr-3">
                 <GameController size={20} color="#94A3B8" weight="bold" />
               </View>
-              <View style={styles.activityInfo}>
-                <Text style={styles.activityText}>
-                  You {activity.type} <Text style={styles.gameTitle}>{activity.game.title}</Text>
+              <View className="flex-1">
+                <Text className="text-white font-medium">
+                  You {activity.type}{' '}
+                  <Text className="font-bold text-[#00D2FF]">
+                    {activity.game.title}
+                  </Text>
                 </Text>
-                <Text style={styles.activityTimestamp}>{activity.timestamp}</Text>
+                <Text className="text-xs text-[#94A3B8]">
+                  {activity.timestamp}
+                </Text>
               </View>
-              <TouchableOpacity style={styles.likeButton}>
-                <Heart 
-                  size={20} 
-                  color={activity.liked ? "#FF6B6B" : "#94A3B8"} 
-                  weight={activity.liked ? "fill" : "regular"} 
+              <TouchableOpacity className="ml-2">
+                <Heart
+                  size={20}
+                  color={activity.liked ? '#FF6B6B' : '#94A3B8'}
+                  weight={activity.liked ? 'fill' : 'regular'}
                 />
               </TouchableOpacity>
             </View>
-            
-            <View style={styles.gameInfo}>
-              <Image source={{ uri: activity.game.coverUrl }} style={styles.gameCover} />
-              <View style={styles.gameDetails}>
-                <View style={styles.ratingContainer}>
+            <View className="flex-row items-center">
+              <Image
+                source={{ uri: activity.game.coverUrl }}
+                className="w-16 h-24 rounded-xl mr-3"
+              />
+              <View className="flex-1">
+                <View className="flex-row items-center mb-1">
                   <Star size={16} color="#FFD700" weight="fill" />
-                  <Text style={styles.ratingText}>{activity.game.rating}</Text>
+                  <Text className="ml-1 text-[#FFD700] font-semibold">
+                    {activity.game.rating}
+                  </Text>
                 </View>
-                <Text style={styles.reviewText}>{activity.review}</Text>
+                <Text className="text-white">{activity.review}</Text>
               </View>
             </View>
           </View>
@@ -295,33 +414,43 @@ export default function ActivityScreen() {
 
   const renderLibraryTab = () => (
     <ScrollView showsVerticalScrollIndicator={false}>
-      <View style={styles.tabContent}>
-        <Text style={styles.sectionTitle}>Games to Review Later</Text>
+      <View className="px-5 pb-8">
+        <Text className="text-white font-bold text-lg mb-4">
+          Games to Review Later
+        </Text>
         {libraryGames.map((game) => (
-          <View key={game.id} style={styles.libraryItem}>
-            <Image source={{ uri: game.coverUrl }} style={styles.libraryGameCover} />
-            <View style={styles.libraryGameInfo}>
-              <Text style={styles.libraryGameTitle}>{game.title}</Text>
-              <Text style={styles.libraryGameGenre}>{game.genre}</Text>
-              <Text style={styles.libraryGameDate}>Added {game.addedDate}</Text>
+          <View
+            key={game.id}
+            className="flex-row items-center bg-[#232946] rounded-2xl p-4 mb-4"
+          >
+            <Image
+              source={{ uri: game.coverUrl }}
+              className="w-16 h-24 rounded-xl mr-3"
+            />
+            <View className="flex-1">
+              <Text className="text-white font-semibold">{game.title}</Text>
+              <Text className="text-[#94A3B8]">{game.genre}</Text>
+              <Text className="text-xs text-[#94A3B8]">
+                Added {game.addedDate}
+              </Text>
             </View>
-            <View style={styles.libraryActions}>
-              <TouchableOpacity 
-                style={[
-                  styles.reviewNowButton,
-                  isGameReviewed(game.id) && styles.updateReviewButton
-                ]}
+            <View className="flex-col items-end">
+              <TouchableOpacity
+                className={`px-3 py-2 rounded-lg mb-2 ${
+                  isGameReviewed(game.id) ? 'bg-[#FFD700]' : 'bg-[#00D2FF]'
+                }`}
                 onPress={() => handleReviewNow(game)}
               >
-                <Text style={[
-                  styles.reviewNowText,
-                  isGameReviewed(game.id) && styles.updateReviewText
-                ]}>
+                <Text
+                  className={`font-bold ${
+                    isGameReviewed(game.id) ? 'text-black' : 'text-white'
+                  }`}
+                >
                   {isGameReviewed(game.id) ? 'Update Review' : 'Review Now'}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.removeFromLibraryButton}
+              <TouchableOpacity
+                className="p-2 rounded-lg bg-[#232946]"
                 onPress={() => handleRemoveFromLibrary(game.id)}
               >
                 <Trash size={16} color="#FF6B6B" weight="bold" />
@@ -335,54 +464,62 @@ export default function ActivityScreen() {
 
   const renderListsTab = () => (
     <ScrollView showsVerticalScrollIndicator={false}>
-      <View style={styles.tabContent}>
-        <TouchableOpacity 
-          style={styles.createListButton}
+      <View className="px-5 pb-8">
+        <TouchableOpacity
+          className="mb-6"
           onPress={() => setShowCreateListModal(true)}
         >
           <LinearGradient
             colors={['#00D2FF', '#6c5ce7']}
-            style={styles.createListGradient}
+            className="flex-row items-center rounded-2xl px-5 py-4"
           >
             <Plus size={24} color="#FFFFFF" weight="bold" />
-            <Text style={styles.createListText}>Create New List</Text>
+            <Text className="ml-3 text-white font-bold text-lg">
+              Create New List
+            </Text>
           </LinearGradient>
         </TouchableOpacity>
 
         {customLists.map((list) => (
-          <View key={list.id} style={styles.listItem}>
-            <View style={styles.listHeader}>
-              <View style={styles.listInfo}>
-                <Text style={styles.listName}>{list.name}</Text>
-                <Text style={styles.listDescription}>{list.description}</Text>
-                <Text style={styles.listCount}>{list.games.length} games</Text>
+          <View key={list.id} className="mb-6 bg-[#232946] rounded-2xl p-4">
+            <View className="flex-row items-center mb-2">
+              <View className="flex-1">
+                <Text className="text-white font-bold text-lg">
+                  {list.name}
+                </Text>
+                <Text className="text-[#94A3B8]">{list.description}</Text>
+                <Text className="text-xs text-[#94A3B8]">
+                  {list.games.length} games
+                </Text>
               </View>
-              <View style={styles.listActions}>
-                <TouchableOpacity 
-                  style={styles.listActionButton}
+              <View className="flex-row">
+                <TouchableOpacity
+                  className="p-2 mr-2"
                   onPress={() => handleEditList(list)}
                 >
                   <PencilSimple size={20} color="#94A3B8" weight="bold" />
                 </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.listActionButton}
+                <TouchableOpacity
+                  className="p-2"
                   onPress={() => handleDeleteList(list.id)}
                 >
                   <Trash size={20} color="#FF6B6B" weight="bold" />
                 </TouchableOpacity>
               </View>
             </View>
-            
             {list.games.length > 0 && (
-              <ScrollView 
-                horizontal 
+              <ScrollView
+                horizontal
                 showsHorizontalScrollIndicator={false}
-                style={styles.listGames}
+                className="flex-row mt-2"
               >
                 {list.games.map((game) => (
-                  <View key={game.id} style={styles.listGameItem}>
-                    <Image source={{ uri: game.coverUrl }} style={styles.listGameCover} />
-                    <Text style={styles.listGameTitle}>{game.title}</Text>
+                  <View key={game.id} className="mr-3 items-center">
+                    <Image
+                      source={{ uri: game.coverUrl }}
+                      className="w-14 h-20 rounded-lg mb-1"
+                    />
+                    <Text className="text-white text-xs">{game.title}</Text>
                   </View>
                 ))}
               </ScrollView>
@@ -395,48 +532,66 @@ export default function ActivityScreen() {
 
   return (
     <LinearGradient
-      colors={['#6c5ce7','black','#6c5ce7']}
-      style={styles.container}
+      colors={['#0F0F1F', '#121631', '#0A2342']}
+      className="flex-1"
     >
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView className="flex-1">
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Activity</Text>
-          <TouchableOpacity style={styles.menuButton}>
+        <View className="flex-row items-center justify-between px-5 py-4">
+          <Text className="font-bold text-xl text-white">Activity</Text>
+          <TouchableOpacity className="w-10 h-10 rounded-full justify-center items-center">
             <ListBullets size={24} color="#FFFFFF" weight="bold" />
           </TouchableOpacity>
         </View>
 
         {/* Tab Navigation */}
-        <View style={styles.tabNavigation}>
+        <View className="flex-row px-5 mb-4">
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'reviews' && styles.activeTab]}
+            className={`flex-1 py-3 rounded-xl mr-2 ${
+              activeTab === 'reviews' ? 'bg-[#00D2FF]' : 'bg-[#1A2238]'
+            }`}
             onPress={() => setActiveTab('reviews')}
           >
-            <Text style={[styles.tabText, activeTab === 'reviews' && styles.activeTabText]}>
+            <Text
+              className={`font-semibold text-center ${
+                activeTab === 'reviews' ? 'text-black' : 'text-white'
+              }`}
+            >
               Reviews
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'library' && styles.activeTab]}
+            className={`flex-1 py-3 rounded-xl mx-1 ${
+              activeTab === 'library' ? 'bg-[#00D2FF]' : 'bg-[#1A2238]'
+            }`}
             onPress={() => setActiveTab('library')}
           >
-            <Text style={[styles.tabText, activeTab === 'library' && styles.activeTabText]}>
+            <Text
+              className={`font-semibold text-center ${
+                activeTab === 'library' ? 'text-black' : 'text-white'
+              }`}
+            >
               Library
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'lists' && styles.activeTab]}
+            className={`flex-1 py-3 rounded-xl ml-2 ${
+              activeTab === 'lists' ? 'bg-[#00D2FF]' : 'bg-[#1A2238]'
+            }`}
             onPress={() => setActiveTab('lists')}
           >
-            <Text style={[styles.tabText, activeTab === 'lists' && styles.activeTabText]}>
+            <Text
+              className={`font-semibold text-center ${
+                activeTab === 'lists' ? 'text-black' : 'text-white'
+              }`}
+            >
               Lists
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Tab Content */}
-        <View style={styles.tabContentContainer}>
+        <View className="flex-1">
           {activeTab === 'reviews' && renderReviewsTab()}
           {activeTab === 'library' && renderLibraryTab()}
           {activeTab === 'lists' && renderListsTab()}
@@ -448,48 +603,51 @@ export default function ActivityScreen() {
           transparent={true}
           animationType="slide"
         >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
+          <View className="flex-1 bg-black/50 justify-end">
+            <View className="bg-[#1A2238] rounded-t-3xl p-6 max-h-[80%]">
+              <View className="flex-row items-center justify-between mb-6">
+                <Text className="font-bold text-xl text-white">
                   {editingList ? 'Edit List' : 'Create New List'}
                 </Text>
-                <TouchableOpacity onPress={() => {
-                  setShowCreateListModal(false);
-                  setEditingList(null);
-                  setNewListName('');
-                  setNewListDescription('');
-                  setSelectedGames([]);
-                  setSearchQuery('');
-                  setSearchResults([]);
-                }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowCreateListModal(false);
+                    setEditingList(null);
+                    setNewListName('');
+                    setNewListDescription('');
+                    setSelectedGames([]);
+                    setSearchQuery('');
+                    setSearchResults([]);
+                  }}
+                >
                   <X size={24} color="#FFFFFF" weight="bold" />
                 </TouchableOpacity>
               </View>
-              
+
               <TextInput
-                style={styles.modalInput}
+                className="bg-[#0F1419] rounded-xl px-4 py-3 mb-4 border border-[#374151] text-white font-normal text-base"
                 placeholder="List name (e.g., Action & Adventure)"
                 placeholderTextColor="#94A3B8"
                 value={newListName}
                 onChangeText={setNewListName}
               />
-              
+
               <TextInput
-                style={[styles.modalInput, styles.modalTextArea]}
+                className="bg-[#0F1419] rounded-xl px-4 py-3 mb-4 border border-[#374151] text-white font-normal text-base min-h-[80px]"
                 placeholder="Description (optional)"
                 placeholderTextColor="#94A3B8"
                 value={newListDescription}
                 onChangeText={setNewListDescription}
                 multiline
                 numberOfLines={3}
+                textAlignVertical="top"
               />
 
               {/* Game Search */}
-              <View style={styles.searchContainer}>
+              <View className="flex-row items-center bg-[#0F1419] rounded-xl px-4 py-3 mb-4 border border-[#374151]">
                 <MagnifyingGlass size={20} color="#94A3B8" weight="bold" />
                 <TextInput
-                  style={styles.searchInput}
+                  className="flex-1 ml-3 text-white font-normal text-base"
                   placeholder="Search games to add..."
                   placeholderTextColor="#94A3B8"
                   value={searchQuery}
@@ -499,17 +657,27 @@ export default function ActivityScreen() {
 
               {/* Search Results */}
               {searchResults.length > 0 && (
-                <ScrollView style={styles.searchResults} showsVerticalScrollIndicator={false}>
+                <ScrollView
+                  className="max-h-32 mb-4"
+                  showsVerticalScrollIndicator={false}
+                >
                   {searchResults.map((game) => (
                     <TouchableOpacity
                       key={game.id}
-                      style={styles.searchResultItem}
+                      className="flex-row items-center mb-2 bg-[#232946] rounded-xl p-2"
                       onPress={() => handleAddGameToList(game)}
                     >
-                      <Image source={{ uri: game.coverUrl }} style={styles.searchResultCover} />
-                      <View style={styles.searchResultInfo}>
-                        <Text style={styles.searchResultTitle}>{game.title}</Text>
-                        <Text style={styles.searchResultGenre}>{game.genre}</Text>
+                      <Image
+                        source={{ uri: game.coverUrl }}
+                        className="w-10 h-14 rounded-lg mr-3"
+                      />
+                      <View className="flex-1">
+                        <Text className="text-white font-semibold">
+                          {game.title}
+                        </Text>
+                        <Text className="text-xs text-[#94A3B8]">
+                          {game.genre}
+                        </Text>
                       </View>
                       <Plus size={20} color="#00D2FF" weight="bold" />
                     </TouchableOpacity>
@@ -519,16 +687,27 @@ export default function ActivityScreen() {
 
               {/* Selected Games */}
               {selectedGames.length > 0 && (
-                <View style={styles.selectedGamesContainer}>
-                  <Text style={styles.selectedGamesTitle}>Selected Games ({selectedGames.length})</Text>
-                  <ScrollView style={styles.selectedGamesList} showsVerticalScrollIndicator={false}>
+                <View className="mb-4">
+                  <Text className="text-white font-bold mb-2">
+                    Selected Games ({selectedGames.length})
+                  </Text>
+                  <ScrollView
+                    className="max-h-24"
+                    showsVerticalScrollIndicator={false}
+                  >
                     {selectedGames.map((game) => (
-                      <View key={game.id} style={styles.selectedGameItem}>
-                        <Image source={{ uri: game.coverUrl }} style={styles.selectedGameCover} />
-                        <Text style={styles.selectedGameTitle}>{game.title}</Text>
+                      <View
+                        key={game.id}
+                        className="flex-row items-center mb-2 bg-[#232946] rounded-xl p-2"
+                      >
+                        <Image
+                          source={{ uri: game.coverUrl }}
+                          className="w-10 h-14 rounded-lg mr-3"
+                        />
+                        <Text className="flex-1 text-white">{game.title}</Text>
                         <TouchableOpacity
                           onPress={() => handleRemoveGameFromList(game.id)}
-                          style={styles.removeGameButton}
+                          className="p-2"
                         >
                           <X size={16} color="#FF6B6B" weight="bold" />
                         </TouchableOpacity>
@@ -537,18 +716,18 @@ export default function ActivityScreen() {
                   </ScrollView>
                 </View>
               )}
-              
-              <TouchableOpacity style={styles.modalButton} onPress={handleCreateList}>
-              <LinearGradient
+
+              <TouchableOpacity className="mt-2" onPress={handleCreateList}>
+                <LinearGradient
                   colors={['#00D2FF', '#6c5ce7']}
-                  style={styles.modalButtonGradient}
+                  className="flex-row items-center justify-center rounded-xl px-5 py-3"
                 >
                   <Check size={20} color="#FFFFFF" weight="bold" />
-                  <Text style={styles.modalButtonText}>
+                  <Text className="ml-2 text-white font-bold text-base">
                     {editingList ? 'Update List' : 'Create List'}
                   </Text>
-              </LinearGradient>
-            </TouchableOpacity>
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
           </View>
         </Modal>
@@ -556,421 +735,3 @@ export default function ActivityScreen() {
     </LinearGradient>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  headerTitle: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: 24,
-    color: '#FFFFFF',
-  },
-  menuButton: {
-    padding: 8,
-  },
-  tabNavigation: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  activeTab: {
-    borderBottomColor: '#00D2FF',
-  },
-  tabText: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 16,
-    color: '#94A3B8',
-  },
-  activeTabText: {
-    color: '#FFFFFF',
-    fontFamily: 'Inter_600SemiBold',
-  },
-  tabContentContainer: {
-    flex: 1,
-  },
-  tabContent: {
-    padding: 16,
-  },
-  // Activity Tab Styles
-  activityItem: {
-    backgroundColor: '#1A2238',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#374151',
-  },
-  activityHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  userAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#374151',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  activityInfo: {
-    flex: 1,
-  },
-  activityText: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 14,
-    color: '#94A3B8',
-  },
-  gameTitle: {
-    fontFamily: 'Inter_600SemiBold',
-    color: '#FFFFFF',
-  },
-  activityTimestamp: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  likeButton: {
-    padding: 8,
-  },
-  gameInfo: {
-    flexDirection: 'row',
-  },
-  gameCover: {
-    width: 60,
-    height: 80,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  gameDetails: {
-    flex: 1,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  ratingText: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 14,
-    color: '#FFD700',
-    marginLeft: 4,
-  },
-  reviewText: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 14,
-    color: '#E2E8F0',
-    lineHeight: 20,
-  },
-  // Library Tab Styles
-  sectionTitle: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 18,
-    color: '#FFFFFF',
-    marginBottom: 16,
-  },
-  libraryItem: {
-    flexDirection: 'row',
-    backgroundColor: '#1A2238',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#374151',
-    alignItems: 'center',
-  },
-  libraryGameCover: {
-    width: 60,
-    height: 80,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  libraryGameInfo: {
-    flex: 1,
-  },
-  libraryGameTitle: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 16,
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  libraryGameGenre: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 14,
-    color: '#94A3B8',
-    marginBottom: 4,
-  },
-  libraryGameDate: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 12,
-    color: '#64748B',
-  },
-  libraryActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  reviewNowButton: {
-    backgroundColor: '#00D2FF',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  updateReviewButton: {
-    backgroundColor: '#FFD700',
-  },
-  reviewNowText: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 12,
-    color: '#000000',
-  },
-  updateReviewText: {
-    color: '#000000',
-  },
-  removeFromLibraryButton: {
-    padding: 8,
-    backgroundColor: 'rgba(255, 107, 107, 0.1)',
-    borderRadius: 8,
-  },
-  // Lists Tab Styles
-  createListButton: {
-    marginBottom: 24,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  createListGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-  },
-  createListText: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 16,
-    color: '#FFFFFF',
-    marginLeft: 8,
-  },
-  listItem: {
-    backgroundColor: '#1A2238',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#374151',
-  },
-  listHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  listInfo: {
-    flex: 1,
-  },
-  listName: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 18,
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  listDescription: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 14,
-    color: '#94A3B8',
-    marginBottom: 4,
-  },
-  listCount: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 12,
-    color: '#64748B',
-  },
-  listActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  listActionButton: {
-    padding: 8,
-  },
-  listGames: {
-    marginTop: 8,
-  },
-  listGameItem: {
-    alignItems: 'center',
-    marginRight: 16,
-    width: 80,
-  },
-  listGameCover: {
-    width: 60,
-    height: 80,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  listGameTitle: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 12,
-    color: '#E2E8F0',
-    textAlign: 'center',
-  },
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#1A2238',
-    borderRadius: 16,
-    padding: 24,
-    width: '90%',
-    maxWidth: 400,
-    maxHeight: '80%',
-    borderWidth: 1,
-    borderColor: '#374151',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  modalTitle: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 20,
-    color: '#FFFFFF',
-  },
-  modalInput: {
-    backgroundColor: '#374151',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    color: '#E2E8F0',
-    fontFamily: 'Inter_400Regular',
-    fontSize: 16,
-  },
-  modalTextArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#374151',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 16,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 8,
-    color: '#E2E8F0',
-    fontFamily: 'Inter_400Regular',
-    fontSize: 16,
-  },
-  searchResults: {
-    maxHeight: 150,
-    marginBottom: 16,
-  },
-  searchResultItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#374151',
-    borderRadius: 8,
-    padding: 8,
-    marginBottom: 8,
-  },
-  searchResultCover: {
-    width: 40,
-    height: 60,
-    borderRadius: 6,
-    marginRight: 12,
-  },
-  searchResultInfo: {
-    flex: 1,
-  },
-  searchResultTitle: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 14,
-    color: '#FFFFFF',
-    marginBottom: 2,
-  },
-  searchResultGenre: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 12,
-    color: '#94A3B8',
-  },
-  selectedGamesContainer: {
-    marginBottom: 16,
-  },
-  selectedGamesTitle: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 14,
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  selectedGamesList: {
-    maxHeight: 120,
-  },
-  selectedGameItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#374151',
-    borderRadius: 8,
-    padding: 8,
-    marginBottom: 8,
-  },
-  selectedGameCover: {
-    width: 40,
-    height: 60,
-    borderRadius: 6,
-    marginRight: 12,
-  },
-  selectedGameTitle: {
-    flex: 1,
-    fontFamily: 'Inter_500Medium',
-    fontSize: 14,
-    color: '#FFFFFF',
-  },
-  removeGameButton: {
-    padding: 4,
-  },
-  modalButton: {
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  modalButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-  },
-  modalButtonText: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 16,
-    color: '#FFFFFF',
-    marginLeft: 8,
-  },
-});

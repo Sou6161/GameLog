@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MagnifyingGlass, X, Check, Star, Heart, Calendar, Tag, ArrowLeft, Plus } from 'phosphor-react-native';
@@ -156,15 +156,15 @@ export default function LogScreen() {
   };
 
   const renderGameSelection = () => (
-    <View style={styles.content}>
-      <Text style={styles.title}>I Played</Text>
-      <Text style={styles.subtitle}>What game did you play?</Text>
+    <View className="px-5 pb-8">
+      <Text className="font-bold text-3xl text-white mb-2">I Played</Text>
+      <Text className="text-gray-400 text-lg mb-6">What game did you play?</Text>
       
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
+      <View className="flex-row items-center bg-[#1A2238] rounded-xl px-4 py-3 mb-6 border border-[#374151]">
         <MagnifyingGlass size={20} color="#94A3B8" weight="bold" />
         <TextInput
-          style={styles.searchInput}
+          className="flex-1 ml-3 text-white font-normal text-base"
           placeholder="Search for a game..."
           placeholderTextColor="#94A3B8"
           value={searchQuery}
@@ -176,29 +176,29 @@ export default function LogScreen() {
 
       {/* Search Results */}
       {isSearching && (
-        <View style={styles.loadingContainer}>
+        <View className="items-center py-10">
           <ActivityIndicator size="large" color="#00D2FF" />
-          <Text style={styles.loadingText}>Searching games...</Text>
+          <Text className="text-[#00D2FF] text-lg font-medium mt-4">Searching games...</Text>
         </View>
       )}
 
       {searchResults.length > 0 && !isSearching && (
-        <View style={styles.resultsContainer}>
-          <Text style={styles.resultsTitle}>Search Results</Text>
+        <View className="mb-6">
+          <Text className="text-white text-xl font-bold mb-4">Search Results</Text>
           <ScrollView showsVerticalScrollIndicator={false}>
             {searchResults.map((game) => (
               <TouchableOpacity
                 key={game.id}
-                style={styles.gameResultItem}
+                className="flex-row items-center bg-[#1A2238] rounded-xl p-4 mb-3 border border-[#374151]"
                 onPress={() => handleGameSelect(game)}
               >
-                <Image source={{ uri: game.coverUrl }} style={styles.gameCover} />
-                <View style={styles.gameInfo}>
-                  <Text style={styles.gameTitle}>{game.title}</Text>
-                  <Text style={styles.gameGenre}>{game.genre}</Text>
-                  <View style={styles.gameRating}>
+                <Image source={{ uri: game.coverUrl }} className="w-16 h-20 rounded-lg mr-4" />
+                <View className="flex-1">
+                  <Text className="text-white text-lg font-bold mb-1">{game.title}</Text>
+                  <Text className="text-gray-400 text-sm mb-2">{game.genre}</Text>
+                  <View className="flex-row items-center">
                     <Star size={16} color="#FFD700" weight="fill" />
-                    <Text style={styles.ratingText}>{game.rating}</Text>
+                    <Text className="text-[#FFD700] text-sm font-medium ml-1">{game.rating}</Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -210,62 +210,62 @@ export default function LogScreen() {
   );
 
   const renderReviewPage = () => (
-    <View style={styles.content}>
+    <View className="px-5 pb-8">
       {/* Header */}
-      <View style={styles.reviewHeader}>
-        <TouchableOpacity onPress={handleBackToSearch} style={styles.backButton}>
+      <View className="flex-row items-center justify-between mb-6">
+        <TouchableOpacity onPress={handleBackToSearch} className="w-10 h-10 rounded-full justify-center items-center">
           <ArrowLeft size={24} color="#FFFFFF" weight="bold" />
         </TouchableOpacity>
-        <Text style={styles.reviewTitle}>I Played</Text>
-        <TouchableOpacity onPress={handleSaveReview} style={styles.saveButton}>
+        <Text className="font-bold text-xl text-white">I Played</Text>
+        <TouchableOpacity onPress={handleSaveReview} className="w-10 h-10 rounded-full justify-center items-center">
           <Check size={24} color="#00D2FF" weight="bold" />
         </TouchableOpacity>
       </View>
 
       {/* Game Info */}
-      <View style={styles.gameInfoContainer}>
-        <Image source={{ uri: selectedGame?.coverUrl }} style={styles.selectedGameCover} />
-        <Text style={styles.selectedGameTitle}>{selectedGame?.title}</Text>
+      <View className="items-center mb-6">
+        <Image source={{ uri: selectedGame?.coverUrl }} className="w-24 h-32 rounded-xl mb-4" />
+        <Text className="text-white text-xl font-bold mb-4 text-center">{selectedGame?.title}</Text>
         <TouchableOpacity 
-          style={styles.addToLibraryButton}
+          className="rounded-xl overflow-hidden"
           onPress={handleAddToLibrary}
         >
           <LinearGradient
             colors={['#00D2FF', '#6c5ce7']}
-            style={styles.addToLibraryGradient}
+            className="flex-row items-center justify-center px-6 py-3"
           >
             <Plus size={16} color="#FFFFFF" weight="bold" />
-            <Text style={styles.addToLibraryText}>Add to Library</Text>
+            <Text className="text-white font-semibold ml-2">Add to Library</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
 
       {/* Date Selection */}
-      <View style={styles.inputRow}>
-        <View style={styles.inputLabel}>
+      <View className="flex-row items-center justify-between mb-6">
+        <View className="flex-row items-center">
           <Calendar size={20} color="#94A3B8" weight="bold" />
-          <Text style={styles.labelText}>Date</Text>
+          <Text className="text-white font-medium ml-3">Date</Text>
         </View>
-        <View style={styles.dateContainer}>
-          <Text style={styles.dateText}>{watchDate}</Text>
-          <TouchableOpacity style={styles.clearButton}>
+        <View className="flex-row items-center bg-[#1A2238] rounded-xl px-4 py-3 border border-[#374151]">
+          <Text className="text-white font-medium mr-2">{watchDate}</Text>
+          <TouchableOpacity className="ml-2">
             <X size={16} color="#94A3B8" weight="bold" />
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Rating */}
-      <View style={styles.inputRow}>
-        <View style={styles.inputLabel}>
+      <View className="flex-row items-center justify-between mb-6">
+        <View className="flex-row items-center">
           <Star size={20} color="#94A3B8" weight="bold" />
-          <Text style={styles.labelText}>Rate</Text>
+          <Text className="text-white font-medium ml-3">Rate</Text>
         </View>
-        <View style={styles.ratingContainer}>
+        <View className="flex-row items-center">
           {[1, 2, 3, 4, 5].map((star) => (
             <TouchableOpacity
               key={star}
               onPress={() => setRating(star)}
-              style={styles.starButton}
+              className="mr-2"
             >
               <Star 
                 size={24} 
@@ -278,31 +278,31 @@ export default function LogScreen() {
       </View>
 
       {/* Like */}
-      <View style={styles.inputRow}>
-        <View style={styles.inputLabel}>
+      <View className="flex-row items-center justify-between mb-6">
+        <View className="flex-row items-center">
           <Heart size={20} color="#94A3B8" weight="bold" />
-          <Text style={styles.labelText}>Like</Text>
+          <Text className="text-white font-medium ml-3">Like</Text>
         </View>
         <TouchableOpacity 
           onPress={() => setLiked(!liked)}
-          style={styles.likeButton}
+          className="flex-row items-center"
         >
           <Heart 
             size={24} 
             color={liked ? "#FF6B6B" : "#374151"} 
             weight={liked ? "fill" : "regular"} 
           />
-          <Text style={[styles.likeText, { color: liked ? "#FF6B6B" : "#94A3B8" }]}>
+          <Text className={`font-medium ml-2 ${liked ? 'text-[#FF6B6B]' : 'text-[#94A3B8]'}`}>
             Like
           </Text>
         </TouchableOpacity>
       </View>
 
       {/* Review */}
-      <View style={styles.reviewContainer}>
-        <Text style={styles.labelText}>Add review...</Text>
+      <View className="mb-6">
+        <Text className="text-white font-medium mb-3">Add review...</Text>
         <TextInput
-          style={styles.reviewInput}
+          className="bg-[#1A2238] rounded-xl px-4 py-3 border border-[#374151] text-white font-normal text-base min-h-[120px]"
           placeholder="Share your thoughts about this game..."
           placeholderTextColor="#94A3B8"
           value={review}
@@ -314,9 +314,9 @@ export default function LogScreen() {
       </View>
 
       {/* Tags */}
-      <View style={styles.tagsContainer}>
-        <Text style={styles.labelText}>Add tags...</Text>
-        <View style={styles.tagsGrid}>
+      <View className="mb-6">
+        <Text className="text-white font-medium mb-3">Add tags...</Text>
+        <View className="flex-row flex-wrap gap-2">
           {[
             { id: 'first-time', label: 'First-time play', icon: '🎮' },
             { id: 'no-spoilers', label: 'No spoilers', icon: '🤐' },
@@ -327,17 +327,17 @@ export default function LogScreen() {
           ].map((tag) => (
             <TouchableOpacity
               key={tag.id}
-              style={[
-                styles.tagButton,
-                selectedTags.includes(tag.id) && styles.tagButtonSelected
-              ]}
+              className={`flex-row items-center px-3 py-2 rounded-lg border ${
+                selectedTags.includes(tag.id) 
+                  ? 'bg-[#00D2FF]/20 border-[#00D2FF]' 
+                  : 'bg-[#1A2238] border-[#374151]'
+              }`}
               onPress={() => toggleTag(tag.id)}
             >
-              <Text style={styles.tagIcon}>{tag.icon}</Text>
-              <Text style={[
-                styles.tagText,
-                selectedTags.includes(tag.id) && styles.tagTextSelected
-              ]}>
+              <Text className="text-lg mr-2">{tag.icon}</Text>
+              <Text className={`font-medium text-sm ${
+                selectedTags.includes(tag.id) ? 'text-[#00D2FF]' : 'text-white'
+              }`}>
                 {tag.label}
               </Text>
             </TouchableOpacity>
@@ -349,12 +349,13 @@ export default function LogScreen() {
 
   return (
     <LinearGradient
-      colors={['#6c5ce7','black','#6c5ce7']}
-      style={styles.container}
+         colors={['#0F0F1F', '#121631', '#0A2342']}
+
+      className="flex-1"
     >
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView className="flex-1">
         <ScrollView 
-          style={styles.scrollView}
+          className="flex-1"
           showsVerticalScrollIndicator={false}
         >
           {showReviewPage ? renderReviewPage() : renderGameSelection()}
@@ -363,262 +364,3 @@ export default function LogScreen() {
     </LinearGradient>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-  },
-  title: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: 32,
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 16,
-    color: '#94A3B8',
-    textAlign: 'center',
-    marginBottom: 32,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1A2238',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#374151',
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 12,
-    color: '#E2E8F0',
-    fontFamily: 'Inter_400Regular',
-    fontSize: 16,
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  loadingText: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 14,
-    color: '#94A3B8',
-    marginTop: 12,
-  },
-  resultsContainer: {
-    marginTop: 16,
-  },
-  resultsTitle: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 18,
-    color: '#FFFFFF',
-    marginBottom: 16,
-  },
-  gameResultItem: {
-    flexDirection: 'row',
-    backgroundColor: '#1A2238',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#374151',
-  },
-  gameCover: {
-    width: 60,
-    height: 80,
-    borderRadius: 8,
-  },
-  gameInfo: {
-    flex: 1,
-    marginLeft: 12,
-    justifyContent: 'center',
-  },
-  gameTitle: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 16,
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  gameGenre: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 14,
-    color: '#94A3B8',
-    marginBottom: 4,
-  },
-  gameRating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  ratingText: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 14,
-    color: '#FFD700',
-    marginLeft: 4,
-  },
-  // Review Page Styles
-  reviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  backButton: {
-    padding: 8,
-  },
-  reviewTitle: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: 20,
-    color: '#FFFFFF',
-  },
-  saveButton: {
-    padding: 8,
-  },
-  gameInfoContainer: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  selectedGameCover: {
-    width: 80,
-    height: 120,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  selectedGameTitle: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 18,
-    color: '#FFFFFF',
-    textAlign: 'center',
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#374151',
-  },
-  inputLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  labelText: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 16,
-    color: '#E2E8F0',
-    marginLeft: 8,
-  },
-  dateContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  dateText: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 16,
-    color: '#E2E8F0',
-    marginRight: 8,
-  },
-  clearButton: {
-    padding: 4,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  starButton: {
-    padding: 4,
-    marginLeft: 4,
-  },
-  likeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  likeText: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 16,
-    marginLeft: 8,
-  },
-  reviewContainer: {
-    marginBottom: 24,
-  },
-  reviewInput: {
-    backgroundColor: '#1A2238',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 8,
-    color: '#E2E8F0',
-    fontFamily: 'Inter_400Regular',
-    fontSize: 16,
-    minHeight: 120,
-    borderWidth: 1,
-    borderColor: '#374151',
-  },
-  tagsContainer: {
-    marginBottom: 24,
-  },
-  tagsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginTop: 12,
-  },
-  tagButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1A2238',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#374151',
-  },
-  tagButtonSelected: {
-    backgroundColor: '#00D2FF',
-    borderColor: '#00D2FF',
-  },
-  tagIcon: {
-    fontSize: 16,
-    marginRight: 6,
-  },
-  tagText: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 14,
-    color: '#94A3B8',
-  },
-  tagTextSelected: {
-    color: '#000000',
-    fontFamily: 'Inter_500Medium',
-  },
-  addToLibraryButton: {
-    marginTop: 16,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  addToLibraryGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  addToLibraryText: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 14,
-    color: '#FFFFFF',
-    marginLeft: 6,
-  },
-});

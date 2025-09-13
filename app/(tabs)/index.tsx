@@ -6,13 +6,17 @@ import {
   Image,
   TouchableOpacity,
   Animated,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GameCard } from '@/components/GameCard';
 import { Header } from '@/components/Header';
 import AppContent from '@/components/AppContent';
+import { useFeaturedGames, useTrendingGames, usePopularGames, useTopRatedGames, useUpcomingGames, useIndieGames, useRecentlyReleasedGames, useMostAnticipatedGames } from '@/hooks/useGames';
+import { IGDBGame } from '@/services/igdbService';
 import {
   Star,
   Play,
@@ -24,111 +28,29 @@ import {
   Lightning,
   Crown,
   Trophy,
+  Clock,
+  Calendar,
+  Rocket,
 } from 'phosphor-react-native';
 
-// Mock data for featured games
-const featuredGames = [
-  {
-    id: '1',
-    title: 'Cyberpunk 2077',
-    coverUrl:
-      'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
-    rating: 8.5,
-    genre: 'RPG',
-    isNew: true,
-    players: '1.2M',
-    status: 'hot',
-  },
-  {
-    id: '2',
-    title: 'Elden Ring',
-    coverUrl:
-      'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=600&fit=crop',
-    rating: 9.2,
-    genre: 'Action RPG',
-    isNew: false,
-    players: '2.5M',
-    status: 'trending',
-  },
-  {
-    id: '3',
-    title: 'God of War Ragnarök',
-    coverUrl:
-      'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=600&fit=crop',
-    rating: 9.4,
-    genre: 'Action Adventure',
-    isNew: true,
-    players: '3.1M',
-    status: 'champion',
-  },
-  {
-    id: '4',
-    title: 'The Witcher 3',
-    coverUrl:
-      'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
-    rating: 9.0,
-    genre: 'RPG',
-    isNew: false,
-    players: '1.8M',
-    status: 'classic',
-  },
-];
-
-const trendingGames = [
-  {
-    id: '5',
-    title: "Baldur's Gate 3",
-    coverUrl:
-      'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=600&fit=crop',
-    rating: 9.6,
-    genre: 'RPG',
-  },
-  {
-    id: '6',
-    title: 'Spider-Man 2',
-    coverUrl:
-      'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=600&fit=crop',
-    rating: 8.8,
-    genre: 'Action Adventure',
-  },
-  {
-    id: '7',
-    title: 'Starfield',
-    coverUrl:
-      'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
-    rating: 7.5,
-    genre: 'RPG',
-  },
-];
-
-const popularThisWeek = [
-  {
-    id: '8',
-    title: 'Alan Wake 2',
-    coverUrl:
-      'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=600&fit=crop',
-    rating: 8.9,
-    genre: 'Horror',
-  },
-  {
-    id: '9',
-    title: 'Mortal Kombat 1',
-    coverUrl:
-      'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=600&fit=crop',
-    rating: 8.2,
-    genre: 'Fighting',
-  },
-  {
-    id: '10',
-    title: "Assassin's Creed Mirage",
-    coverUrl:
-      'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
-    rating: 7.8,
-    genre: 'Action Adventure',
-  },
-];
-
-function FeaturedGameCard({ game }: { game: any }) {
+function FeaturedGameCard({ game }: { game: IGDBGame }) {
+  // Mock additional properties for featured games styling
+  const mockStatus = 'hot';
+  const isNew = Math.random() > 0.5; // Random for demo purposes
+  
+  const handlePress = () => {
+    // Safety check to ensure game.id exists
+    if (!game || !game.id) {
+      console.warn('FeaturedGameCard: Invalid game data or missing ID', game);
+      return;
+    }
+    
+    router.push({
+      pathname: '/game/[id]',
+      params: { id: game.id.toString() }
+    });
+  };
+  
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'hot':
@@ -159,13 +81,14 @@ function FeaturedGameCard({ game }: { game: any }) {
     }
   };
 
-  const StatusIcon = getStatusIcon(game.status);
-  const statusColor = getStatusColor(game.status);
+  const StatusIcon = getStatusIcon(mockStatus);
+  const statusColor = getStatusColor(mockStatus);
 
   return (
     <TouchableOpacity
       className="w-[280px] h-[360px] mr-5 relative "
       activeOpacity={0.9}
+      onPress={handlePress}
     >
       {/* Animated border glow */}
       <View
@@ -182,7 +105,7 @@ function FeaturedGameCard({ game }: { game: any }) {
       {/* Main card container */}
       <View className="flex-1 rounded-3xl overflow-hidden bg-[#1A1A2E] border-2 border-white/20">
         <Image
-          source={{ uri: game.coverUrl }}
+          source={{ uri: game.cover?.url || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop' }}
           className="w-full h-full absolute"
           
         />
@@ -217,7 +140,7 @@ function FeaturedGameCard({ game }: { game: any }) {
           {/* Top badges row */}
           <View className="flex-row justify-between items-start px-2 pt-2">
             <View className="flex-row gap-1.5  ">
-              {game.isNew && (
+              {isNew && (
                 <View
                   className="flex-row items-center px-2.5 py-1 rounded-[12px] gap-1 border-2 bg-[rgba(255,107,107,0.9)] border-[#FF6B6B]"
                   style={{
@@ -250,7 +173,7 @@ function FeaturedGameCard({ game }: { game: any }) {
                 className="font-bold text-xs tracking-wide"
                 style={{ color: statusColor }}
               >
-                {game.status.toUpperCase()}
+                {mockStatus.toUpperCase()}
               </Text>
             </View>
           </View>
@@ -261,7 +184,7 @@ function FeaturedGameCard({ game }: { game: any }) {
               className="font-bold text-2xl text-white leading-7 shadow-text tracking-wide mb-1"
               numberOfLines={2}
             >
-              {game.title}
+              {game.name}
             </Text>
 
             <View className="gap-2">
@@ -281,7 +204,7 @@ function FeaturedGameCard({ game }: { game: any }) {
                     style={{ color: statusColor }}
                     className="font-bold text-xs tracking-wide"
                   >
-                    {game.genre}
+                    {game.genres && game.genres.length > 0 ? game.genres[0].name : 'Unknown'}
                   </Text>
                 </View>
 
@@ -297,7 +220,7 @@ function FeaturedGameCard({ game }: { game: any }) {
                   >
                     <Star size={12} color="#FFD700" weight="fill" />
                     <Text className="font-bold text-xs text-[#FFD700] ml-1.5">
-                      {game.rating}
+                      {game.rating ? (game.rating / 10).toFixed(1) : '?'}
                     </Text>
                   </View>
                 </View>
@@ -309,7 +232,7 @@ function FeaturedGameCard({ game }: { game: any }) {
                   <View
                     className="h-full rounded-full shadow-md"
                     style={{
-                      width: `${(game.rating / 10) * 100}%`,
+                      width: `${game.rating ? (game.rating / 100) * 100 : 0}%`,
                       backgroundColor: statusColor,
                       shadowColor: statusColor,
                       shadowOffset: { width: 0, height: 0 },
@@ -402,6 +325,15 @@ function SectionHeader({
 }
 
 function HomeContent() {
+  const { data: featuredGames, isLoading: featuredLoading, error: featuredError } = useFeaturedGames();
+  const { data: trendingGames, isLoading: trendingLoading, error: trendingError } = useTrendingGames();
+  const { data: popularGames, isLoading: popularLoading, error: popularError } = usePopularGames();
+  const { data: topRatedGames, isLoading: topRatedLoading, error: topRatedError } = useTopRatedGames();
+  const { data: upcomingGames, isLoading: upcomingLoading, error: upcomingError } = useUpcomingGames();
+  const { data: indieGames, isLoading: indieLoading, error: indieError } = useIndieGames();
+  const { data: recentlyReleasedGames, isLoading: recentlyReleasedLoading, error: recentlyReleasedError } = useRecentlyReleasedGames();
+  const { data: mostAnticipatedGames, isLoading: mostAnticipatedLoading, error: mostAnticipatedError } = useMostAnticipatedGames();
+
   return (
     <LinearGradient
       colors={['#0F0F1F', '#121631', '#0A2342']}
@@ -431,31 +363,53 @@ function HomeContent() {
                 icon={Heart}
                 color="#FF6B6B"
               />
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                className="-mx-5"
-                contentContainerStyle={{ paddingHorizontal: 20 }}
-              >
-                {featuredGames.map((game) => (
-                  <FeaturedGameCard key={game.id} game={game} />
-                ))}
-              </ScrollView>
+              {featuredLoading ? (
+                <View className="h-[360px] justify-center items-center">
+                  <ActivityIndicator size="large" color="#FF6B6B" />
+                </View>
+              ) : featuredError ? (
+                <View className="h-[360px] justify-center items-center">
+                  <Text className="text-white text-center">Failed to load featured games</Text>
+                  <Text className="text-gray-400 text-sm mt-2">Please check your internet connection</Text>
+                </View>
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="-mx-5"
+                  contentContainerStyle={{ paddingHorizontal: 20 }}
+                >
+                  {featuredGames?.map((game: IGDBGame) => (
+                    <FeaturedGameCard key={game.id} game={game} />
+                  ))}
+                </ScrollView>
+              )}
             </View>
 
             {/* Trending Now */}
             <View className="mb-8">
               <SectionHeader title="Trending Now" icon={Fire} color="#00D2FF" />
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                className="-mx-5"
-                contentContainerStyle={{ paddingHorizontal: 20 }}
-              >
-                {trendingGames.map((game) => (
-                  <GameCard key={game.id} game={game} />
-                ))}
-              </ScrollView>
+              {trendingLoading ? (
+                <View className="h-[200px] justify-center items-center">
+                  <ActivityIndicator size="large" color="#00D2FF" />
+                </View>
+              ) : trendingError ? (
+                <View className="h-[200px] justify-center items-center">
+                  <Text className="text-white text-center">Failed to load trending games</Text>
+                  <Text className="text-gray-400 text-sm mt-2">Please check your internet connection</Text>
+                </View>
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="-mx-5"
+                  contentContainerStyle={{ paddingHorizontal: 20 }}
+                >
+                  {trendingGames?.map((game: IGDBGame) => (
+                    <GameCard key={game.id} game={game} />
+                  ))}
+                </ScrollView>
+              )}
             </View>
 
             {/* Popular This Week */}
@@ -465,16 +419,177 @@ function HomeContent() {
                 icon={Lightning}
                 color="#FFE66D"
               />
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                className="-mx-5"
-                contentContainerStyle={{ paddingHorizontal: 20 }}
-              >
-                {popularThisWeek.map((game) => (
-                  <GameCard key={game.id} game={game} />
-                ))}
-              </ScrollView>
+              {popularLoading ? (
+                <View className="h-[200px] justify-center items-center">
+                  <ActivityIndicator size="large" color="#FFE66D" />
+                </View>
+              ) : popularError ? (
+                <View className="h-[200px] justify-center items-center">
+                  <Text className="text-white text-center">Failed to load popular games</Text>
+                  <Text className="text-gray-400 text-sm mt-2">Please check your internet connection</Text>
+                </View>
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="-mx-5"
+                  contentContainerStyle={{ paddingHorizontal: 20 }}
+                >
+                  {popularGames?.map((game: IGDBGame) => (
+                    <GameCard key={game.id} game={game} />
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+
+            {/* Top Rated Games */}
+            <View className="mb-8">
+              <SectionHeader
+                title="Top Rated Games"
+                icon={Trophy}
+                color="#A78BFA"
+              />
+              {topRatedLoading ? (
+                <View className="h-[200px] justify-center items-center">
+                  <ActivityIndicator size="large" color="#A78BFA" />
+                </View>
+              ) : topRatedError ? (
+                <View className="h-[200px] justify-center items-center">
+                  <Text className="text-white text-center">Failed to load top rated games</Text>
+                  <Text className="text-gray-400 text-sm mt-2">Please check your internet connection</Text>
+                </View>
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="-mx-5"
+                  contentContainerStyle={{ paddingHorizontal: 20 }}
+                >
+                  {topRatedGames?.map((game: IGDBGame) => (
+                    <GameCard key={game.id} game={game} />
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+
+            {/* Upcoming Games */}
+            <View className="mb-8">
+              <SectionHeader
+                title="Upcoming Games"
+                icon={GameController}
+                color="#34D399"
+              />
+              {upcomingLoading ? (
+                <View className="h-[200px] justify-center items-center">
+                  <ActivityIndicator size="large" color="#34D399" />
+                </View>
+              ) : upcomingError ? (
+                <View className="h-[200px] justify-center items-center">
+                  <Text className="text-white text-center">Failed to load upcoming games</Text>
+                  <Text className="text-gray-400 text-sm mt-2">Please check your internet connection</Text>
+                </View>
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="-mx-5"
+                  contentContainerStyle={{ paddingHorizontal: 20 }}
+                >
+                  {upcomingGames?.map((game: IGDBGame) => (
+                    <GameCard key={game.id} game={game} />
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+
+            {/* Indie Games */}
+            <View className="mb-8">
+              <SectionHeader
+                title="Indie Games"
+                icon={Sparkle}
+                color="#F59E0B"
+              />
+              {indieLoading ? (
+                <View className="h-[200px] justify-center items-center">
+                  <ActivityIndicator size="large" color="#F59E0B" />
+                </View>
+              ) : indieError ? (
+                <View className="h-[200px] justify-center items-center">
+                  <Text className="text-white text-center">Failed to load indie games</Text>
+                  <Text className="text-gray-400 text-sm mt-2">Please check your internet connection</Text>
+                </View>
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="-mx-5"
+                  contentContainerStyle={{ paddingHorizontal: 20 }}
+                >
+                  {indieGames?.map((game: IGDBGame) => (
+                    <GameCard key={game.id} game={game} />
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+
+            {/* Recently Released Games */}
+            <View className="mb-8">
+              <SectionHeader
+                title="Recently Released"
+                icon={Clock}
+                color="#10B981"
+              />
+              {recentlyReleasedLoading ? (
+                <View className="h-[200px] justify-center items-center">
+                  <ActivityIndicator size="large" color="#10B981" />
+                </View>
+              ) : recentlyReleasedError ? (
+                <View className="h-[200px] justify-center items-center">
+                  <Text className="text-white text-center">Failed to load recently released games</Text>
+                  <Text className="text-gray-400 text-sm mt-2">Please check your internet connection</Text>
+                </View>
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="-mx-5"
+                  contentContainerStyle={{ paddingHorizontal: 20 }}
+                >
+                  {recentlyReleasedGames?.map((game: IGDBGame) => (
+                    <GameCard key={game.id} game={game} />
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+
+            {/* Most Anticipated Games */}
+            <View className="mb-8">
+              <SectionHeader
+                title="Most Anticipated"
+                icon={Rocket}
+                color="#EF4444"
+              />
+              {mostAnticipatedLoading ? (
+                <View className="h-[200px] justify-center items-center">
+                  <ActivityIndicator size="large" color="#EF4444" />
+                </View>
+              ) : mostAnticipatedError ? (
+                <View className="h-[200px] justify-center items-center">
+                  <Text className="text-white text-center">Failed to load most anticipated games</Text>
+                  <Text className="text-gray-400 text-sm mt-2">Please check your internet connection</Text>
+                </View>
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="-mx-5"
+                  contentContainerStyle={{ paddingHorizontal: 20 }}
+                >
+                  {mostAnticipatedGames?.map((game: IGDBGame) => (
+                    <GameCard key={game.id} game={game} />
+                  ))}
+                </ScrollView>
+              )}
             </View>
 
             {/* Enhanced Quick Actions */}

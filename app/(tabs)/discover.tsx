@@ -6,104 +6,38 @@ import { MagnifyingGlass, TrendUp, Fire, X } from 'phosphor-react-native';
 import { Header } from '@/components/Header';
 import { GameCard } from '@/components/GameCard';
 
-// Mock API function - replace with your actual API call
-const searchGamesAPI = async (query: string) => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  // Mock data - replace with actual API response
-  const mockGames = [
-    {
-      id: '1',
-      title: 'Cyberpunk 2077',
-      coverUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
-      rating: 8.5,
-      genre: 'RPG',
-    },
-    {
-      id: '2',
-      title: 'Elden Ring',
-      coverUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=600&fit=crop',
-      rating: 9.2,
-      genre: 'Action RPG',
-    },
-    {
-      id: '3',
-      title: 'God of War Ragnarök',
-      coverUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=600&fit=crop',
-      rating: 9.4,
-      genre: 'Action Adventure',
-    },
-    {
-      id: '4',
-      title: 'The Witcher 3',
-      coverUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
-      rating: 9.0,
-      genre: 'RPG',
-    },
-    {
-      id: '5',
-      title: 'Baldur\'s Gate 3',
-      coverUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=600&fit=crop',
-      rating: 9.6,
-      genre: 'RPG',
-    },
-  ];
+// IGDB API call for search
+const CLIENT_ID = 'YOUR_CLIENT_ID'; // Replace with your IGDB Client ID
+const ACCESS_TOKEN = 'YOUR_ACCESS_TOKEN'; // Replace with your IGDB Access Token
 
-  // Filter games based on search query
-  return mockGames.filter(game => 
-    game.title.toLowerCase().includes(query.toLowerCase()) ||
-    game.genre.toLowerCase().includes(query.toLowerCase())
-  );
+const searchGamesAPI = async (query: string) => {
+  try {
+    const response = await fetch('https://api.igdb.com/v4/games', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Client-ID': CLIENT_ID,
+        'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      },
+      body: `search "${query}"; fields id,name,cover.url,rating,genres; limit 10;`,
+    });
+    const data = await response.json();
+    // Map IGDB response to GameCard props
+    return data.map((game: any) => ({
+      id: game.id,
+      title: game.name,
+      coverUrl: game.cover ? `https:${game.cover.url}` : undefined,
+      rating: game.rating,
+      genre: game.genres ? game.genres.join(', ') : '',
+    }));
+  } catch (error) {
+    console.error('IGDB search error:', error);
+    return [];
+  }
 };
 
-const mockTrendingGames = [
-  {
-    id: '1',
-    title: 'Baldur\'s Gate 3',
-    coverUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=600&fit=crop',
-    rating: 9.6,
-    genre: 'RPG',
-  },
-  {
-    id: '2',
-    title: 'Spider-Man 2',
-    coverUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=600&fit=crop',
-    rating: 8.8,
-    genre: 'Action',
-  },
-  {
-    id: '3',
-    title: 'Alan Wake 2',
-    coverUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
-    rating: 9.1,
-    genre: 'Horror',
-  },
-];
-
-const mockNewReleases = [
-  {
-    id: '4',
-    title: 'Starfield',
-    coverUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
-    rating: 7.5,
-    genre: 'RPG',
-  },
-  {
-    id: '5',
-    title: 'Mortal Kombat 1',
-    coverUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=600&fit=crop',
-    rating: 8.2,
-    genre: 'Fighting',
-  },
-  {
-    id: '6',
-    title: 'Assassin\'s Creed Mirage',
-    coverUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=600&fit=crop',
-    rating: 7.8,
-    genre: 'Action Adventure',
-  },
-];
+// Featured section state
+const FEATURED_LIMIT = 10;
 
 export default function DiscoverScreen() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -111,13 +45,18 @@ export default function DiscoverScreen() {
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [featuredGames, setFeaturedGames] = useState<any[]>([]);
+  const [trendingGames, setTrendingGames] = useState<any[]>([]);
+  const [newReleases, setNewReleases] = useState<any[]>([]);
+  const [loadingFeatured, setLoadingFeatured] = useState(true);
+  const [loadingTrending, setLoadingTrending] = useState(true);
+  const [loadingNewReleases, setLoadingNewReleases] = useState(true);
 
   // Debounce search query to prevent excessive API calls
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(searchQuery);
-    }, 500); // 500ms delay
-
+    }, 500);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
@@ -130,14 +69,11 @@ export default function DiscoverScreen() {
         setIsSearching(false);
         return;
       }
-
       if (debouncedQuery.trim().length < 2) {
-        return; // Don't search for queries less than 2 characters
+        return;
       }
-
       setIsSearching(true);
       setHasSearched(true);
-
       try {
         const results = await searchGamesAPI(debouncedQuery);
         setSearchResults(results);
@@ -149,9 +85,101 @@ export default function DiscoverScreen() {
         setIsSearching(false);
       }
     };
-
     performSearch();
   }, [debouncedQuery]);
+
+  // Fetch featured games (example: top rated)
+  useEffect(() => {
+    const fetchFeatured = async () => {
+      setLoadingFeatured(true);
+      try {
+        const response = await fetch('https://api.igdb.com/v4/games', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Client-ID': CLIENT_ID,
+            'Authorization': `Bearer ${ACCESS_TOKEN}`,
+          },
+          body: 'fields id,name,cover.url,rating,genres; sort rating desc; limit 10;',
+        });
+        const data = await response.json();
+        setFeaturedGames(data.map((game: any) => ({
+          id: game.id,
+          title: game.name,
+          coverUrl: game.cover ? `https:${game.cover.url}` : undefined,
+          rating: game.rating,
+          genre: game.genres ? game.genres.join(', ') : '',
+        })));
+      } catch (error) {
+        setFeaturedGames([]);
+      } finally {
+        setLoadingFeatured(false);
+      }
+    };
+    fetchFeatured();
+  }, []);
+
+  // Fetch trending games (example: most follows)
+  useEffect(() => {
+    const fetchTrending = async () => {
+      setLoadingTrending(true);
+      try {
+        const response = await fetch('https://api.igdb.com/v4/games', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Client-ID': CLIENT_ID,
+            'Authorization': `Bearer ${ACCESS_TOKEN}`,
+          },
+          body: 'fields id,name,cover.url,rating,genres,follows; sort follows desc; limit 10;',
+        });
+        const data = await response.json();
+        setTrendingGames(data.map((game: any) => ({
+          id: game.id,
+          title: game.name,
+          coverUrl: game.cover ? `https:${game.cover.url}` : undefined,
+          rating: game.rating,
+          genre: game.genres ? game.genres.join(', ') : '',
+        })));
+      } catch (error) {
+        setTrendingGames([]);
+      } finally {
+        setLoadingTrending(false);
+      }
+    };
+    fetchTrending();
+  }, []);
+
+  // Fetch new releases (example: recent release date)
+  useEffect(() => {
+    const fetchNewReleases = async () => {
+      setLoadingNewReleases(true);
+      try {
+        const response = await fetch('https://api.igdb.com/v4/games', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Client-ID': CLIENT_ID,
+            'Authorization': `Bearer ${ACCESS_TOKEN}`,
+          },
+          body: 'fields id,name,cover.url,rating,genres,first_release_date; sort first_release_date desc; limit 10;',
+        });
+        const data = await response.json();
+        setNewReleases(data.map((game: any) => ({
+          id: game.id,
+          title: game.name,
+          coverUrl: game.cover ? `https:${game.cover.url}` : undefined,
+          rating: game.rating,
+          genre: game.genres ? game.genres.join(', ') : '',
+        })));
+      } catch (error) {
+        setNewReleases([]);
+      } finally {
+        setLoadingNewReleases(false);
+      }
+    };
+    fetchNewReleases();
+  }, []);
 
   const clearSearch = useCallback(() => {
     setSearchQuery('');
@@ -161,7 +189,6 @@ export default function DiscoverScreen() {
 
   const renderSearchResults = () => {
     if (!hasSearched) return null;
-
     if (isSearching) {
       return (
         <View className="flex-1 justify-center items-center px-5">
@@ -172,7 +199,6 @@ export default function DiscoverScreen() {
         </View>
       );
     }
-
     if (searchResults.length === 0 && searchQuery.trim().length > 0) {
       return (
         <View className="flex-1 justify-center items-center px-5">
@@ -183,7 +209,6 @@ export default function DiscoverScreen() {
         </View>
       );
     }
-
     if (searchResults.length > 0) {
       return (
         <View className="flex-1 px-5">
@@ -204,21 +229,13 @@ export default function DiscoverScreen() {
         </View>
       );
     }
-
     return null;
   };
 
   return (
-    <LinearGradient
-            colors={['#0F0F1F', '#121631', '#0A2342']}
-
-      className="flex-1"
-    >
+    <LinearGradient colors={["#0F0F1F", "#121631", "#0A2342"]} className="flex-1">
       <SafeAreaView className="flex-1">
-        <ScrollView 
-          className="flex-1"
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           <View className="px-5 pb-8">
             {/* Search Bar */}
             <View className="flex-row items-center bg-[#1A2238] rounded-xl px-4 py-3 mb-6 border border-[#374151]">
@@ -243,43 +260,59 @@ export default function DiscoverScreen() {
             {/* Search Results */}
             {renderSearchResults()}
 
-            {/* Trending Section - Only show when not searching */}
+            {/* Featured Section */}
+            {!hasSearched && (
+              <View className="mb-8">
+                <View className="flex-row items-center mb-4">
+                  <Text className="text-white text-xl font-bold ml-1">Featured</Text>
+                </View>
+                {loadingFeatured ? (
+                  <ActivityIndicator size="small" color="#00D2FF" />
+                ) : (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5">
+                    {featuredGames.map((game) => (
+                      <GameCard key={game.id} game={game} />
+                    ))}
+                  </ScrollView>
+                )}
+              </View>
+            )}
+
+            {/* Trending Section */}
             {!hasSearched && (
               <View className="mb-8">
                 <View className="flex-row items-center mb-4">
                   <TrendUp size={24} color="#00D2FF" weight="bold" />
                   <Text className="text-white text-xl font-bold ml-3">Trending Now</Text>
                 </View>
-                
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={false}
-                  className="-mx-5"
-                >
-                  {mockTrendingGames.map((game) => (
-                    <GameCard key={game.id} game={game} />
-                  ))}
-                </ScrollView>
+                {loadingTrending ? (
+                  <ActivityIndicator size="small" color="#00D2FF" />
+                ) : (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5">
+                    {trendingGames.map((game) => (
+                      <GameCard key={game.id} game={game} />
+                    ))}
+                  </ScrollView>
+                )}
               </View>
             )}
 
-            {/* New Releases - Only show when not searching */}
+            {/* New Releases */}
             {!hasSearched && (
               <View className="mb-8">
                 <View className="flex-row items-center mb-4">
                   <Fire size={24} color="#FF6B6B" weight="bold" />
                   <Text className="text-white text-xl font-bold ml-3">New Releases</Text>
                 </View>
-                
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={false}
-                  className="-mx-5"
-                >
-                  {mockNewReleases.map((game) => (
-                    <GameCard key={game.id} game={game} />
-                  ))}
-                </ScrollView>
+                {loadingNewReleases ? (
+                  <ActivityIndicator size="small" color="#FF6B6B" />
+                ) : (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5">
+                    {newReleases.map((game) => (
+                      <GameCard key={game.id} game={game} />
+                    ))}
+                  </ScrollView>
+                )}
               </View>
             )}
           </View>

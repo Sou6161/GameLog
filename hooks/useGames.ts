@@ -141,3 +141,53 @@ export function useUserGameStatuses(userId: string) {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
+
+export function useRacingGames() {
+  return useQuery({
+    queryKey: ['racingGames'],
+    queryFn: () => igdbService.getRacingGames(10),
+    staleTime: 30 * 60 * 1000, // 30 minutes
+    retry: 2,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useSportsGames() {
+  return useQuery({
+    queryKey: ['sportsGames'],
+    queryFn: () => igdbService.getSportsGames(10),
+    staleTime: 30 * 60 * 1000, // 30 minutes
+    retry: 2,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useFightingGames() {
+  return useQuery({
+    queryKey: ['fightingGames'],
+    queryFn: () => igdbService.getFightingGames(10),
+    staleTime: 30 * 60 * 1000, // 30 minutes
+    retry: 2,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useStrategyGames() {
+  return useQuery({
+    queryKey: ['strategyGames'],
+    queryFn: () => igdbService.getStrategyGames(10),
+    staleTime: 30 * 60 * 1000, // 30 minutes
+    retry: 2,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useHorrorGames() {
+  return useQuery({
+    queryKey: ['horrorGames'],
+    queryFn: () => igdbService.getHorrorGames(10),
+    staleTime: 30 * 60 * 1000, // 30 minutes
+    retry: 2,
+    refetchOnWindowFocus: false,
+  });
+}

@@ -1,364 +1,585 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MagnifyingGlass, X, Check, Star, Heart, Calendar, Tag, ArrowLeft, Plus } from 'phosphor-react-native';
-import { GameCard } from '@/components/GameCard';
+import { MagnifyingGlass, X, Check, Star, Heart, Calendar, ArrowLeft, Plus, GameController } from 'phosphor-react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import { igdbService } from '@/services/igdbService';
 
-// Mock API function for game search
-const searchGamesAPI = async (query: string) => {
-  await new Promise(resolve => setTimeout(resolve, 300));
-  
-  const mockGames = [
-    {
-      id: '1',
-      title: 'Cyberpunk 2077',
-      coverUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
-      rating: 8.5,
-      genre: 'RPG',
-    },
-    {
-      id: '2',
-      title: 'Elden Ring',
-      coverUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=600&fit=crop',
-      rating: 9.2,
-      genre: 'Action RPG',
-    },
-    {
-      id: '3',
-      title: 'God of War Ragnarök',
-      coverUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=600&fit=crop',
-      rating: 9.4,
-      genre: 'Action Adventure',
-    },
-    {
-      id: '4',
-      title: 'The Witcher 3',
-      coverUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
-      rating: 9.0,
-      genre: 'RPG',
-    },
-    {
-      id: '5',
-      title: 'Baldur\'s Gate 3',
-      coverUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=600&fit=crop',
-      rating: 9.6,
-      genre: 'RPG',
-    },
-  ];
+interface IGDBGame {
+  id: number;
+  name: string;
+  cover?: {
+    url: string;
+  };
+  first_release_date?: number;
+  genres?: Array<{ name: string }>;
+  rating?: number;
+}
 
-  return mockGames.filter(game => 
-    game.title.toLowerCase().includes(query.toLowerCase()) ||
-    game.genre.toLowerCase().includes(query.toLowerCase())
-  );
-};
+interface GameReview {
+  id: string;
+  game: IGDBGame;
+  status: string;
+  rating: number;
+  reviewText: string;
+  playTime: string;
+  difficulty: string;
+  platform: string;
+  tags: string[];
+  isPublic: boolean;
+  date: string;
+}
 
 export default function LogScreen() {
   const params = useLocalSearchParams();
   
-  // Game Selection State
+  // Search and Game Selection State
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<IGDBGame[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedGame, setSelectedGame] = useState<IGDBGame | null>(null);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   
-  // Review Writing State
-  const [selectedGame, setSelectedGame] = useState<any>(null);
-  const [showReviewPage, setShowReviewPage] = useState(false);
+  // Review Form State
+  const [gameStatus, setGameStatus] = useState('completed');
   const [rating, setRating] = useState(0);
-  const [liked, setLiked] = useState(false);
-  const [review, setReview] = useState('');
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [watchDate, setWatchDate] = useState('Sunday 31 August, 2025');
+  const [reviewText, setReviewText] = useState('');
+  const [playTime, setPlayTime] = useState('');
+  const [difficulty, setDifficulty] = useState('');
+  const [platform, setPlatform] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
+  const [isPublic, setIsPublic] = useState(true);
+  
+  // Reviews Storage
+  const [myReviews, setMyReviews] = useState<GameReview[]>([]);
 
-  // Check if a game was passed via navigation params
+  // Current date for review
+  const currentDate = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  // Game status options
+  const gameStatusOptions = [
+    { id: 'completed', label: 'Completed', icon: '✅' },
+    { id: 'playing', label: 'Currently Playing', icon: '🎮' },
+    { id: 'dropped', label: 'Dropped', icon: '❌' },
+    { id: 'plan', label: 'Plan to Play', icon: '📅' }
+  ];
+
+  // Available tags for reviews
+  const availableTags = [
+    'Masterpiece', 'Great Story', 'Amazing Graphics', 'Excellent Gameplay',
+    'Challenging', 'Relaxing', 'Multiplayer Fun', 'Single Player',
+    'Replay Value', 'Emotional', 'Creative', 'Innovative',
+    'Nostalgic', 'Atmospheric', 'Fast Paced', 'Slow Burn'
+  ];
+
+  // Debounce search query
   useEffect(() => {
-    if (params.game) {
-      try {
-        const gameData = JSON.parse(params.game as string);
-        setSelectedGame(gameData);
-        setShowReviewPage(true);
-      } catch (error) {
-        console.error('Error parsing game data:', error);
-      }
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
-  }, [params.game]);
 
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(searchQuery);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+    searchTimeoutRef.current = setTimeout(() => {
+      setDebouncedQuery(searchQuery.trim());
+    }, 600);
 
-  // Perform search
-  useEffect(() => {
-    const performSearch = async () => {
-      if (debouncedQuery.trim().length === 0) {
-        setSearchResults([]);
-        return;
-      }
-
-      if (debouncedQuery.trim().length < 2) return;
-
-      setIsSearching(true);
-      try {
-        const results = await searchGamesAPI(debouncedQuery);
-        setSearchResults(results);
-      } catch (error) {
-        Alert.alert('Error', 'Failed to search games');
-      } finally {
-        setIsSearching(false);
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
       }
     };
+  }, [searchQuery]);
 
-    performSearch();
-  }, [debouncedQuery]);
+  // Handle search API calls
+  const handleSearch = async (query: string) => {
+    if (!query.trim()) {
+      setIsSearching(false);
+      return;
+    }
 
-  const handleGameSelect = (game: any) => {
-    setSelectedGame(game);
-    setShowReviewPage(true);
-  };
-
-  const handleBackToSearch = () => {
-    setShowReviewPage(false);
-    setSelectedGame(null);
-    setRating(0);
-    setLiked(false);
-    setReview('');
-    setSelectedTags([]);
+    setIsSearching(true);
     
-    // If we came from library, go back to the previous screen
-    if (params.game) {
-      router.back();
+    // Cancel previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    try {
+      const results = await igdbService.searchGames(query);
+      if (!abortController.signal.aborted) {
+        setSearchResults(results);
+      }
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error('Search error:', error);
+        setSearchResults([]);
+      }
+    } finally {
+      if (!abortController.signal.aborted) {
+        setIsSearching(false);
+      }
     }
   };
 
-  const handleSaveReview = () => {
-    // Here you would save the review to your backend
-    Alert.alert('Success', 'Review saved successfully!');
-    handleBackToSearch();
+  // Handle search change with debouncing
+  const handleSearchChange = (text: string) => {
+    setSearchQuery(text);
   };
 
-  const handleAddToLibrary = () => {
-    // Here you would add the game to the user's library
-    Alert.alert('Success', 'Game added to library!');
+  // Perform search when debounced query changes
+  useEffect(() => {
+    if (debouncedQuery.length > 0) {
+      handleSearch(debouncedQuery);
+    } else {
+      setSearchResults([]);
+      setIsSearching(false);
+    }
+  }, [debouncedQuery]);
+
+  // Game selection for review
+  const handleGameSelect = (game: IGDBGame) => {
+    setSelectedGame(game);
+    setShowReviewForm(true);
+    setSearchQuery('');
+    setSearchResults([]);
   };
 
-  const toggleTag = (tag: string) => {
-    setSelectedTags(prev => 
+  // Rating helper
+  const handleRatingPress = (selectedRating: number) => {
+    setRating(selectedRating);
+  };
+
+  // Tag toggle
+  const handleTagToggle = (tag: string) => {
+    setTags(prev => 
       prev.includes(tag) 
         ? prev.filter(t => t !== tag)
         : [...prev, tag]
     );
   };
 
-  const renderGameSelection = () => (
-    <View className="px-5 pb-8">
-      <Text className="font-bold text-3xl text-white mb-2">I Played</Text>
-      <Text className="text-gray-400 text-lg mb-6">What game did you play?</Text>
-      
-      {/* Search Bar */}
-      <View className="flex-row items-center bg-[#1A2238] rounded-xl px-4 py-3 mb-6 border border-[#374151]">
-        <MagnifyingGlass size={20} color="#94A3B8" weight="bold" />
-        <TextInput
-          className="flex-1 ml-3 text-white font-normal text-base"
-          placeholder="Search for a game..."
-          placeholderTextColor="#94A3B8"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-      </View>
+  // Submit review
+  const handleSubmitReview = () => {
+    if (!selectedGame) return;
+    
+    const newReview: GameReview = {
+      id: Date.now().toString(),
+      game: selectedGame,
+      status: gameStatus,
+      rating,
+      reviewText,
+      playTime,
+      difficulty,
+      platform,
+      tags,
+      isPublic,
+      date: currentDate
+    };
+    
+    setMyReviews(prev => [newReview, ...prev]);
+    
+    Alert.alert('Success', 'Review posted successfully!');
+    
+    // Reset form
+    setShowReviewForm(false);
+    setSelectedGame(null);
+    setRating(0);
+    setReviewText('');
+    setPlayTime('');
+    setDifficulty('');
+    setPlatform('');
+    setTags([]);
+    setGameStatus('completed');
+  };
 
-      {/* Search Results */}
-      {isSearching && (
-        <View className="items-center py-10">
-          <ActivityIndicator size="large" color="#00D2FF" />
-          <Text className="text-[#00D2FF] text-lg font-medium mt-4">Searching games...</Text>
-        </View>
-      )}
+  // Rating description
+  const getRatingDescription = (rating: number) => {
+    if (rating === 0) return 'Rate this game';
+    if (rating <= 2) return 'Poor';
+    if (rating <= 4) return 'Fair';
+    if (rating <= 6) return 'Good';
+    if (rating <= 8) return 'Great';
+    return 'Masterpiece';
+  };
 
-      {searchResults.length > 0 && !isSearching && (
-        <View className="mb-6">
-          <Text className="text-white text-xl font-bold mb-4">Search Results</Text>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {searchResults.map((game) => (
-              <TouchableOpacity
-                key={game.id}
-                className="flex-row items-center bg-[#1A2238] rounded-xl p-4 mb-3 border border-[#374151]"
-                onPress={() => handleGameSelect(game)}
-              >
-                <Image source={{ uri: game.coverUrl }} className="w-16 h-20 rounded-lg mr-4" />
-                <View className="flex-1">
-                  <Text className="text-white text-lg font-bold mb-1">{game.title}</Text>
-                  <Text className="text-gray-400 text-sm mb-2">{game.genre}</Text>
-                  <View className="flex-row items-center">
-                    <Star size={16} color="#FFD700" weight="fill" />
-                    <Text className="text-[#FFD700] text-sm font-medium ml-1">{game.rating}</Text>
-                  </View>
+  // Helper functions for review display
+  const getStatusIcon = (status: string) => {
+    const statusMap: { [key: string]: string } = {
+      'completed': '✅',
+      'playing': '🎮',
+      'dropped': '❌',
+      'plan': '📅'
+    };
+    return statusMap[status] || '✅';
+  };
+
+  const getStatusLabel = (status: string) => {
+    const statusMap: { [key: string]: string } = {
+      'completed': 'Completed',
+      'playing': 'Currently Playing',
+      'dropped': 'Dropped',
+      'plan': 'Plan to Play'
+    };
+    return statusMap[status] || 'Completed';
+  };
+
+  const getStatusColor = (status: string) => {
+    const colorMap: { [key: string]: string } = {
+      'completed': 'text-green-400',
+      'playing': 'text-blue-400',
+      'dropped': 'text-red-400',
+      'plan': 'text-yellow-400'
+    };
+    return colorMap[status] || 'text-green-400';
+  };
+
+  // Review form view
+  if (showReviewForm && selectedGame) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-900">
+        <ScrollView className="flex-1 px-4 py-6">
+          {/* Header */}
+          <View className="flex-row items-center mb-6">
+            <TouchableOpacity 
+              onPress={() => setShowReviewForm(false)}
+              className="mr-4"
+            >
+              <ArrowLeft size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Text className="text-2xl font-bold text-white">Write Review</Text>
+          </View>
+
+          {/* Game Info */}
+          <View className="bg-gray-800 rounded-lg p-4 mb-6">
+            <View className="flex-row items-center">
+              {selectedGame.cover?.url ? (
+                <Image 
+                  source={{ uri: selectedGame.cover.url.replace('t_thumb', 't_cover_big') }}
+                  className="w-20 h-28 rounded mr-4"
+                />
+              ) : (
+                <View className="w-20 h-28 bg-gray-700 rounded mr-4 items-center justify-center">
+                  <GameController size={24} color="#9CA3AF" />
                 </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      )}
-    </View>
-  );
+              )}
+              <View className="flex-1">
+                <Text className="text-white text-xl font-bold mb-1">{selectedGame.name}</Text>
+                {selectedGame.first_release_date && (
+                  <Text className="text-gray-400 mb-2">
+                    {new Date(selectedGame.first_release_date * 1000).getFullYear()}
+                  </Text>
+                )}
+                <Text className="text-green-400 font-semibold">{currentDate}</Text>
+              </View>
+            </View>
+          </View>
 
-  const renderReviewPage = () => (
-    <View className="px-5 pb-8">
-      {/* Header */}
-      <View className="flex-row items-center justify-between mb-6">
-        <TouchableOpacity onPress={handleBackToSearch} className="w-10 h-10 rounded-full justify-center items-center">
-          <ArrowLeft size={24} color="#FFFFFF" weight="bold" />
-        </TouchableOpacity>
-        <Text className="font-bold text-xl text-white">I Played</Text>
-        <TouchableOpacity onPress={handleSaveReview} className="w-10 h-10 rounded-full justify-center items-center">
-          <Check size={24} color="#00D2FF" weight="bold" />
-        </TouchableOpacity>
-      </View>
+          {/* Game Status */}
+          <View className="mb-6">
+            <Text className="text-white text-lg font-semibold mb-3">Game Status</Text>
+            <View className="flex-row flex-wrap">
+              {gameStatusOptions.map((option) => (
+                <TouchableOpacity
+                  key={option.id}
+                  onPress={() => setGameStatus(option.id)}
+                  className={`mr-3 mb-2 px-4 py-2 rounded-lg flex-row items-center ${
+                    gameStatus === option.id ? 'bg-green-600' : 'bg-gray-700'
+                  }`}
+                >
+                  <Text className="mr-2">{option.icon}</Text>
+                  <Text className="text-white font-medium">{option.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
 
-      {/* Game Info */}
-      <View className="items-center mb-6">
-        <Image source={{ uri: selectedGame?.coverUrl }} className="w-24 h-32 rounded-xl mb-4" />
-        <Text className="text-white text-xl font-bold mb-4 text-center">{selectedGame?.title}</Text>
-        <TouchableOpacity 
-          className="rounded-xl overflow-hidden"
-          onPress={handleAddToLibrary}
-        >
-          <LinearGradient
-            colors={['#00D2FF', '#6c5ce7']}
-            className="flex-row items-center justify-center px-6 py-3"
-          >
-            <Plus size={16} color="#FFFFFF" weight="bold" />
-            <Text className="text-white font-semibold ml-2">Add to Library</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
-
-      {/* Date Selection */}
-      <View className="flex-row items-center justify-between mb-6">
-        <View className="flex-row items-center">
-          <Calendar size={20} color="#94A3B8" weight="bold" />
-          <Text className="text-white font-medium ml-3">Date</Text>
-        </View>
-        <View className="flex-row items-center bg-[#1A2238] rounded-xl px-4 py-3 border border-[#374151]">
-          <Text className="text-white font-medium mr-2">{watchDate}</Text>
-          <TouchableOpacity className="ml-2">
-            <X size={16} color="#94A3B8" weight="bold" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Rating */}
-      <View className="flex-row items-center justify-between mb-6">
-        <View className="flex-row items-center">
-          <Star size={20} color="#94A3B8" weight="bold" />
-          <Text className="text-white font-medium ml-3">Rate</Text>
-        </View>
-        <View className="flex-row items-center">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <TouchableOpacity
-              key={star}
-              onPress={() => setRating(star)}
-              className="mr-2"
-            >
-              <Star 
-                size={24} 
-                color={star <= rating ? "#FFD700" : "#374151"} 
-                weight={star <= rating ? "fill" : "regular"} 
-              />
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      {/* Like */}
-      <View className="flex-row items-center justify-between mb-6">
-        <View className="flex-row items-center">
-          <Heart size={20} color="#94A3B8" weight="bold" />
-          <Text className="text-white font-medium ml-3">Like</Text>
-        </View>
-        <TouchableOpacity 
-          onPress={() => setLiked(!liked)}
-          className="flex-row items-center"
-        >
-          <Heart 
-            size={24} 
-            color={liked ? "#FF6B6B" : "#374151"} 
-            weight={liked ? "fill" : "regular"} 
-          />
-          <Text className={`font-medium ml-2 ${liked ? 'text-[#FF6B6B]' : 'text-[#94A3B8]'}`}>
-            Like
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Review */}
-      <View className="mb-6">
-        <Text className="text-white font-medium mb-3">Add review...</Text>
-        <TextInput
-          className="bg-[#1A2238] rounded-xl px-4 py-3 border border-[#374151] text-white font-normal text-base min-h-[120px]"
-          placeholder="Share your thoughts about this game..."
-          placeholderTextColor="#94A3B8"
-          value={review}
-          onChangeText={setReview}
-          multiline
-          numberOfLines={6}
-          textAlignVertical="top"
-        />
-      </View>
-
-      {/* Tags */}
-      <View className="mb-6">
-        <Text className="text-white font-medium mb-3">Add tags...</Text>
-        <View className="flex-row flex-wrap gap-2">
-          {[
-            { id: 'first-time', label: 'First-time play', icon: '🎮' },
-            { id: 'no-spoilers', label: 'No spoilers', icon: '🤐' },
-            { id: 'masterpiece', label: 'Masterpiece', icon: '👑' },
-            { id: 'underrated', label: 'Underrated', icon: '💎' },
-            { id: 'replay', label: 'Replay', icon: '🔄' },
-            { id: 'coop', label: 'Co-op', icon: '👥' },
-          ].map((tag) => (
-            <TouchableOpacity
-              key={tag.id}
-              className={`flex-row items-center px-3 py-2 rounded-lg border ${
-                selectedTags.includes(tag.id) 
-                  ? 'bg-[#00D2FF]/20 border-[#00D2FF]' 
-                  : 'bg-[#1A2238] border-[#374151]'
-              }`}
-              onPress={() => toggleTag(tag.id)}
-            >
-              <Text className="text-lg mr-2">{tag.icon}</Text>
-              <Text className={`font-medium text-sm ${
-                selectedTags.includes(tag.id) ? 'text-[#00D2FF]' : 'text-white'
-              }`}>
-                {tag.label}
+          {/* Rating */}
+          <View className="mb-6">
+            <Text className="text-white text-lg font-semibold mb-3">Rating</Text>
+            <View className="bg-gray-800 rounded-lg p-4">
+              <View className="flex-row items-center justify-center mb-2">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => (
+                  <TouchableOpacity key={star} onPress={() => handleRatingPress(star)}>
+                    <Star 
+                      size={28} 
+                      color={star <= rating ? '#F59E0B' : '#374151'} 
+                      weight={star <= rating ? 'fill' : 'regular'}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text className="text-center text-yellow-400 font-semibold text-lg">
+                {rating > 0 ? `${rating}/10 - ${getRatingDescription(rating)}` : getRatingDescription(rating)}
               </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-    </View>
-  );
+            </View>
+          </View>
 
+          {/* Play Details */}
+          <View className="mb-6">
+            <Text className="text-white text-lg font-semibold mb-3">Play Details</Text>
+            <View className="space-y-3">
+              <View>
+                <Text className="text-gray-400 mb-1">Play Time</Text>
+                <TextInput
+                  value={playTime}
+                  onChangeText={setPlayTime}
+                  placeholder="e.g., 25 hours"
+                  placeholderTextColor="#9CA3AF"
+                  className="bg-gray-800 text-white px-4 py-3 rounded-lg"
+                />
+              </View>
+              <View>
+                <Text className="text-gray-400 mb-1">Platform</Text>
+                <TextInput
+                  value={platform}
+                  onChangeText={setPlatform}
+                  placeholder="e.g., PC, PlayStation 5, Xbox"
+                  placeholderTextColor="#9CA3AF"
+                  className="bg-gray-800 text-white px-4 py-3 rounded-lg"
+                />
+              </View>
+              <View>
+                <Text className="text-gray-400 mb-1">Difficulty</Text>
+                <TextInput
+                  value={difficulty}
+                  onChangeText={setDifficulty}
+                  placeholder="e.g., Normal, Hard, Easy"
+                  placeholderTextColor="#9CA3AF"
+                  className="bg-gray-800 text-white px-4 py-3 rounded-lg"
+                />
+              </View>
+            </View>
+          </View>
+
+          {/* Review Text */}
+          <View className="mb-6">
+            <Text className="text-white text-lg font-semibold mb-3">Your Review</Text>
+            <View className="bg-gray-800 rounded-lg p-4">
+              <TextInput
+                value={reviewText}
+                onChangeText={setReviewText}
+                placeholder="Share your thoughts about this game..."
+                placeholderTextColor="#9CA3AF"
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+                className="text-white text-base leading-6"
+              />
+              <Text className="text-gray-500 text-sm mt-2 text-right">
+                {reviewText.length}/500 characters
+              </Text>
+            </View>
+          </View>
+
+          {/* Tags */}
+          <View className="mb-6">
+            <Text className="text-white text-lg font-semibold mb-3">Tags</Text>
+            <View className="flex-row flex-wrap">
+              {availableTags.map((tag) => (
+                <TouchableOpacity
+                  key={tag}
+                  onPress={() => handleTagToggle(tag)}
+                  className={`mr-2 mb-2 px-3 py-2 rounded-lg ${
+                    tags.includes(tag) ? 'bg-green-600' : 'bg-gray-700'
+                  }`}
+                >
+                  <Text className={`text-sm font-medium ${
+                    tags.includes(tag) ? 'text-white' : 'text-gray-300'
+                  }`}>{tag}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Privacy Toggle */}
+          <View className="mb-6">
+            <View className="flex-row items-center justify-between bg-gray-800 rounded-lg p-4">
+              <View>
+                <Text className="text-white font-semibold">Public Review</Text>
+                <Text className="text-gray-400 text-sm">Share with the community</Text>
+              </View>
+              <TouchableOpacity 
+                onPress={() => setIsPublic(!isPublic)}
+                className={`w-12 h-6 rounded-full ${isPublic ? 'bg-green-600' : 'bg-gray-600'}`}
+              >
+                <View className={`w-5 h-5 bg-white rounded-full mt-0.5 ${
+                  isPublic ? 'ml-6' : 'ml-0.5'
+                }`} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Submit Button */}
+          <TouchableOpacity 
+            onPress={handleSubmitReview}
+            className="bg-green-600 rounded-lg p-4 mb-6"
+          >
+            <Text className="text-white text-center font-bold text-lg">Post Review</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // Main search and reviews view
   return (
     <LinearGradient
-         colors={['#0F0F1F', '#121631', '#0A2342']}
-
+      colors={['#0F0F1F', '#121631', '#0A2342']}
       className="flex-1"
     >
       <SafeAreaView className="flex-1">
-        <ScrollView 
-          className="flex-1"
-          showsVerticalScrollIndicator={false}
-        >
-          {showReviewPage ? renderReviewPage() : renderGameSelection()}
+        <ScrollView className="flex-1 px-4 py-6">
+          {/* Header */}
+          <View className="mb-6">
+            <Text className="text-2xl font-bold text-white mb-2">Game Reviews</Text>
+            <Text className="text-gray-400">Share your gaming experiences</Text>
+          </View>
+
+          {/* Search Bar */}
+          <View className="mb-6">
+            <View className="relative">
+              <TextInput
+                value={searchQuery}
+                onChangeText={handleSearchChange}
+                placeholder="Search for games to review..."
+                placeholderTextColor="#9CA3AF"
+                className="bg-gray-800 text-white px-4 py-3 rounded-lg pr-10"
+              />
+              <View className="absolute right-3 top-3">
+                {isSearching ? (
+                  <ActivityIndicator size="small" color="#10B981" />
+                ) : (
+                  <MagnifyingGlass size={20} color="#9CA3AF" />
+                )}
+              </View>
+            </View>
+
+            {/* Search Results */}
+            {searchResults.length > 0 && (
+              <View className="mt-2 bg-gray-800 rounded-lg max-h-60">
+                <ScrollView>
+                  {searchResults.map((game) => (
+                    <TouchableOpacity 
+                      key={game.id} 
+                      className="p-3 border-b border-gray-700 last:border-b-0"
+                      onPress={() => handleGameSelect(game)}
+                    >
+                      <View className="flex-row items-center">
+                        {game.cover?.url ? (
+                          <Image 
+                            source={{ uri: game.cover.url.replace('t_thumb', 't_cover_small') }}
+                            className="w-10 h-14 rounded mr-3"
+                          />
+                        ) : (
+                          <View className="w-10 h-14 bg-gray-700 rounded mr-3 items-center justify-center">
+                            <GameController size={20} color="#9CA3AF" />
+                          </View>
+                        )}
+                        <View className="flex-1">
+                          <Text className="text-white font-semibold" numberOfLines={1}>
+                            {game.name}
+                          </Text>
+                          {game.first_release_date && (
+                            <Text className="text-gray-400 text-sm">
+                              {new Date(game.first_release_date * 1000).getFullYear()}
+                            </Text>
+                          )}
+                        </View>
+                        <Plus size={20} color="#10B981" />
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+          </View>
+
+          {/* My Reviews Section */}
+          <View className="mb-6">
+            <View className="flex-row items-center justify-between mb-4">
+              <Text className="text-xl font-bold text-white">My Reviews</Text>
+              <Text className="text-gray-400">{myReviews.length} reviews</Text>
+            </View>
+
+            {myReviews.length === 0 ? (
+              <View className="bg-gray-800 rounded-lg p-8 items-center">
+                <GameController size={48} color="#6B7280" />
+                <Text className="text-white text-lg font-semibold mt-4 mb-2">No reviews yet</Text>
+                <Text className="text-gray-400 text-center text-sm">
+                  Search for a game above to write your first review
+                </Text>
+              </View>
+            ) : (
+              <View className="space-y-4">
+                {myReviews.map((review) => (
+                  <View key={review.id} className="bg-gray-800 rounded-lg p-4">
+                    <View className="flex-row items-center mb-3">
+                      {review.game.cover?.url ? (
+                        <Image 
+                          source={{ uri: review.game.cover.url.replace('t_thumb', 't_cover_small') }}
+                          className="w-16 h-24 rounded mr-4"
+                        />
+                      ) : (
+                        <View className="w-16 h-24 bg-gray-700 rounded mr-4 items-center justify-center">
+                          <GameController size={24} color="#9CA3AF" />
+                        </View>
+                      )}
+                      <View className="flex-1">
+                        <Text className="text-white text-lg font-bold mb-1">{review.game.name}</Text>
+                        <Text className={`text-sm mb-1 ${getStatusColor(review.status)}`}>
+                          {getStatusIcon(review.status)} {getStatusLabel(review.status)}
+                        </Text>
+                        <Text className="text-gray-400 text-sm mb-2">{review.date}</Text>
+                        <View className="flex-row items-center">
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => (
+                            <Star 
+                              key={star} 
+                              size={14} 
+                              color={star <= review.rating ? '#F59E0B' : '#374151'} 
+                              weight={star <= review.rating ? 'fill' : 'regular'}
+                            />
+                          ))}
+                          <Text className="text-yellow-400 ml-2 font-semibold">{review.rating}/10</Text>
+                        </View>
+                      </View>
+                    </View>
+                    {review.reviewText && (
+                      <Text className="text-gray-300 text-sm leading-5 mb-3">
+                        {review.reviewText}
+                      </Text>
+                    )}
+                    {review.tags.length > 0 && (
+                      <View className="flex-row flex-wrap mb-2">
+                        {review.tags.map((tag) => (
+                          <View key={tag} className="bg-green-600/20 px-2 py-1 rounded mr-2 mb-1">
+                            <Text className="text-green-400 text-xs">{tag}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                    <Text className="text-gray-500 text-xs">
+                      {review.platform && `Played on ${review.platform}`}
+                      {review.playTime && ` • ${review.playTime}hrs`}
+                      {review.difficulty && ` • ${review.difficulty} difficulty`}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
+
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>

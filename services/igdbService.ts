@@ -452,6 +452,131 @@ class IGDBService {
     }));
   }
 
+  // Get racing games
+  async getRacingGames(limit: number = 10): Promise<IGDBGame[]> {
+    // Use mock data for web platform to avoid CORS issues
+    if (Platform.OS === 'web') {
+      return this.getMockRacingGames(limit);
+    }
+    
+    const query = `
+      fields name, cover.url, first_release_date, rating, rating_count, platforms.name, genres.name, summary;
+      where genres = [10] & rating > 70 & cover != null;
+      sort rating desc;
+      limit ${limit};
+    `;
+    
+    const games = await this.makeRequest<IGDBGame[]>('games', query);
+    
+    return games.map(game => ({
+      ...game,
+      cover: game.cover ? {
+        ...game.cover,
+        url: `https:${game.cover.url.replace('t_thumb', 't_cover_big')}`
+      } : undefined
+    }));
+  }
+
+  // Get sports games
+  async getSportsGames(limit: number = 10): Promise<IGDBGame[]> {
+    // Use mock data for web platform to avoid CORS issues
+    if (Platform.OS === 'web') {
+      return this.getMockSportsGames(limit);
+    }
+    
+    const query = `
+      fields name, cover.url, first_release_date, rating, rating_count, platforms.name, genres.name, summary;
+      where genres = [14] & rating > 70 & cover != null;
+      sort rating desc;
+      limit ${limit};
+    `;
+    
+    const games = await this.makeRequest<IGDBGame[]>('games', query);
+    
+    return games.map(game => ({
+      ...game,
+      cover: game.cover ? {
+        ...game.cover,
+        url: `https:${game.cover.url.replace('t_thumb', 't_cover_big')}`
+      } : undefined
+    }));
+  }
+
+  // Get fighting games
+  async getFightingGames(limit: number = 10): Promise<IGDBGame[]> {
+    // Use mock data for web platform to avoid CORS issues
+    if (Platform.OS === 'web') {
+      return this.getMockFightingGames(limit);
+    }
+    
+    const query = `
+      fields name, cover.url, first_release_date, rating, rating_count, platforms.name, genres.name, summary;
+      where genres = [4] & rating > 70 & cover != null;
+      sort rating desc;
+      limit ${limit};
+    `;
+    
+    const games = await this.makeRequest<IGDBGame[]>('games', query);
+    
+    return games.map(game => ({
+      ...game,
+      cover: game.cover ? {
+        ...game.cover,
+        url: `https:${game.cover.url.replace('t_thumb', 't_cover_big')}`
+      } : undefined
+    }));
+  }
+
+  // Get strategy games
+  async getStrategyGames(limit: number = 10): Promise<IGDBGame[]> {
+    // Use mock data for web platform to avoid CORS issues
+    if (Platform.OS === 'web') {
+      return this.getMockStrategyGames(limit);
+    }
+    
+    const query = `
+      fields name, cover.url, first_release_date, rating, rating_count, platforms.name, genres.name, summary;
+      where genres = [15] & rating > 70 & cover != null;
+      sort rating desc;
+      limit ${limit};
+    `;
+    
+    const games = await this.makeRequest<IGDBGame[]>('games', query);
+    
+    return games.map(game => ({
+      ...game,
+      cover: game.cover ? {
+        ...game.cover,
+        url: `https:${game.cover.url.replace('t_thumb', 't_cover_big')}`
+      } : undefined
+    }));
+  }
+
+  // Get horror games
+  async getHorrorGames(limit: number = 10): Promise<IGDBGame[]> {
+    // Use mock data for web platform to avoid CORS issues
+    if (Platform.OS === 'web') {
+      return this.getMockHorrorGames(limit);
+    }
+    
+    const query = `
+      fields name, cover.url, first_release_date, rating, rating_count, platforms.name, genres.name, summary;
+      where themes = [19] & rating > 70 & cover != null;
+      sort rating desc;
+      limit ${limit};
+    `;
+    
+    const games = await this.makeRequest<IGDBGame[]>('games', query);
+    
+    return games.map(game => ({
+      ...game,
+      cover: game.cover ? {
+        ...game.cover,
+        url: `https:${game.cover.url.replace('t_thumb', 't_cover_big')}`
+      } : undefined
+    }));
+  }
+
   // Mock data methods for web platform (CORS workaround)
   private getMockFeaturedGames(limit: number): Promise<IGDBGame[]> {
     const mockGames: IGDBGame[] = [
@@ -833,6 +958,56 @@ class IGDBService {
       { id: 230381, name: 'Spider-Man 2', cover: { id: 286436, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co66pc.webp' }, rating: 87.2, genres: [{ id: 31, name: 'Adventure' }], summary: 'Latest Spider-Man adventure.' },
       { id: 207508, name: 'Alan Wake 2', cover: { id: 309456, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co6p9o.webp' }, rating: 89.7, genres: [{ id: 9, name: 'Puzzle' }], summary: 'Horror masterpiece sequel.' },
       { id: 140013, name: 'Starfield', cover: { id: 254250, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co5m7a.webp' }, rating: 82.1, genres: [{ id: 12, name: 'Role-playing (RPG)' }], summary: 'Space exploration RPG.' }
+    ];
+    return Promise.resolve(mockGames.slice(0, limit));
+  }
+
+  private getMockRacingGames(limit: number): Promise<IGDBGame[]> {
+    const mockGames: IGDBGame[] = [
+      { id: 121, name: 'Forza Horizon 5', cover: { id: 230049, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co4jni.webp' }, rating: 92.0, genres: [{ id: 10, name: 'Racing' }], summary: 'Open-world racing in Mexico.' },
+      { id: 1905, name: 'Gran Turismo 7', cover: { id: 94388, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co2rs4.webp' }, rating: 87.5, genres: [{ id: 10, name: 'Racing' }], summary: 'The ultimate driving simulator.' },
+      { id: 11156, name: 'F1 23', cover: { id: 286436, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co66pc.webp' }, rating: 85.3, genres: [{ id: 10, name: 'Racing' }], summary: 'Official Formula 1 racing game.' },
+      { id: 55199, name: 'Dirt Rally 2.0', cover: { id: 309456, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co6p9o.webp' }, rating: 88.7, genres: [{ id: 10, name: 'Racing' }], summary: 'Hardcore rally simulation.' }
+    ];
+    return Promise.resolve(mockGames.slice(0, limit));
+  }
+
+  private getMockSportsGames(limit: number): Promise<IGDBGame[]> {
+    const mockGames: IGDBGame[] = [
+      { id: 119171, name: 'FC 24', cover: { id: 110775, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co2dpv.webp' }, rating: 83.5, genres: [{ id: 14, name: 'Sport' }], summary: 'The worlds game, now with HyperMotionV.' },
+      { id: 28540, name: 'NBA 2K24', cover: { id: 254250, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co5m7a.webp' }, rating: 78.2, genres: [{ id: 14, name: 'Sport' }], summary: 'Basketball simulation at its finest.' },
+      { id: 113073, name: 'Madden NFL 24', cover: { id: 94388, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co2rs4.webp' }, rating: 71.8, genres: [{ id: 14, name: 'Sport' }], summary: 'The ultimate NFL experience.' },
+      { id: 1942, name: 'MLB The Show 23', cover: { id: 82563, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1wyy.webp' }, rating: 85.6, genres: [{ id: 14, name: 'Sport' }], summary: 'Americas pastime in stunning detail.' }
+    ];
+    return Promise.resolve(mockGames.slice(0, limit));
+  }
+
+  private getMockFightingGames(limit: number): Promise<IGDBGame[]> {
+    const mockGames: IGDBGame[] = [
+      { id: 121975, name: 'Street Fighter 6', cover: { id: 286436, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co66pc.webp' }, rating: 92.3, genres: [{ id: 4, name: 'Fighting' }], summary: 'The evolution of fighting games.' },
+      { id: 136625, name: 'Tekken 8', cover: { id: 309456, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co6p9o.webp' }, rating: 89.7, genres: [{ id: 4, name: 'Fighting' }], summary: 'The King of Iron Fist Tournament continues.' },
+      { id: 1074, name: 'Mortal Kombat 1', cover: { id: 58735, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1q1f.webp' }, rating: 86.4, genres: [{ id: 4, name: 'Fighting' }], summary: 'A new beginning for the legendary franchise.' },
+      { id: 1905, name: 'Guilty Gear Strive', cover: { id: 94388, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co2rs4.webp' }, rating: 87.9, genres: [{ id: 4, name: 'Fighting' }], summary: 'Rock and roll fighting action.' }
+    ];
+    return Promise.resolve(mockGames.slice(0, limit));
+  }
+
+  private getMockStrategyGames(limit: number): Promise<IGDBGame[]> {
+    const mockGames: IGDBGame[] = [
+      { id: 11156, name: 'Civilization VI', cover: { id: 286436, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co66pc.webp' }, rating: 91.2, genres: [{ id: 15, name: 'Strategy' }], summary: 'Build an empire to stand the test of time.' },
+      { id: 55199, name: 'Total War: Warhammer III', cover: { id: 309456, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co6p9o.webp' }, rating: 86.8, genres: [{ id: 15, name: 'Strategy' }], summary: 'Epic fantasy warfare strategy.' },
+      { id: 121975, name: 'Age of Empires IV', cover: { id: 286436, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co66pc.webp' }, rating: 83.7, genres: [{ id: 15, name: 'Strategy' }], summary: 'Real-time strategy returns.' },
+      { id: 136625, name: 'XCOM 2', cover: { id: 309456, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co6p9o.webp' }, rating: 88.3, genres: [{ id: 15, name: 'Strategy' }], summary: 'Turn-based tactical combat.' }
+    ];
+    return Promise.resolve(mockGames.slice(0, limit));
+  }
+
+  private getMockHorrorGames(limit: number): Promise<IGDBGame[]> {
+    const mockGames: IGDBGame[] = [
+      { id: 207508, name: 'Alan Wake 2', cover: { id: 309456, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co6p9o.webp' }, rating: 89.7, genres: [{ id: 9, name: 'Puzzle' }], summary: 'Psychological horror masterpiece.' },
+      { id: 1074, name: 'Resident Evil 4', cover: { id: 58735, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1q1f.webp' }, rating: 93.1, genres: [{ id: 5, name: 'Shooter' }], summary: 'Survival horror redefined.' },
+      { id: 1942, name: 'Dead Space', cover: { id: 82563, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1wyy.webp' }, rating: 88.9, genres: [{ id: 5, name: 'Shooter' }], summary: 'Sci-fi horror in space.' },
+      { id: 119171, name: 'Phasmophobia', cover: { id: 110775, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co2dpv.webp' }, rating: 86.5, genres: [{ id: 31, name: 'Adventure' }], summary: 'Co-op ghost hunting horror.' }
     ];
     return Promise.resolve(mockGames.slice(0, limit));
   }

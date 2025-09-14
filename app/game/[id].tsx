@@ -31,6 +31,7 @@ import {
 } from 'phosphor-react-native';
 import { useGameDetails } from '@/hooks/useGames';
 import { IGDBGame } from '@/services/igdbService';
+import ImageGalleryModal from '@/components/ImageGalleryModal';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -39,6 +40,8 @@ function GameDetailScreen() {
   const [selectedTab, setSelectedTab] = useState('overview');
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [selectedScreenshot, setSelectedScreenshot] = useState(0);
+  const [isGalleryVisible, setIsGalleryVisible] = useState(false);
+  const [galleryStartIndex, setGalleryStartIndex] = useState(0);
 
   // Safely parse the game ID with error handling
   const gameId = id ? parseInt(id, 10) : 0;
@@ -449,7 +452,10 @@ function GameDetailScreen() {
                 {gameDetail.screenshots?.map((screenshot, index) => (
                   <TouchableOpacity
                     key={screenshot.id}
-                    onPress={() => setSelectedScreenshot(index)}
+                    onPress={() => {
+                      setGalleryStartIndex(index);
+                      setIsGalleryVisible(true);
+                    }}
                     className={`relative ${index === selectedScreenshot ? 'border-2 border-[#00D2FF] rounded-xl' : ''}`}
                   >
                     <Image
@@ -460,6 +466,12 @@ function GameDetailScreen() {
                     {index === selectedScreenshot && (
                       <View className="absolute inset-0 bg-[#00D2FF]/20 rounded-xl" />
                     )}
+                    {/* Overlay to indicate it's clickable */}
+                    <View className="absolute inset-0 justify-center items-center">
+                      <View className="bg-black/30 rounded-full p-2">
+                        <Eye size={16} color="#FFFFFF" weight="fill" />
+                      </View>
+                    </View>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -627,6 +639,14 @@ function GameDetailScreen() {
           </View>
         )}
       </ScrollView>
+      
+      {/* Image Gallery Modal */}
+      <ImageGalleryModal
+        visible={isGalleryVisible}
+        images={gameDetail.screenshots || []}
+        initialIndex={galleryStartIndex}
+        onClose={() => setIsGalleryVisible(false)}
+      />
     </View>
   );
 }

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Platform } from 'react-native';
+import { Platform, Alert } from 'react-native';
 
 interface IGDBGame {
   id: number;
@@ -121,11 +121,83 @@ class IGDBService {
     }
   }
 
+  // Search games via proxy server for web platform
+  private async searchGamesViaProxy(query: string, limit: number = 10): Promise<IGDBGame[]> {
+    try {
+      console.log('🌐 Using proxy server for search:', query);
+      const response = await axios.post('http://localhost:3001/api/games/search', {
+        query,
+        limit
+      });
+      
+      console.log('✅ Proxy search successful, received', response.data.length, 'games');
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error searching games via proxy:', error);
+      
+      // Check if it's a network error (proxy not running)
+      if (axios.isAxiosError(error) && error.code === 'ECONNREFUSED') {
+        console.warn('⚠️ Proxy server not available, falling back to mock data');
+        Alert.alert(
+          'Offline Mode', 
+          'Using offline game data. Start the proxy server for real-time search.'
+        );
+      }
+      
+      // Fallback to mock data
+      return this.getMockSearchResults(query, limit);
+    }
+  }
+
+  // Get featured games via proxy server for web platform
+  private async getFeaturedGamesViaProxy(limit: number = 5): Promise<IGDBGame[]> {
+    try {
+      const response = await axios.get(`http://localhost:3001/api/games/featured?limit=${limit}`);
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching featured games via proxy:', error);
+      // Fallback to mock data if proxy is not available
+      console.warn('Proxy server not available, falling back to mock data');
+      return this.getMockFeaturedGames(limit);
+    }
+  }
+
+  // Get game details via proxy server for web platform
+  private async getGameDetailsViaProxy(gameId: number): Promise<IGDBGame | null> {
+    try {
+      console.log('🎮 Fetching game details via proxy for ID:', gameId);
+      const response = await axios.get(`http://localhost:3001/api/games/${gameId}`);
+      
+      console.log('✅ Game details received via proxy:', response.data.name);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error fetching game details via proxy:', error);
+      
+      // Check if it's a 404 (game not found) vs connection error
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        console.warn('⚠️ Game not found in IGDB database');
+        return null;
+      }
+      
+      if (axios.isAxiosError(error) && error.code === 'ECONNREFUSED') {
+        console.warn('⚠️ Proxy server not available, falling back to mock data');
+        Alert.alert(
+          'Offline Mode', 
+          'Using offline game data. Start the proxy server for real-time details.'
+        );
+      }
+      
+      // Fallback to mock data
+      return this.getMockGameDetails(gameId);
+    }
+  }
+
   // Get featured games
   async getFeaturedGames(limit: number = 5): Promise<IGDBGame[]> {
-    // Use mock data for web platform to avoid CORS issues
+    // Use proxy server for web platform to avoid CORS issues
     if (Platform.OS === 'web') {
-      return this.getMockFeaturedGames(limit);
+      return this.getFeaturedGamesViaProxy(limit);
     }
     
     const query = `
@@ -280,6 +352,11 @@ class IGDBService {
 
   // Search games
   async searchGames(query: string, limit: number = 10): Promise<IGDBGame[]> {
+    // Use proxy server for web platform to avoid CORS issues
+    if (Platform.OS === 'web') {
+      return this.searchGamesViaProxy(query, limit);
+    }
+    
     const searchQuery = `
       fields name, cover.url, first_release_date, rating, rating_count, platforms.name, genres.name, summary;
       search "${query}";
@@ -300,9 +377,9 @@ class IGDBService {
 
   // Get game details with comprehensive data
   async getGameDetails(gameId: number): Promise<IGDBGame | null> {
-    // Use mock data for web platform to avoid CORS issues
+    // Use proxy server for web platform to avoid CORS issues
     if (Platform.OS === 'web') {
-      return this.getMockGameDetails(gameId);
+      return this.getGameDetailsViaProxy(gameId);
     }
     
     const query = `
@@ -1019,6 +1096,46 @@ class IGDBService {
       { id: 456789, name: 'Wolverine', cover: { id: 300003, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co66pc.webp' }, rating: 82.0, genres: [{ id: 31, name: 'Adventure' }], summary: 'Marvel action game.' }
     ];
     return Promise.resolve(mockGames.slice(0, limit));
+  }
+
+  private getMockSearchResults(query: string, limit: number): Promise<IGDBGame[]> {
+    // Get all mock games from different categories
+    const allMockGames: IGDBGame[] = [
+      // Featured games
+      { id: 1942, name: 'The Witcher 3: Wild Hunt', cover: { id: 82563, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1wyy.webp' }, rating: 93.2, genres: [{ id: 12, name: 'Role-playing (RPG)' }], summary: 'You are Geralt of Rivia, mercenary monster slayer. Before you stands a war-torn, monster-infested continent you can explore at will.' },
+      { id: 1074, name: 'Red Dead Redemption 2', cover: { id: 58735, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1q1f.webp' }, rating: 92.5, genres: [{ id: 5, name: 'Shooter' }, { id: 31, name: 'Adventure' }], summary: 'America, 1899. The end of the Wild West era has begun as lawmen hunt down the last remaining outlaw gangs.' },
+      { id: 119171, name: 'Cyberpunk 2077', cover: { id: 110775, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co2dpv.webp' }, rating: 78.3, genres: [{ id: 12, name: 'Role-playing (RPG)' }], summary: 'Cyberpunk 2077 is an open-world, action-adventure story set in Night City.' },
+      { id: 121, name: "Baldur's Gate 3", cover: { id: 230049, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co4jni.webp' }, rating: 96.8, genres: [{ id: 12, name: 'Role-playing (RPG)' }], summary: 'An ancient evil has returned to Baldur\'s Gate, intent on devouring it from the inside out.' },
+      { id: 113073, name: 'Elden Ring', cover: { id: 94388, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co2rs4.webp' }, rating: 95.3, genres: [{ id: 12, name: 'Role-playing (RPG)' }], summary: 'A new fantasy action RPG. Rise, Tarnished, and be guided by grace to brandish the power of the Elden Ring.' },
+      { id: 136875, name: 'God of War Ragnarök', cover: { id: 230832, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co4jnq.webp' }, rating: 94.2, genres: [{ id: 31, name: 'Adventure' }], summary: 'Embark on an epic and heartfelt journey as Kratos and Atreus struggle with holding on and letting go.' },
+      { id: 103168, name: 'Hades', cover: { id: 81092, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1rgi.webp' }, rating: 93.8, genres: [{ id: 12, name: 'Role-playing (RPG)' }], summary: 'Hades is a god-like rogue-like dungeon crawler that combines the best aspects of Supergiant\'s critically acclaimed titles.' },
+      { id: 230381, name: 'Spider-Man 2', cover: { id: 286436, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co66pc.webp' }, rating: 87.2, genres: [{ id: 31, name: 'Adventure' }], summary: 'Spider-Men Peter Parker and Miles Morales face the ultimate test of strength inside and outside the mask.' },
+      { id: 140013, name: 'Starfield', cover: { id: 254250, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co5m7a.webp' }, rating: 82.1, genres: [{ id: 12, name: 'Role-playing (RPG)' }], summary: 'Starfield is the first new universe in 25 years from Bethesda Game Studios.' },
+      { id: 207508, name: 'Alan Wake 2', cover: { id: 309456, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co6p9o.webp' }, rating: 89.7, genres: [{ id: 9, name: 'Puzzle' }, { id: 15, name: 'Strategy' }], summary: 'Alan Wake 2 is a survival horror game and the sequel to the award-winning Alan Wake.' },
+      { id: 1073, name: 'The Legend of Zelda: Breath of the Wild', cover: { id: 81250, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1nme.webp' }, rating: 97.2, genres: [{ id: 31, name: 'Adventure' }], summary: 'Step into a world of discovery, exploration, and adventure.' },
+      { id: 74, name: 'The Last of Us Part II', cover: { id: 91468, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1wyh.webp' }, rating: 93.5, genres: [{ id: 31, name: 'Adventure' }], summary: 'Experience the escalating moral conflicts.' },
+      { id: 432, name: 'Persona 5 Royal', cover: { id: 91497, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1wyk.webp' }, rating: 92.8, genres: [{ id: 12, name: 'Role-playing (RPG)' }], summary: 'Prepare for an all-new RPG experience.' },
+      { id: 28540, name: 'Ghost of Tsushima', cover: { id: 94388, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co2dpv.webp' }, rating: 91.7, genres: [{ id: 31, name: 'Adventure' }], summary: 'A storm is coming. Venture into the complete experience.' },
+      { id: 26758, name: 'Celeste', cover: { id: 67608, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1h1y.webp' }, rating: 94.2, genres: [{ id: 8, name: 'Platform' }], summary: 'Help Madeline survive her inner demons.' },
+      { id: 19560, name: 'Hollow Knight', cover: { id: 74463, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1gom.webp' }, rating: 90.5, genres: [{ id: 8, name: 'Platform' }], summary: 'Forge your own path in Hollow Knight!' },
+      { id: 11208, name: 'A Hat in Time', cover: { id: 85259, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1t5v.webp' }, rating: 89.3, genres: [{ id: 8, name: 'Platform' }], summary: 'A cute-as-heck 3D platformer.' },
+      { id: 37030, name: 'Ori and the Will of the Wisps', cover: { id: 89072, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1ubi.webp' }, rating: 90.8, genres: [{ id: 8, name: 'Platform' }], summary: 'Embark on an all-new adventure.' },
+      { id: 7346, name: 'Cuphead', cover: { id: 89254, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1v7w.webp' }, rating: 88.7, genres: [{ id: 25, name: 'Arcade' }], summary: 'Classic run and gun action game.' },
+      { id: 26192, name: 'Stardew Valley', cover: { id: 132795, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co2w6j.webp' }, rating: 89.2, genres: [{ id: 13, name: 'Simulator' }], summary: 'You\'ve inherited your grandfather\'s old farm.' },
+      { id: 25311, name: 'Dead Cells', cover: { id: 89386, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1v9u.webp' }, rating: 87.9, genres: [{ id: 8, name: 'Platform' }], summary: 'A rogue-lite, metroidvania inspired game.' },
+      { id: 121975, name: 'Street Fighter 6', cover: { id: 286436, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co66pc.webp' }, rating: 92.3, genres: [{ id: 4, name: 'Fighting' }], summary: 'The evolution of fighting games.' },
+      { id: 11156, name: 'Civilization VI', cover: { id: 286436, url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co66pc.webp' }, rating: 91.2, genres: [{ id: 15, name: 'Strategy' }], summary: 'Build an empire to stand the test of time.' }
+    ];
+
+    // Filter games by search query (case-insensitive partial match)
+    const queryLower = query.toLowerCase();
+    const filteredGames = allMockGames.filter(game => 
+      game.name.toLowerCase().includes(queryLower) ||
+      game.summary?.toLowerCase().includes(queryLower) ||
+      game.genres?.some(genre => genre.name.toLowerCase().includes(queryLower))
+    );
+
+    return Promise.resolve(filteredGames.slice(0, limit));
   }
 }
 

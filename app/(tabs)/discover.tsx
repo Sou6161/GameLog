@@ -5,39 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MagnifyingGlass, TrendUp, Fire, X } from 'phosphor-react-native';
 import { Header } from '@/components/Header';
 import { GameCard } from '@/components/GameCard';
-
-// IGDB API call for search
-const CLIENT_ID = 'YOUR_CLIENT_ID'; // Replace with your IGDB Client ID
-const ACCESS_TOKEN = 'YOUR_ACCESS_TOKEN'; // Replace with your IGDB Access Token
-
-const searchGamesAPI = async (query: string) => {
-  try {
-    const response = await fetch('https://api.igdb.com/v4/games', {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Client-ID': CLIENT_ID,
-        'Authorization': `Bearer ${ACCESS_TOKEN}`,
-      },
-      body: `search "${query}"; fields id,name,cover.url,rating,genres; limit 10;`,
-    });
-    const data = await response.json();
-    // Map IGDB response to GameCard props
-    return data.map((game: any) => ({
-      id: game.id,
-      title: game.name,
-      coverUrl: game.cover ? `https:${game.cover.url}` : undefined,
-      rating: game.rating,
-      genre: game.genres ? game.genres.join(', ') : '',
-    }));
-  } catch (error) {
-    console.error('IGDB search error:', error);
-    return [];
-  }
-};
-
-// Featured section state
-const FEATURED_LIMIT = 10;
+import { igdbService } from '@/services/igdbService';
+import { useFeaturedGames, useTrendingGames, useRecentlyReleasedGames } from '@/hooks/useGames';
 
 export default function DiscoverScreen() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,12 +14,11 @@ export default function DiscoverScreen() {
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [featuredGames, setFeaturedGames] = useState<any[]>([]);
-  const [trendingGames, setTrendingGames] = useState<any[]>([]);
-  const [newReleases, setNewReleases] = useState<any[]>([]);
-  const [loadingFeatured, setLoadingFeatured] = useState(true);
-  const [loadingTrending, setLoadingTrending] = useState(true);
-  const [loadingNewReleases, setLoadingNewReleases] = useState(true);
+
+  // Use React Query hooks for data fetching
+  const { data: featuredGames = [], isLoading: loadingFeatured } = useFeaturedGames();
+  const { data: trendingGames = [], isLoading: loadingTrending } = useTrendingGames();
+  const { data: newReleases = [], isLoading: loadingNewReleases } = useRecentlyReleasedGames();
 
   // Debounce search query to prevent excessive API calls
   useEffect(() => {
@@ -75,10 +43,13 @@ export default function DiscoverScreen() {
       setIsSearching(true);
       setHasSearched(true);
       try {
-        const results = await searchGamesAPI(debouncedQuery);
+        console.log('🔍 Searching for:', debouncedQuery);
+        const results = await igdbService.searchGames(debouncedQuery, 10);
+        console.log('📝 Search results received:', results.length, 'games');
+        console.log('🎮 First result:', results[0]);
         setSearchResults(results);
       } catch (error) {
-        console.error('Search error:', error);
+        console.error('❌ Search error:', error);
         Alert.alert('Error', 'Failed to search games. Please try again.');
         setSearchResults([]);
       } finally {
@@ -88,99 +59,6 @@ export default function DiscoverScreen() {
     performSearch();
   }, [debouncedQuery]);
 
-  // Fetch featured games (example: top rated)
-  useEffect(() => {
-    const fetchFeatured = async () => {
-      setLoadingFeatured(true);
-      try {
-        const response = await fetch('https://api.igdb.com/v4/games', {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Client-ID': CLIENT_ID,
-            'Authorization': `Bearer ${ACCESS_TOKEN}`,
-          },
-          body: 'fields id,name,cover.url,rating,genres; sort rating desc; limit 10;',
-        });
-        const data = await response.json();
-        setFeaturedGames(data.map((game: any) => ({
-          id: game.id,
-          title: game.name,
-          coverUrl: game.cover ? `https:${game.cover.url}` : undefined,
-          rating: game.rating,
-          genre: game.genres ? game.genres.join(', ') : '',
-        })));
-      } catch (error) {
-        setFeaturedGames([]);
-      } finally {
-        setLoadingFeatured(false);
-      }
-    };
-    fetchFeatured();
-  }, []);
-
-  // Fetch trending games (example: most follows)
-  useEffect(() => {
-    const fetchTrending = async () => {
-      setLoadingTrending(true);
-      try {
-        const response = await fetch('https://api.igdb.com/v4/games', {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Client-ID': CLIENT_ID,
-            'Authorization': `Bearer ${ACCESS_TOKEN}`,
-          },
-          body: 'fields id,name,cover.url,rating,genres,follows; sort follows desc; limit 10;',
-        });
-        const data = await response.json();
-        setTrendingGames(data.map((game: any) => ({
-          id: game.id,
-          title: game.name,
-          coverUrl: game.cover ? `https:${game.cover.url}` : undefined,
-          rating: game.rating,
-          genre: game.genres ? game.genres.join(', ') : '',
-        })));
-      } catch (error) {
-        setTrendingGames([]);
-      } finally {
-        setLoadingTrending(false);
-      }
-    };
-    fetchTrending();
-  }, []);
-
-  // Fetch new releases (example: recent release date)
-  useEffect(() => {
-    const fetchNewReleases = async () => {
-      setLoadingNewReleases(true);
-      try {
-        const response = await fetch('https://api.igdb.com/v4/games', {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Client-ID': CLIENT_ID,
-            'Authorization': `Bearer ${ACCESS_TOKEN}`,
-          },
-          body: 'fields id,name,cover.url,rating,genres,first_release_date; sort first_release_date desc; limit 10;',
-        });
-        const data = await response.json();
-        setNewReleases(data.map((game: any) => ({
-          id: game.id,
-          title: game.name,
-          coverUrl: game.cover ? `https:${game.cover.url}` : undefined,
-          rating: game.rating,
-          genre: game.genres ? game.genres.join(', ') : '',
-        })));
-      } catch (error) {
-        setNewReleases([]);
-      } finally {
-        setLoadingNewReleases(false);
-      }
-    };
-    fetchNewReleases();
-  }, []);
-
   const clearSearch = useCallback(() => {
     setSearchQuery('');
     setSearchResults([]);
@@ -189,6 +67,7 @@ export default function DiscoverScreen() {
 
   const renderSearchResults = () => {
     if (!hasSearched) return null;
+    
     if (isSearching) {
       return (
         <View className="flex-1 justify-center items-center px-5">
@@ -199,6 +78,7 @@ export default function DiscoverScreen() {
         </View>
       );
     }
+    
     if (searchResults.length === 0 && searchQuery.trim().length > 0) {
       return (
         <View className="flex-1 justify-center items-center px-5">
@@ -209,6 +89,7 @@ export default function DiscoverScreen() {
         </View>
       );
     }
+    
     if (searchResults.length > 0) {
       return (
         <View className="flex-1 px-5">
@@ -229,6 +110,7 @@ export default function DiscoverScreen() {
         </View>
       );
     }
+    
     return null;
   };
 

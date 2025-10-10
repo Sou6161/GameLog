@@ -101,9 +101,16 @@ function GameDetailScreen() {
 
   if (isLoading) {
     return (
-      <View className="flex-1 justify-center items-center bg-[#0F0F1F]">
+      <View className="flex-1 justify-center items-center bg-[#0F0F1F] px-6">
         <ActivityIndicator size="large" color="#00D2FF" />
-        <Text className="text-white text-lg mt-4">Loading game details...</Text>
+        <View className="mt-4 px-4">
+          <Text className="text-white text-sm text-center leading-5">
+            Loading game
+          </Text>
+          <Text className="text-white text-sm text-center leading-5">
+            details...
+          </Text>
+        </View>
       </View>
     );
   }
@@ -177,16 +184,16 @@ function GameDetailScreen() {
             </View>
 
             {/* Game Info Overlay */}
-            <View className="flex-1 justify-end px-5 pb-8">
-              <View className="flex-row items-end gap-4">
+            <View className="flex-1 justify-end px-4 pb-6">
+              <View className="flex-col gap-3">
                 {/* Game Cover */}
-                <View className="relative">
+                <View className="self-center">
                   <Image
                     source={{ uri: gameDetail.cover?.url }}
-                    className="w-24 h-32 rounded-2xl"
+                    className="w-20 h-28 rounded-2xl"
                     resizeMode="cover"
                   />
-                  <View className="absolute -top-2 -right-2 bg-[#FFD700] rounded-full w-8 h-8 justify-center items-center">
+                  <View className="absolute -top-1 -right-1 bg-[#FFD700] rounded-full w-6 h-6 justify-center items-center">
                     <Text className="text-xs font-bold text-black">
                       {gameDetail.rating ? Math.round(gameDetail.rating / 10) : '?'}
                     </Text>
@@ -194,26 +201,26 @@ function GameDetailScreen() {
                 </View>
 
                 {/* Game Details */}
-                <View className="flex-1">
-                  <Text className="text-3xl font-bold text-white mb-2" numberOfLines={2}>
+                <View className="items-center">
+                  <Text className="text-lg font-bold text-white mb-2 text-center leading-5" numberOfLines={2}>
                     {gameDetail.name}
                   </Text>
                   
                   <View className="flex-row items-center gap-2 mb-3">
-                    <Star size={16} color="#FFD700" weight="fill" />
-                    <Text className="text-[#FFD700] font-semibold">
+                    <Star size={14} color="#FFD700" weight="fill" />
+                    <Text className="text-[#FFD700] font-semibold text-sm">
                       {gameDetail.rating ? (gameDetail.rating / 10).toFixed(1) : 'N/A'}
                     </Text>
-                    <Text className="text-gray-400">
+                    <Text className="text-gray-400 text-xs">
                       ({formatNumber(gameDetail.total_rating_count)})
                     </Text>
                   </View>
 
-                  <View className="flex-row flex-wrap gap-2">
+                  <View className="flex-row flex-wrap gap-2 justify-center">
                     {gameDetail.genres?.slice(0, 2).map((genre) => (
                       <View
                         key={genre.id}
-                        className="bg-[#00D2FF]/20 border border-[#00D2FF]/40 px-3 py-1 rounded-full"
+                        className="bg-[#00D2FF]/20 border border-[#00D2FF]/40 px-2 py-1 rounded-full"
                       >
                         <Text className="text-[#00D2FF] text-xs font-medium">
                           {genre.name}
@@ -231,18 +238,18 @@ function GameDetailScreen() {
 
 
       {/* Tab Navigation */}
-      <View className="px-5 mb-4">
+      <View className="px-4 mb-3">
         <View className="flex-row bg-[#1A1A2E] rounded-2xl p-1">
           {['overview', 'media', 'details'].map((tab) => (
             <TouchableOpacity
               key={tab}
               onPress={() => setSelectedTab(tab)}
-              className={`flex-1 py-3 rounded-xl ${
+              className={`flex-1 py-2 rounded-xl ${
                 selectedTab === tab ? 'bg-[#00D2FF]' : 'bg-transparent'
               }`}
             >
               <Text
-                className={`text-center font-semibold capitalize ${
+                className={`text-center font-semibold capitalize text-sm ${
                   selectedTab === tab ? 'text-white' : 'text-gray-400'
                 }`}
               >
@@ -254,7 +261,7 @@ function GameDetailScreen() {
       </View>
 
       {/* Content */}
-      <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
         {selectedTab === 'overview' && (
           <View className="pb-8">
             {/* Stats Row */}
@@ -310,42 +317,42 @@ function GameDetailScreen() {
             {/* Detailed Game Information */}
             <View className="mb-6">
               <Text className="text-white text-xl font-bold mb-3">Game Information</Text>
-              <View className="bg-[#1A1A2E] rounded-2xl p-4 gap-3">
-                <View className="flex-row justify-between">
-                  <Text className="text-gray-400">Release Date</Text>
-                  <Text className="text-white font-medium">
+              <View className="bg-[#1A1A2E] rounded-2xl p-3 gap-2">
+                <View className="flex-col">
+                  <Text className="text-gray-400 text-sm mb-1">Release Date</Text>
+                  <Text className="text-white font-medium text-sm">
                     {gameDetail.first_release_date ? formatDate(gameDetail.first_release_date) : 'TBA'}
                   </Text>
                 </View>
-                <View className="flex-row justify-between">
-                  <Text className="text-gray-400">Developer</Text>
-                  <Text className="text-white font-medium" numberOfLines={1}>
+                <View className="flex-col">
+                  <Text className="text-gray-400 text-sm mb-1">Developer</Text>
+                  <Text className="text-white font-medium text-sm" numberOfLines={2}>
                     {gameDetail.involved_companies?.find(c => c.developer)?.company.name || 'Unknown'}
                   </Text>
                 </View>
-                <View className="flex-row justify-between">
-                  <Text className="text-gray-400">Publisher</Text>
-                  <Text className="text-white font-medium" numberOfLines={1}>
+                <View className="flex-col">
+                  <Text className="text-gray-400 text-sm mb-1">Publisher</Text>
+                  <Text className="text-white font-medium text-sm" numberOfLines={2}>
                     {gameDetail.involved_companies?.find(c => c.publisher)?.company.name || 'Unknown'}
                   </Text>
                 </View>
-                <View className="flex-row justify-between">
-                  <Text className="text-gray-400">Game Modes</Text>
-                  <Text className="text-white font-medium" numberOfLines={1}>
+                <View className="flex-col">
+                  <Text className="text-gray-400 text-sm mb-1">Game Modes</Text>
+                  <Text className="text-white font-medium text-sm" numberOfLines={2}>
                     {gameDetail.game_modes?.map(mode => mode.name).join(', ') || 'Unknown'}
                   </Text>
                 </View>
-                <View className="flex-row justify-between">
-                  <Text className="text-gray-400">Category</Text>
-                  <Text className="text-white font-medium">
+                <View className="flex-col">
+                  <Text className="text-gray-400 text-sm mb-1">Category</Text>
+                  <Text className="text-white font-medium text-sm">
                     {gameDetail.category === 0 ? 'Main Game' : 
                      gameDetail.category === 1 ? 'DLC' : 
                      gameDetail.category === 2 ? 'Expansion' : 'Game'}
                   </Text>
                 </View>
-                <View className="flex-row justify-between">
-                  <Text className="text-gray-400">Status</Text>
-                  <Text className="text-white font-medium">
+                <View className="flex-col">
+                  <Text className="text-gray-400 text-sm mb-1">Status</Text>
+                  <Text className="text-white font-medium text-sm">
                     {typeof gameDetail.status === 'number' && gameDetail.status === 0 ? 'Released' : 
                      typeof gameDetail.status === 'number' && gameDetail.status === 2 ? 'Alpha' : 
                      typeof gameDetail.status === 'number' && gameDetail.status === 3 ? 'Beta' : 
@@ -541,11 +548,11 @@ function GameDetailScreen() {
               <Text className="text-white text-xl font-bold mb-3">Development</Text>
               <View className="bg-[#1A1A2E] rounded-2xl p-4 gap-3">
                 {gameDetail.involved_companies?.map((company, index) => (
-                  <View key={company.id || index} className="flex-row justify-between items-center">
-                    <Text className="text-gray-400">
+                  <View key={company.id || index} className="flex-row justify-between items-start">
+                    <Text className="text-gray-400 flex-shrink-0 mr-3">
                       {company.developer ? 'Developer' : company.publisher ? 'Publisher' : 'Company'}
                     </Text>
-                    <Text className="text-white font-medium" numberOfLines={1}>
+                    <Text className="text-white font-medium text-right flex-1" numberOfLines={2}>
                       {company.company.name}
                     </Text>
                   </View>
@@ -558,17 +565,17 @@ function GameDetailScreen() {
               <Text className="text-white text-xl font-bold mb-3">Gameplay Details</Text>
               <View className="bg-[#1A1A2E] rounded-2xl p-4 gap-3">
                 {gameDetail.player_perspectives && gameDetail.player_perspectives.length > 0 && (
-                  <View className="flex-row justify-between items-center">
-                    <Text className="text-gray-400">Player Perspective</Text>
-                    <Text className="text-white font-medium">
+                  <View className="flex-row justify-between items-start">
+                    <Text className="text-gray-400 flex-shrink-0 mr-3">Player Perspective</Text>
+                    <Text className="text-white font-medium text-right flex-1" numberOfLines={2}>
                       {gameDetail.player_perspectives.map(p => p.name).join(', ')}
                     </Text>
                   </View>
                 )}
                 {gameDetail.game_modes && gameDetail.game_modes.length > 0 && (
-                  <View className="flex-row justify-between items-center">
-                    <Text className="text-gray-400">Game Modes</Text>
-                    <Text className="text-white font-medium">
+                  <View className="flex-row justify-between items-start">
+                    <Text className="text-gray-400 flex-shrink-0 mr-3">Game Modes</Text>
+                    <Text className="text-white font-medium text-right flex-1" numberOfLines={2}>
                       {gameDetail.game_modes.map(m => m.name).join(', ')}
                     </Text>
                   </View>

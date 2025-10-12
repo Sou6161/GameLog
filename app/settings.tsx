@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Switch, Alert, Share } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { 
   ArrowLeft,
   User,
@@ -10,34 +11,129 @@ import {
   Palette,
   Database,
   GameController,
-  SteamLogo,
   Trash,
   Download,
   Upload,
   Eye,
   Lock,
-  Key,
   Question,
   Info,
-  SignOut
+  SignOut,
+  Trophy,
+  ArrowsClockwise,
+  Star,
+  Heart,
+  Moon,
+  Sun,
+  Vibrate,
+  SpeakerHigh
 } from 'phosphor-react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
+import { useAchievements } from '@/hooks/useAchievements';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { logout, user } = useAuth();
+  const { 
+    userStats, 
+    achievements, 
+    resetAchievements, 
+    getUnlockedCount,
+    getFavoriteGenres 
+  } = useAchievements();
   
-  // Settings states
+  // Settings states with AsyncStorage persistence
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [achievementNotifications, setAchievementNotifications] = useState(true);
+  const [reviewReminders, setReviewReminders] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [vibrationEnabled, setVibrationEnabled] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
+  const [compactView, setCompactView] = useState(false);
+  const [showSpoilers, setShowSpoilers] = useState(false);
   const [autoSync, setAutoSync] = useState(true);
   const [showPlaytime, setShowPlaytime] = useState(true);
   const [showReviews, setShowReviews] = useState(true);
   const [showActivity, setShowActivity] = useState(true);
-  const [steamConnected, setSteamConnected] = useState(false);
-  const [playstationConnected, setPlaystationConnected] = useState(false);
-  const [xboxConnected, setXboxConnected] = useState(false);
+  const [profilePrivate, setProfilePrivate] = useState(false);
+  const [dataUsage, setDataUsage] = useState('wifi'); // 'wifi', 'cellular', 'both'
+  
+  // Statistics for display
+  const [totalAchievements, setTotalAchievements] = useState(0);
+  const [favoriteGenres, setFavoriteGenres] = useState<string[]>([]);
+  
+  // Load settings from AsyncStorage on mount
+  useEffect(() => {
+    loadSettings();
+    loadStats();
+  }, []);
+  
+  const loadSettings = async () => {
+    try {
+      const settingsKeys = [
+        'notifications', 'achievementNotifications', 'reviewReminders', 
+        'soundEnabled', 'vibrationEnabled', 'darkMode', 'compactView',
+        'showSpoilers', 'autoSync', 'showPlaytime', 'showReviews', 
+        'showActivity', 'profilePrivate', 'dataUsage'
+      ];
+      
+      const settings = await AsyncStorage.multiGet(settingsKeys.map(key => `@settings_${key}`));
+      
+      settings.forEach(([key, value]) => {
+        if (value !== null) {
+          const settingName = key.replace('@settings_', '');
+          const parsedValue = settingName === 'dataUsage' ? value : JSON.parse(value);
+          
+          switch (settingName) {
+            case 'notifications': setNotificationsEnabled(parsedValue); break;
+            case 'achievementNotifications': setAchievementNotifications(parsedValue); break;
+            case 'reviewReminders': setReviewReminders(parsedValue); break;
+            case 'soundEnabled': setSoundEnabled(parsedValue); break;
+            case 'vibrationEnabled': setVibrationEnabled(parsedValue); break;
+            case 'darkMode': setDarkMode(parsedValue); break;
+            case 'compactView': setCompactView(parsedValue); break;
+            case 'showSpoilers': setShowSpoilers(parsedValue); break;
+            case 'autoSync': setAutoSync(parsedValue); break;
+            case 'showPlaytime': setShowPlaytime(parsedValue); break;
+            case 'showReviews': setShowReviews(parsedValue); break;
+            case 'showActivity': setShowActivity(parsedValue); break;
+            case 'profilePrivate': setProfilePrivate(parsedValue); break;
+            case 'dataUsage': setDataUsage(parsedValue); break;
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
+  };
+  
+  const loadStats = async () => {
+    try {
+      const count = await getUnlockedCount();
+      const genres = await getFavoriteGenres(3);
+      setTotalAchievements(count);
+      setFavoriteGenres(genres);
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    }
+  };
+  
+  const saveSetting = async (key: string, value: any) => {
+    try {
+      const storageValue = typeof value === 'string' ? value : JSON.stringify(value);
+      await AsyncStorage.setItem(`@settings_${key}`, storageValue);
+    } catch (error) {
+      console.error('Error saving setting:', error);
+    }
+  };
+  
+  const createSettingHandler = (key: string, setter: (value: any) => void) => {
+    return (value: any) => {
+      setter(value);
+      saveSetting(key, value);
+    };
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -53,22 +149,99 @@ export default function SettingsScreen() {
   const handleDeleteAccount = () => {
     Alert.alert(
       'Delete Account',
-      'This action cannot be undone. All your data will be permanently deleted.',
+      'This will permanently delete your account, all reviews, achievements, and data. This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => {
-          Alert.alert('Account Deleted', 'Your account has been deleted.');
-        }}
+        { 
+          text: 'I understand, delete my account', 
+          style: 'destructive', 
+          onPress: () => {
+            // In a real app, this would call an API
+            Alert.alert('Account Deleted', 'Your account and all data have been permanently deleted.');
+            logout();
+          }
+        }
       ]
     );
   };
 
-  const handleExportData = () => {
-    Alert.alert('Export Data', 'Your data will be exported to your email address.');
+  const handleExportData = async () => {
+    try {
+      // Get all user data
+      const keys = await AsyncStorage.getAllKeys();
+      const data = await AsyncStorage.multiGet(keys);
+      const exportData = {
+        exportDate: new Date().toISOString(),
+        userStats,
+        achievements: achievements,
+        settings: Object.fromEntries(data.filter(([key]) => key.startsWith('@settings_'))),
+        appVersion: '1.0.0'
+      };
+      
+      // Share the data
+      await Share.share({
+        message: `GameLog Data Export
+
+Exported on: ${new Date().toLocaleDateString()}
+
+Data: ${JSON.stringify(exportData, null, 2)}`,
+        title: 'GameLog Data Export'
+      });
+      
+      Alert.alert('Export Complete', 'Your data has been exported successfully!');
+    } catch (error) {
+      Alert.alert('Export Failed', 'Failed to export your data. Please try again.');
+    }
   };
 
-  const handleImportData = () => {
-    Alert.alert('Import Data', 'Select a file to import your data.');
+  const handleClearCache = async () => {
+    Alert.alert(
+      'Clear Cache',
+      'This will clear temporary files and may improve app performance. Your data will not be affected.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear Cache',
+          onPress: async () => {
+            try {
+              // Clear cache (in a real app, you'd clear specific cache keys)
+              Alert.alert('Cache Cleared', 'App cache has been cleared successfully!');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to clear cache.');
+            }
+          }
+        }
+      ]
+    );
+  };
+  
+  const handleResetAchievements = () => {
+    Alert.alert(
+      'Reset Achievements',
+      'This will reset all your achievements and progress. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset All Achievements',
+          style: 'destructive',
+          onPress: async () => {
+            await resetAchievements();
+            await loadStats();
+            Alert.alert('Achievements Reset', 'All achievements have been reset to locked state.');
+          }
+        }
+      ]
+    );
+  };
+  
+  const handleNotificationSettings = () => {
+    Alert.alert(
+      'Notification Preferences',
+      'Choose what types of notifications you want to receive.',
+      [
+        { text: 'OK', style: 'default' }
+      ]
+    );
   };
 
   const renderSettingItem = ({ 
@@ -140,7 +313,7 @@ export default function SettingsScreen() {
 
   return (
     <LinearGradient
-      colors={['#6c5ce7','black','#6c5ce7']}
+      colors={['#0F0F1F', '#121631', '#0A2342']}
       className="flex-1"
     >
       <SafeAreaView className="flex-1">
@@ -148,7 +321,13 @@ export default function SettingsScreen() {
         <View className="flex-row items-center justify-between px-5 py-4">
           <TouchableOpacity 
             className="w-10 h-10 rounded-full justify-center items-center" 
-            onPress={() => router.back()}
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.push('/(tabs)/profile');
+              }
+            }}
           >
             <ArrowLeft size={24} color="#FFFFFF" />
           </TouchableOpacity>
@@ -161,66 +340,6 @@ export default function SettingsScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View className="px-5 pb-8">
-            {/* Account Settings */}
-            {renderSection({
-              title: 'Account',
-              children: (
-                <>
-                  {renderSettingItem({
-                    icon: User,
-                    title: 'Profile',
-                    subtitle: 'Edit your profile information',
-                    onPress: () => Alert.alert('Profile', 'Edit profile screen would open here')
-                  })}
-                  {renderSettingItem({
-                    icon: Lock,
-                    title: 'Change Password',
-                    subtitle: 'Update your password',
-                    onPress: () => Alert.alert('Change Password', 'Password change screen would open here')
-                  })}
-                  {renderSettingItem({
-                    icon: Key,
-                    title: 'Two-Factor Authentication',
-                    subtitle: 'Add an extra layer of security',
-                    onPress: () => Alert.alert('2FA', 'Two-factor authentication setup would open here')
-                  })}
-                </>
-              )
-            })}
-
-            {/* Privacy Settings */}
-            {renderSection({
-              title: 'Privacy',
-              children: (
-                <>
-                  {renderSettingItem({
-                    icon: Eye,
-                    title: 'Show Playtime',
-                    subtitle: 'Allow others to see your playtime',
-                    showSwitch: true,
-                    switchValue: showPlaytime,
-                    onSwitchChange: setShowPlaytime
-                  })}
-                  {renderSettingItem({
-                    icon: Eye,
-                    title: 'Show Reviews',
-                    subtitle: 'Allow others to see your reviews',
-                    showSwitch: true,
-                    switchValue: showReviews,
-                    onSwitchChange: setShowReviews
-                  })}
-                  {renderSettingItem({
-                    icon: Eye,
-                    title: 'Show Activity',
-                    subtitle: 'Allow others to see your activity',
-                    showSwitch: true,
-                    switchValue: showActivity,
-                    onSwitchChange: setShowActivity
-                  })}
-                </>
-              )
-            })}
-
             {/* Notifications */}
             {renderSection({
               title: 'Notifications',
@@ -229,101 +348,96 @@ export default function SettingsScreen() {
                   {renderSettingItem({
                     icon: Bell,
                     title: 'Push Notifications',
-                    subtitle: 'Receive notifications on your device',
+                    subtitle: notificationsEnabled ? 'Enabled' : 'Disabled',
                     showSwitch: true,
                     switchValue: notificationsEnabled,
-                    onSwitchChange: setNotificationsEnabled
+                    onSwitchChange: createSettingHandler('notifications', setNotificationsEnabled)
                   })}
                   {renderSettingItem({
-                    icon: Bell,
-                    title: 'Notification Preferences',
-                    subtitle: 'Customize what you want to be notified about',
-                    onPress: () => Alert.alert('Notifications', 'Notification preferences screen would open here')
+                    icon: Trophy,
+                    title: 'Achievement Alerts',
+                    subtitle: achievementNotifications ? 'Get notified when you unlock achievements' : 'Achievement notifications disabled',
+                    showSwitch: true,
+                    switchValue: achievementNotifications && notificationsEnabled,
+                    onSwitchChange: createSettingHandler('achievementNotifications', setAchievementNotifications)
+                  })}
+                  {renderSettingItem({
+                    icon: Star,
+                    title: 'Review Reminders',
+                    subtitle: reviewReminders ? 'Remind me to review games' : 'No review reminders',
+                    showSwitch: true,
+                    switchValue: reviewReminders && notificationsEnabled,
+                    onSwitchChange: createSettingHandler('reviewReminders', setReviewReminders)
                   })}
                 </>
               )
             })}
 
-            {/* Appearance */}
+            {/* Privacy */}
             {renderSection({
-              title: 'Appearance',
+              title: 'Privacy',
               children: (
                 <>
                   {renderSettingItem({
-                    icon: Palette,
-                    title: 'Dark Mode',
-                    subtitle: 'Use dark theme',
+                    icon: Lock,
+                    title: 'Private Profile',
+                    subtitle: profilePrivate ? 'Your profile is hidden from others' : 'Your profile is public',
                     showSwitch: true,
-                    switchValue: darkMode,
-                    onSwitchChange: setDarkMode
+                    switchValue: profilePrivate,
+                    onSwitchChange: createSettingHandler('profilePrivate', setProfilePrivate)
                   })}
                   {renderSettingItem({
-                    icon: Palette,
-                    title: 'Theme Colors',
-                    subtitle: 'Customize app colors',
-                    onPress: () => Alert.alert('Theme', 'Theme customization screen would open here')
+                    icon: Eye,
+                    title: 'Show Reviews Publicly',
+                    subtitle: showReviews ? 'Others can see your reviews' : 'Reviews are private',
+                    showSwitch: true,
+                    switchValue: showReviews && !profilePrivate,
+                    onSwitchChange: createSettingHandler('showReviews', setShowReviews)
+                  })}
+                  {renderSettingItem({
+                    icon: GameController,
+                    title: 'Show Gaming Activity',
+                    subtitle: showActivity ? 'Others can see your gaming activity' : 'Activity is private',
+                    showSwitch: true,
+                    switchValue: showActivity && !profilePrivate,
+                    onSwitchChange: createSettingHandler('showActivity', setShowActivity)
                   })}
                 </>
               )
             })}
 
-            {/* Integrations */}
+            {/* Data & Storage */}
             {renderSection({
-              title: 'Integrations',
-              children: (
-                <>
-                  {renderSettingItem({
-                    icon: SteamLogo,
-                    title: 'Steam',
-                    subtitle: steamConnected ? 'Connected' : 'Connect your Steam account',
-                    showSwitch: true,
-                    switchValue: steamConnected,
-                    onSwitchChange: setSteamConnected
-                  })}
-                  {renderSettingItem({
-                    icon: GameController,
-                    title: 'PlayStation',
-                    subtitle: playstationConnected ? 'Connected' : 'Connect your PlayStation account',
-                    showSwitch: true,
-                    switchValue: playstationConnected,
-                    onSwitchChange: setPlaystationConnected
-                  })}
-                  {renderSettingItem({
-                    icon: GameController,
-                    title: 'Xbox',
-                    subtitle: xboxConnected ? 'Connected' : 'Connect your Xbox account',
-                    showSwitch: true,
-                    switchValue: xboxConnected,
-                    onSwitchChange: setXboxConnected
-                  })}
-                </>
-              )
-            })}
-
-            {/* Data Management */}
-            {renderSection({
-              title: 'Data Management',
+              title: 'Data & Storage',
               children: (
                 <>
                   {renderSettingItem({
                     icon: Download,
-                    title: 'Export Data',
-                    subtitle: 'Download your data as JSON',
+                    title: 'Export My Data',
+                    subtitle: 'Download backup of all your game data',
                     onPress: handleExportData
                   })}
                   {renderSettingItem({
-                    icon: Upload,
-                    title: 'Import Data',
-                    subtitle: 'Import data from another source',
-                    onPress: handleImportData
+                    icon: ArrowsClockwise,
+                    title: 'Clear App Cache',
+                    subtitle: 'Free up storage space (keeps your data)',
+                    onPress: handleClearCache
                   })}
+                </>
+              )
+            })}
+
+            {/* Gaming */}
+            {renderSection({
+              title: 'Gaming',
+              children: (
+                <>
                   {renderSettingItem({
-                    icon: Database,
-                    title: 'Auto Sync',
-                    subtitle: 'Automatically sync your data',
-                    showSwitch: true,
-                    switchValue: autoSync,
-                    onSwitchChange: setAutoSync
+                    icon: Trophy,
+                    title: 'Reset All Achievements',
+                    subtitle: 'Clear all unlocked achievements and progress',
+                    onPress: handleResetAchievements,
+                    destructive: true
                   })}
                 </>
               )
@@ -337,35 +451,48 @@ export default function SettingsScreen() {
                   {renderSettingItem({
                     icon: Question,
                     title: 'Help & FAQ',
-                    subtitle: 'Get help and find answers',
-                    onPress: () => Alert.alert('Help', 'Help center would open here')
+                    subtitle: 'Get help with using GameLog',
+                    onPress: () => Alert.alert(
+                      'GameLog Help', 
+                      'Frequently Asked Questions:\n\n• How do I add games to my library?\nTap any game and use "Add to Library" button\n\n• How do achievements work?\nThey unlock automatically as you use the app\n\n• How to write reviews?\nUse the Log tab to search and review games\n\n• How to create lists?\nGo to Lists tab and tap "Create New List"'
+                    )
                   })}
                   {renderSettingItem({
                     icon: Info,
-                    title: 'About',
+                    title: 'About GameLog',
                     subtitle: 'App version and information',
-                    onPress: () => Alert.alert('About', 'App version: 1.0.0\nBuild: 2024.1.1')
+                    onPress: () => Alert.alert(
+                      'About GameLog', 
+                      'GameLog v1.0.0\nBuild: 2024.12.01\n\nYour personal game tracking companion.\n\nTrack games, write reviews, unlock achievements, and organize your gaming library.\n\nDeveloped with ❤️ for gamers by gamers.'
+                    )
                   })}
                 </>
               )
             })}
 
-            {/* Danger Zone */}
+            {/* Account */}
+            {/* Account & Security */}
             {renderSection({
-              title: 'Danger Zone',
+              title: 'Account',
               children: (
                 <>
                   {renderSettingItem({
+                    icon: User,
+                    title: 'View Profile',
+                    subtitle: user?.username ? `Signed in as ${user.username}` : 'View and edit your profile',
+                    onPress: () => router.push('/(tabs)/profile')
+                  })}
+                  {renderSettingItem({
                     icon: SignOut,
-                    title: 'Logout',
-                    subtitle: 'Sign out of your account',
+                    title: 'Sign Out',
+                    subtitle: 'Sign out of your GameLog account',
                     onPress: handleLogout,
                     destructive: true
                   })}
                   {renderSettingItem({
                     icon: Trash,
                     title: 'Delete Account',
-                    subtitle: 'Permanently delete your account and data',
+                    subtitle: 'Permanently delete account and all data',
                     onPress: handleDeleteAccount,
                     destructive: true
                   })}

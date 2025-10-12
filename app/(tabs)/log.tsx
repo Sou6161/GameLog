@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MagnifyingGlass, X, Check, Star, Heart, Calendar, ArrowLeft, Plus, GameController } from 'phosphor-react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { igdbService } from '@/services/igdbService';
+import { useAchievements } from '@/hooks/useAchievements';
 
 interface IGDBGame {
   id: number;
@@ -33,6 +34,9 @@ interface GameReview {
 
 export default function LogScreen() {
   const params = useLocalSearchParams();
+  
+  // Achievement tracking
+  const { trackReview } = useAchievements();
   
   // Search and Game Selection State
   const [searchQuery, setSearchQuery] = useState('');
@@ -170,7 +174,7 @@ export default function LogScreen() {
   };
 
   // Submit review
-  const handleSubmitReview = () => {
+  const handleSubmitReview = async () => {
     if (!selectedGame) return;
     
     const newReview: GameReview = {
@@ -188,6 +192,10 @@ export default function LogScreen() {
     };
     
     setMyReviews(prev => [newReview, ...prev]);
+    
+    // Track achievement for writing a review with genres
+    const genres = selectedGame.genres?.map(g => g.name) || [];
+    await trackReview(rating, genres);
     
     Alert.alert('Success', 'Review posted successfully!');
     

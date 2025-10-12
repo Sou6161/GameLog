@@ -32,6 +32,7 @@ import {
 import { useGameDetails } from '@/hooks/useGames';
 import { IGDBGame } from '@/services/igdbService';
 import ImageGalleryModal from '@/components/ImageGalleryModal';
+import { useAchievements } from '@/hooks/useAchievements';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -42,12 +43,50 @@ function GameDetailScreen() {
   const [selectedScreenshot, setSelectedScreenshot] = useState(0);
   const [isGalleryVisible, setIsGalleryVisible] = useState(false);
   const [galleryStartIndex, setGalleryStartIndex] = useState(0);
+  const [isInLibrary, setIsInLibrary] = useState(false);
+  
+  // Achievement tracking
+  const { trackGameAdded, trackGameRemoved } = useAchievements();
 
   // Safely parse the game ID with error handling
   const gameId = id ? parseInt(id, 10) : 0;
   
   // Don't fetch if gameId is invalid
   const { data: gameDetail, isLoading, error } = useGameDetails(gameId);
+
+  // Handle add to library
+  const handleAddToLibrary = async () => {
+    if (!isInLibrary) {
+      setIsInLibrary(true);
+      
+      // Extract genres from game detail
+      const genres = gameDetail?.genres?.map(g => g.name) || [];
+      await trackGameAdded(genres);
+      
+      Alert.alert('Success', 'Game added to your library!');
+    } else {
+      Alert.alert(
+        'Remove from Library',
+        'Are you sure you want to remove this game from your library?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Remove',
+            style: 'destructive',
+            onPress: async () => {
+              setIsInLibrary(false);
+              
+              // Extract genres from game detail
+              const genres = gameDetail?.genres?.map(g => g.name) || [];
+              await trackGameRemoved(genres);
+              
+              Alert.alert('Success', 'Game removed from library!');
+            },
+          },
+        ]
+      );
+    }
+  };
 
   // Safe navigation function
   const handleGoBack = () => {
@@ -646,6 +685,43 @@ function GameDetailScreen() {
           </View>
         )}
       </ScrollView>
+      
+      {/* Bottom Action Bar */}
+      <View className="bg-[#1A1A2E] px-4 py-3 border-t border-[#2A2A3E]">
+        <SafeAreaView edges={['bottom']}>
+          <View className="flex-row gap-3">
+            <TouchableOpacity
+              onPress={handleAddToLibrary}
+              className="flex-1"
+            >
+              <LinearGradient
+                colors={isInLibrary ? ['#10B981', '#059669'] : ['#00D2FF', '#6c5ce7']}
+                className="py-3 rounded-xl flex-row items-center justify-center"
+              >
+                <GameController size={20} color="#FFFFFF" weight="bold" />
+                <Text className="ml-2 text-white font-bold">
+                  {isInLibrary ? 'In Library' : 'Add to Library'}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              onPress={() => {
+                if (gameDetail) {
+                  router.push({
+                    pathname: '/log',
+                    params: { gameId: gameDetail.id.toString() }
+                  });
+                }
+              }}
+              className="bg-[#00D2FF] py-3 px-6 rounded-xl flex-row items-center justify-center"
+            >
+              <Star size={20} color="#FFFFFF" weight="bold" />
+              <Text className="ml-2 text-white font-bold">Review</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </View>
       
       {/* Image Gallery Modal */}
       <ImageGalleryModal

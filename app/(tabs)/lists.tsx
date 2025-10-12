@@ -25,6 +25,7 @@ import {
   MagnifyingGlass,
 } from 'phosphor-react-native';
 import { router } from 'expo-router';
+import { useAchievements } from '@/hooks/useAchievements';
 
 
 
@@ -108,6 +109,15 @@ export default function ActivityScreen() {
   const [newListName, setNewListName] = useState('');
   const [newListDescription, setNewListDescription] = useState('');
   
+  // Achievement tracking
+  const {
+    trackListCreated,
+    trackListDeleted,
+    trackGameAdded,
+    trackGameRemoved,
+    trackReviewDeleted,
+  } = useAchievements();
+  
   // Initialize empty state - no mock data
   const [customLists, setCustomLists] = useState<any[]>([]);
   const [libraryGames, setLibraryGames] = useState<any[]>([]);
@@ -141,7 +151,7 @@ export default function ActivityScreen() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const handleCreateList = () => {
+  const handleCreateList = async () => {
     if (newListName.trim() === '') {
       Alert.alert('Error', 'Please enter a list name');
       return;
@@ -168,6 +178,10 @@ export default function ActivityScreen() {
         games: selectedGames,
       };
       setCustomLists([...customLists, newList]);
+      
+      // Track achievement for creating a new list
+      await trackListCreated();
+      
       Alert.alert('Success', 'List created successfully!');
     }
 
@@ -194,8 +208,11 @@ export default function ActivityScreen() {
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => {
+        onPress: async () => {
           setCustomLists(customLists.filter((list) => list.id !== listId));
+          
+          // Track achievement for deleting a list
+          await trackListDeleted();
         },
       },
     ]);
@@ -227,8 +244,12 @@ export default function ActivityScreen() {
         {
           text: 'Remove',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
             setLibraryGames(libraryGames.filter((game) => game.id !== gameId));
+            
+            // Track achievement for removing a game
+            await trackGameRemoved();
+            
             Alert.alert('Success', 'Game removed from library!');
           },
         },
@@ -242,6 +263,10 @@ export default function ActivityScreen() {
 
   const handleDeleteReview = (reviewId: string) => {
     console.log('Delete review called for ID:', reviewId);
+    
+    // Find the review to get its rating before deleting
+    const review = activityFeed.find((activity) => activity.id === reviewId);
+    
     Alert.alert(
       'Delete Review',
       'Are you sure you want to delete this review? This action cannot be undone.',
@@ -250,11 +275,17 @@ export default function ActivityScreen() {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
             console.log('Deleting review:', reviewId);
             const updatedFeed = activityFeed.filter((activity) => activity.id !== reviewId);
             console.log('Updated feed length:', updatedFeed.length);
             setActivityFeed(updatedFeed);
+            
+            // Track achievement for deleting a review
+            if (review && review.game && review.game.rating) {
+              await trackReviewDeleted(review.game.rating);
+            }
+            
             Alert.alert('Success', 'Review deleted successfully!');
           },
         },
@@ -289,8 +320,16 @@ export default function ActivityScreen() {
         {
           text: 'Delete All',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
             console.log('Deleting all reviews');
+            
+            // Track all deletions
+            for (const review of activityFeed) {
+              if (review.game && review.game.rating) {
+                await trackReviewDeleted(review.game.rating);
+              }
+            }
+            
             setActivityFeed([]);
             Alert.alert('Success', 'All reviews deleted successfully!');
           },
@@ -570,7 +609,7 @@ export default function ActivityScreen() {
           >
             <Text
               className={`font-semibold text-center ${
-                activeTab === 'reviews' ? 'text-black' : 'text-white'
+                activeTab === 'reviews' ? 'text-white' : 'text-white'
               }`}
             >
               Reviews
@@ -584,7 +623,7 @@ export default function ActivityScreen() {
           >
             <Text
               className={`font-semibold text-center ${
-                activeTab === 'library' ? 'text-black' : 'text-white'
+                activeTab === 'library' ? 'text-white' : 'text-white'
               }`}
             >
               Library
@@ -598,7 +637,7 @@ export default function ActivityScreen() {
           >
             <Text
               className={`font-semibold text-center ${
-                activeTab === 'lists' ? 'text-black' : 'text-white'
+                activeTab === 'lists' ? 'text-white' : 'text-white'
               }`}
             >
               Lists

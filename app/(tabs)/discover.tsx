@@ -9,6 +9,8 @@ import { igdbService } from '@/services/igdbService';
 import { useFeaturedGames, useTrendingGames, useRecentlyReleasedGames } from '@/hooks/useGames';
 import { useConfirmation } from '@/hooks/useConfirmation';
 import ConfirmationModal from '@/components/ConfirmationModal';
+import { useTrendingReviews } from '@/hooks/useCommunityReviews';
+import CommunityReviewCard from '@/components/CommunityReviewCard';
 
 export default function DiscoverScreen() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -24,6 +26,9 @@ export default function DiscoverScreen() {
   const { data: featuredGames = [], isLoading: loadingFeatured } = useFeaturedGames();
   const { data: trendingGames = [], isLoading: loadingTrending } = useTrendingGames();
   const { data: newReleases = [], isLoading: loadingNewReleases } = useRecentlyReleasedGames();
+  
+  // Community reviews
+  const { reviews: trendingReviews, loading: loadingTrendingReviews } = useTrendingReviews();
 
   // Debounce search query to prevent excessive API calls
   useEffect(() => {
@@ -129,8 +134,12 @@ export default function DiscoverScreen() {
   return (
     <LinearGradient colors={["#0F0F1F", "#121631", "#0A2342"]} className="flex-1">
       <SafeAreaView className="flex-1">
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-          <View className="px-5 pb-8">
+        <ScrollView 
+          className="flex-1" 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 20 }}
+        >
+          <View className="px-4 pb-8">
             {/* Search Bar */}
             <View className="flex-row items-center bg-[#1A2238] rounded-xl px-4 py-3 mb-6 border border-[#374151]">
               <MagnifyingGlass size={20} color="#94A3B8" weight="bold" />
@@ -204,6 +213,40 @@ export default function DiscoverScreen() {
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5">
                     {newReleases.map((game) => (
                       <GameCard key={game.id} game={game} />
+                    ))}
+                  </ScrollView>
+                )}
+              </View>
+            )}
+
+            {/* Trending Community Reviews */}
+            {!hasSearched && (
+              <View className="mb-8">
+                <View className="flex-row items-center mb-4">
+                  <TrendUp size={24} color="#00D2FF" weight="bold" />
+                  <Text className="text-white text-xl font-bold ml-3">Trending Reviews</Text>
+                  <Text className="text-gray-400 w-full text-sm ml-2">({trendingReviews.length})</Text>
+                </View>
+                {loadingTrendingReviews ? (
+                  <ActivityIndicator size="small" color="#00D2FF" />
+                ) : (
+                  <ScrollView 
+                    horizontal 
+                    showsHorizontalScrollIndicator={false} 
+                    className="-mx-4"
+                    contentContainerStyle={{ paddingHorizontal: 16 }}
+                  >
+                    {trendingReviews.slice(0, 10).map((review) => (
+                      <View key={review.id} className="w-72 mr-3">
+                        <CommunityReviewCard
+                          review={review}
+                          onUserPress={(userId) => {
+                            console.log('Navigate to user profile:', userId);
+                          }}
+                          gameName={review.gameName}
+                          showGameName={true}
+                        />
+                      </View>
                     ))}
                   </ScrollView>
                 )}

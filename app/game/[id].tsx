@@ -43,6 +43,8 @@ import { RootState } from '@/store';
 import { addToLibrary, removeFromLibrary } from '@/store/slices/gameSlice';
 import { useConfirmation } from '@/hooks/useConfirmation';
 import ConfirmationModal from '@/components/ConfirmationModal';
+import { useCommunityReviews } from '@/hooks/useCommunityReviews';
+import CommunityReviewCard from '@/components/CommunityReviewCard';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -68,6 +70,9 @@ function GameDetailScreen() {
 
   // Safely parse the game ID with error handling
   const gameId = id ? parseInt(id, 10) : 0;
+  
+  // Community reviews
+  const { reviews: communityReviews, loading: communityLoading } = useCommunityReviews(String(gameId));
   
   // Don't fetch if gameId is invalid
   const { data: gameDetail, isLoading, error } = useGameDetails(gameId);
@@ -276,7 +281,7 @@ function GameDetailScreen() {
                     <Text className="text-[#FFD700] font-semibold">
                       {gameDetail.rating ? (gameDetail.rating / 10).toFixed(1) : 'N/A'}
                     </Text>
-                    {/* <Text className="text-gray-300 text-xs" numberOfLines={1} ellipsizeMode="tail">({formatNumber(gameDetail.total_rating_count)})</Text> */}
+                    <Text className="text-gray-300 text-xs w-full" numberOfLines={1} ellipsizeMode="tail">({formatNumber(gameDetail.total_rating_count)})</Text>
                   </View>
                   <View className="flex-row flex-wrap gap-2 mt-2">
                     {gameDetail.genres?.slice(0, 3).map((genre) => (
@@ -297,7 +302,7 @@ function GameDetailScreen() {
       {/* Tab Navigation */}
       <View className="px-4 mb-3">
         <View className="flex-row bg-[#1A1A2E] rounded-2xl p-1 border border-[#2A2A3E]">
-          {['overview', 'media', 'details'].map((tab) => (
+          {['overview', 'media', 'details', 'reviews'].map((tab) => (
             <TouchableOpacity
               key={tab}
               onPress={() => setSelectedTab(tab)}
@@ -310,7 +315,7 @@ function GameDetailScreen() {
                   selectedTab === tab ? 'text-white' : 'text-gray-400'
                 }`}
               >
-                {tab}
+                {tab === 'reviews' ? 'Community' : tab}
               </Text>
             </TouchableOpacity>
           ))}
@@ -328,7 +333,7 @@ function GameDetailScreen() {
                   <Fire size={20} color="#FF4757" weight="fill" />
                 </View>
                 <Text className="text-white font-bold">{formatNumber(gameDetail.hypes)}</Text>
-                <Text className="text-gray-400 text-xs">Hype</Text>
+                <Text className="text-gray-400 text-xs w-full">Hype</Text>
               </View>
               
               <View className="items-center">
@@ -336,7 +341,7 @@ function GameDetailScreen() {
                   <Eye size={20} color="#00D2FF" weight="fill" />
                 </View>
                 <Text className="text-white font-bold">{formatNumber(gameDetail.follows)}</Text>
-                <Text className="text-gray-400 text-xs">Follows</Text>
+                <Text className="text-gray-400 text-xs w-full">Follows</Text>
               </View>
               
               <View className="items-center">
@@ -344,7 +349,7 @@ function GameDetailScreen() {
                   <Trophy size={20} color="#FFD700" weight="fill" />
                 </View>
                 <Text className="text-white font-bold">{gameDetail.aggregated_rating ? Math.round(gameDetail.aggregated_rating) : '?'}</Text>
-                <Text className="text-gray-400 text-xs">Score</Text>
+                <Text className="text-gray-400 text-xs w-full">Score</Text>
               </View>
               
               <View className="items-center">
@@ -352,7 +357,7 @@ function GameDetailScreen() {
                   <ThumbsUp size={20} color="#A78BFA" weight="fill" />
                 </View>
                 <Text className="text-white font-bold">{formatNumber(gameDetail.aggregated_rating_count)}</Text>
-                <Text className="text-gray-400 text-xs">Reviews</Text>
+                <Text className="text-gray-400 text-xs w-full">Reviews</Text>
               </View>
             </View>
 
@@ -722,6 +727,46 @@ function GameDetailScreen() {
                 </View>
               </View>
             </View>
+          </View>
+        )}
+
+        {selectedTab === 'reviews' && (
+          <View className="pb-8">
+            {/* Community Reviews Header */}
+            <View className="mb-6">
+              <Text className="text-white text-2xl font-bold mb-2">Community Reviews</Text>
+              <Text className="text-gray-400 text-base">
+                See what other players think about this game
+              </Text>
+            </View>
+
+            {/* Reviews List */}
+            {communityLoading ? (
+              <View className="items-center py-8">
+                <Text className="text-gray-400 text-lg">Loading community reviews...</Text>
+              </View>
+            ) : communityReviews.length > 0 ? (
+              <View>
+                {communityReviews.map((review) => (
+                  <CommunityReviewCard
+                    key={review.id}
+                    review={review}
+                    onUserPress={(userId) => {
+                      // Navigate to user profile (could be implemented later)
+                      console.log('Navigate to user profile:', userId);
+                    }}
+                    gameName={review.gameName}
+                    showGameName={false}
+                  />
+                ))}
+              </View>
+            ) : (
+              <View className="items-center py-8">
+                <Text className="text-gray-400 text-lg text-center w-full">
+                  No community reviews yet.{'\n'}Be the first to share your thoughts!
+                </Text>
+              </View>
+            )}
           </View>
         )}
       </ScrollView>

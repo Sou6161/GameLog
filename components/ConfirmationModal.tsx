@@ -131,29 +131,44 @@ export default function ConfirmationModal({
             </Text>
 
             {/* Action Buttons */}
-            <View className="flex-row gap-3">
-              <TouchableOpacity
-                onPress={onClose}
-                className="flex-1 bg-[#374151] rounded-xl py-4 items-center"
-              >
-                <Text className="text-white font-semibold text-base">
-                  {cancelText}
-                </Text>
-              </TouchableOpacity>
-              
+            {cancelText && cancelText !== '' ? (
+              <View className="flex-row gap-3">
+                <TouchableOpacity
+                  onPress={onClose}
+                  className="flex-1 bg-[#374151] rounded-xl py-4 items-center"
+                >
+                  <Text className="text-white font-semibold text-base">
+                    {cancelText}
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  onPress={() => {
+                    onConfirm();
+                    onClose();
+                  }}
+                  className="flex-1 rounded-xl py-4 items-center"
+                  style={{ backgroundColor: config.confirmBg }}
+                >
+                  <Text className="text-white font-semibold text-base">
+                    {confirmText}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
               <TouchableOpacity
                 onPress={() => {
                   onConfirm();
                   onClose();
                 }}
-                className="flex-1 rounded-xl py-4 items-center"
+                className="w-full rounded-xl py-4 items-center"
                 style={{ backgroundColor: config.confirmBg }}
               >
                 <Text className="text-white font-semibold text-base">
                   {confirmText}
                 </Text>
               </TouchableOpacity>
-            </View>
+            )}
           </View>
         </View>
       </View>

@@ -269,7 +269,7 @@ export default function ProfileScreen() {
               const IconComponent = achievement.icon || Trophy; // Fallback to Trophy icon
               
               return (
-                <View key={achievement.id} className={`bg-[#232946] rounded-xl p-4 border ${
+                <View key={achievement.id} className={`bg-[#232946] rounded-xl p-4 mt-2 border ${
                   achievement.unlocked ? 'border-[#00D2FF]/30' : 'border-[#374151]'
                 } ${!achievement.unlocked ? 'opacity-60' : ''}`}>
                   <View className="flex-row items-center">

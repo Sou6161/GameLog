@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  FlatList,
   Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,15 +15,9 @@ import {
   Clock,
   Star,
   GameController,
-  Heart,
-  Medal,
   Calendar,
-  ArrowRight,
-  Play,
-  Pause,
   CheckCircle,
   Crown,
-  Target,
   Fire,
   Camera,
   X,
@@ -32,6 +25,8 @@ import {
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { useAchievements } from '@/hooks/useAchievements';
+import { useConfirmation } from '@/hooks/useConfirmation';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 // Types for user data
 interface Achievement {
@@ -79,11 +74,17 @@ const avatarOptions = [
 ];
 
 export default function ProfileScreen() {
-  const { user } = useAuth();
+  const { user, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('overview');
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState(defaultAvatar);
+  
+  // Confirmation modal
+  const { confirmationState, showConfirmation, hideConfirmation } = useConfirmation();
+  
+  // Safe user data extraction
+  const userName = user?.username || 'Guest User';
   
   // Get real achievement data
   const {
@@ -135,7 +136,7 @@ export default function ProfileScreen() {
     
     // Load recent achievements
     const recent = await getRecentAchievements();
-    setAchievements(recent);
+    setAchievements(Array.isArray(recent) ? recent : []);
     
     // Load total unlocked count
     const count = await getUnlockedCount();
@@ -257,41 +258,50 @@ export default function ProfileScreen() {
         <Text className="font-bold text-xl text-white mb-4">
           Recent Achievements
         </Text>
-        {achievements.length > 0 ? (
+        {achievements && achievements.length > 0 ? (
           <View className="space-y-3">
-            {achievements.slice(0, 3).map((achievement) => (
-              <View key={achievement.id} className={`bg-[#232946] rounded-xl p-4 border ${
-                achievement.unlocked ? 'border-[#00D2FF]/30' : 'border-[#374151]'
-              } ${!achievement.unlocked ? 'opacity-60' : ''}`}>
-                <View className="flex-row items-center">
-                  <View
-                    className="w-12 h-12 rounded-full justify-center items-center mr-4"
-                    style={{ backgroundColor: achievement.unlocked ? achievement.color : '#374151' }}
-                  >
-                    <achievement.icon
-                      size={24}
-                      color={achievement.unlocked ? '#FFFFFF' : '#6B7280'}
-                      weight="fill"
-                    />
+            {achievements.filter(achievement => achievement && achievement.id).slice(0, 3).map((achievement) => {
+              // Safety check for achievement object
+              if (!achievement || !achievement.id) {
+                return null;
+              }
+              
+              const IconComponent = achievement.icon || Trophy; // Fallback to Trophy icon
+              
+              return (
+                <View key={achievement.id} className={`bg-[#232946] rounded-xl p-4 border ${
+                  achievement.unlocked ? 'border-[#00D2FF]/30' : 'border-[#374151]'
+                } ${!achievement.unlocked ? 'opacity-60' : ''}`}>
+                  <View className="flex-row items-center">
+                    <View
+                      className="w-12 h-12 rounded-full justify-center items-center mr-4"
+                      style={{ backgroundColor: achievement.unlocked ? achievement.color : '#374151' }}
+                    >
+                      <IconComponent
+                        size={24}
+                        color={achievement.unlocked ? '#FFFFFF' : '#6B7280'}
+                        weight="fill"
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <Text className={`font-bold text-base ${
+                        achievement.unlocked ? 'text-white' : 'text-gray-400'
+                      }`}>
+                        {achievement.title || 'Unknown Achievement'}
+                      </Text>
+                      <Text className={`text-sm mt-1 ${
+                        achievement.unlocked ? 'text-[#94A3B8]' : 'text-gray-500'
+                      }`}>
+                        {achievement.description || 'No description available'}
+                      </Text>
+                    </View>
+                    {achievement.unlocked && (
+                      <CheckCircle size={20} color="#22C55E" weight="fill" />
+                    )}
                   </View>
-                  <View className="flex-1">
-                    <Text className={`font-bold text-base ${
-                      achievement.unlocked ? 'text-white' : 'text-gray-400'
-                    }`}>
-                      {achievement.title}
-                    </Text>
-                    <Text className={`text-sm mt-1 ${
-                      achievement.unlocked ? 'text-[#94A3B8]' : 'text-gray-500'
-                    }`}>
-                      {achievement.description}
-                    </Text>
-                  </View>
-                  {achievement.unlocked && (
-                    <CheckCircle size={20} color="#22C55E" weight="fill" />
-                  )}
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         ) : (
           <View className="bg-[#232946] rounded-xl p-6 border border-[#374151] items-center">
@@ -427,6 +437,53 @@ export default function ProfileScreen() {
     </View>
   );
 
+
+  // Show loading state while user data is being fetched
+  if (isLoading) {
+    return (
+      <LinearGradient
+        colors={['#0F0F1F', '#121631', '#0A2342']}
+        className="flex-1"
+      >
+        <SafeAreaView className="flex-1 justify-center items-center">
+          <View className="w-16 h-16 rounded-full bg-[#00D2FF] justify-center items-center mb-4">
+            <GameController size={32} color="#FFFFFF" weight="fill" />
+          </View>
+          <Text className="text-white text-xl font-bold mb-2">Loading Profile...</Text>
+          <Text className="text-[#94A3B8] text-center px-8">
+            Please wait while we load your profile data
+          </Text>
+        </SafeAreaView>
+      </LinearGradient>
+    );
+  }
+
+  // Show guest user state if not authenticated
+  if (!isAuthenticated || !user) {
+    return (
+      <LinearGradient
+        colors={['#0F0F1F', '#121631', '#0A2342']}
+        className="flex-1"
+      >
+        <SafeAreaView className="flex-1 justify-center items-center px-8">
+          <View className="w-20 h-20 rounded-full bg-[#232946] justify-center items-center mb-6">
+            <GameController size={40} color="#94A3B8" weight="bold" />
+          </View>
+          <Text className="text-white text-2xl font-bold mb-4 text-center">Welcome to GameLog!</Text>
+          <Text className="text-[#94A3B8] text-center mb-8 leading-6">
+            Sign in to track your games, write reviews, and unlock achievements
+          </Text>
+          <TouchableOpacity
+            className="bg-[#00D2FF] py-4 px-8 rounded-xl"
+            onPress={() => router.push('/settings' as any)}
+          >
+            <Text className="text-white font-bold text-lg">Go to Settings</Text>
+          </TouchableOpacity>
+        </SafeAreaView>
+      </LinearGradient>
+    );
+  }
+
   return (
     <LinearGradient
       colors={['#0F0F1F', '#121631', '#0A2342']}
@@ -467,7 +524,7 @@ export default function ProfileScreen() {
               </TouchableOpacity>
 
               <Text className="font-bold text-3xl text-white mb-3">
-                {user?.username || 'New Gamer'}
+                {userName}
               </Text>
               {userStats.bio ? (
                 <Text className="text-[#94A3B8] text-lg text-center mb-4 leading-6">
@@ -602,6 +659,19 @@ export default function ProfileScreen() {
           </View>
         </Modal>
       </SafeAreaView>
+      
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        visible={confirmationState.visible}
+        onClose={hideConfirmation}
+        onConfirm={confirmationState.onConfirm}
+        title={confirmationState.title}
+        message={confirmationState.message}
+        type={confirmationState.type}
+        confirmText={confirmationState.confirmText}
+        cancelText={confirmationState.cancelText}
+      />
     </LinearGradient>
   );
 }
+

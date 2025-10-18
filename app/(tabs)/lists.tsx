@@ -25,6 +25,12 @@ import {
   MagnifyingGlass,
 } from 'phosphor-react-native';
 import { router } from 'expo-router';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState } from '@/store';
+import { removeFromLibrary, unmarkReviewed } from '@/store/slices/gameSlice';
+import { useConfirmation } from '@/hooks/useConfirmation';
+import ConfirmationModal from '@/components/ConfirmationModal';
+import { deleteReviewByGameId } from '@/store/slices/reviewSlice';
 import { useAchievements } from '@/hooks/useAchievements';
 
 
@@ -120,8 +126,13 @@ export default function ActivityScreen() {
   
   // Initialize empty state - no mock data
   const [customLists, setCustomLists] = useState<any[]>([]);
-  const [libraryGames, setLibraryGames] = useState<any[]>([]);
-  const [activityFeed, setActivityFeed] = useState<any[]>([]);
+  const dispatch = useDispatch();
+  const libraryGames = useSelector((state: RootState) => state.game.libraryGames);
+  const reviewedGameIds = useSelector((state: RootState) => state.game.reviewedGameIds);
+  const reviews = useSelector((state: RootState) => state.reviews.reviews as any[]);
+  
+  // Confirmation modal
+  const { confirmationState, showConfirmation, hideConfirmation } = useConfirmation();
   
   const [editingList, setEditingList] = useState<any>(null);
 
@@ -130,8 +141,7 @@ export default function ActivityScreen() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [selectedGames, setSelectedGames] = useState<any[]>([]);
 
-  // Reviewed games state
-  const [reviewedGames, setReviewedGames] = useState<string[]>(['1', '3']); // IDs of reviewed games
+  // Reviewed games state (from Redux reviewed ids)
 
   // Debounce search
   useEffect(() => {
@@ -153,7 +163,14 @@ export default function ActivityScreen() {
 
   const handleCreateList = async () => {
     if (newListName.trim() === '') {
-      Alert.alert('Error', 'Please enter a list name');
+      showConfirmation(
+        'Error',
+        'Please enter a list name',
+        () => {},
+        'warning',
+        'OK',
+        ''
+      );
       return;
     }
 
@@ -169,7 +186,14 @@ export default function ActivityScreen() {
           : list
       );
       setCustomLists(updatedLists);
-      Alert.alert('Success', 'List updated successfully!');
+      showConfirmation(
+        'Success',
+        'List updated successfully!',
+        () => {},
+        'success',
+        'OK',
+        ''
+      );
     } else {
       const newList = {
         id: Date.now().toString(),
@@ -182,7 +206,14 @@ export default function ActivityScreen() {
       // Track achievement for creating a new list
       await trackListCreated();
       
-      Alert.alert('Success', 'List created successfully!');
+      showConfirmation(
+        'Success',
+        'List created successfully!',
+        () => {},
+        'success',
+        'OK',
+        ''
+      );
     }
 
     setNewListName('');
@@ -203,19 +234,19 @@ export default function ActivityScreen() {
   };
 
   const handleDeleteList = (listId: string) => {
-    Alert.alert('Delete List', 'Are you sure you want to delete this list?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          setCustomLists(customLists.filter((list) => list.id !== listId));
-          
-          // Track achievement for deleting a list
-          await trackListDeleted();
-        },
+    showConfirmation(
+      'Delete List',
+      'Are you sure you want to delete this list?',
+      async () => {
+        setCustomLists(customLists.filter((list) => list.id !== listId));
+        
+        // Track achievement for deleting a list
+        await trackListDeleted();
       },
-    ]);
+      'danger',
+      'Delete',
+      'Cancel'
+    );
   };
 
   const handleAddGameToList = (game: any) => {
@@ -236,60 +267,54 @@ export default function ActivityScreen() {
   };
 
   const handleRemoveFromLibrary = (gameId: string) => {
-    Alert.alert(
+    showConfirmation(
       'Remove from Library',
       'Are you sure you want to remove this game from your library?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: async () => {
-            setLibraryGames(libraryGames.filter((game) => game.id !== gameId));
-            
-            // Track achievement for removing a game
-            await trackGameRemoved();
-            
-            Alert.alert('Success', 'Game removed from library!');
-          },
-        },
-      ]
+      async () => {
+        dispatch(removeFromLibrary(gameId));
+        
+        // Track achievement for removing a game
+        await trackGameRemoved();
+        
+        showConfirmation(
+          'Success',
+          'Game removed from library!',
+          () => {},
+          'success',
+          'OK',
+          ''
+        );
+      },
+      'warning',
+      'Remove',
+      'Cancel'
     );
   };
 
-  const isGameReviewed = (gameId: string) => {
-    return reviewedGames.includes(gameId);
-  };
+  const isGameReviewed = (gameId: string) => reviewedGameIds.includes(gameId);
 
-  const handleDeleteReview = (reviewId: string) => {
-    console.log('Delete review called for ID:', reviewId);
-    
-    // Find the review to get its rating before deleting
-    const review = activityFeed.find((activity) => activity.id === reviewId);
-    
-    Alert.alert(
+  const handleDeleteReview = (review: any) => {
+    showConfirmation(
       'Delete Review',
       'Are you sure you want to delete this review? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            console.log('Deleting review:', reviewId);
-            const updatedFeed = activityFeed.filter((activity) => activity.id !== reviewId);
-            console.log('Updated feed length:', updatedFeed.length);
-            setActivityFeed(updatedFeed);
-            
-            // Track achievement for deleting a review
-            if (review && review.game && review.game.rating) {
-              await trackReviewDeleted(review.game.rating);
-            }
-            
-            Alert.alert('Success', 'Review deleted successfully!');
-          },
-        },
-      ]
+      async () => {
+        dispatch(deleteReviewByGameId(review.game.id));
+        dispatch(unmarkReviewed(String(review.game.id)));
+        if (review && review.rating) {
+          await trackReviewDeleted(review.rating);
+        }
+        showConfirmation(
+          'Success',
+          'Review deleted successfully!',
+          () => {},
+          'success',
+          'OK',
+          ''
+        );
+      },
+      'danger',
+      'Delete',
+      'Cancel'
     );
   };
 
@@ -308,33 +333,43 @@ export default function ActivityScreen() {
 
   const handleDeleteAllReviews = () => {
     if (activityFeed.length === 0) {
-      Alert.alert('No Reviews', 'There are no reviews to delete.');
+      showConfirmation(
+        'No Reviews',
+        'There are no reviews to delete.',
+        () => {},
+        'info',
+        'OK',
+        ''
+      );
       return;
     }
     
-    Alert.alert(
+    showConfirmation(
       'Delete All Reviews',
       `Are you sure you want to delete all ${activityFeed.length} reviews? This action cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete All',
-          style: 'destructive',
-          onPress: async () => {
-            console.log('Deleting all reviews');
-            
-            // Track all deletions
-            for (const review of activityFeed) {
-              if (review.game && review.game.rating) {
-                await trackReviewDeleted(review.game.rating);
-              }
-            }
-            
-            setActivityFeed([]);
-            Alert.alert('Success', 'All reviews deleted successfully!');
-          },
-        },
-      ]
+      async () => {
+        console.log('Deleting all reviews');
+        
+        // Track all deletions
+        for (const review of activityFeed) {
+          if (review.game && review.game.rating) {
+            await trackReviewDeleted(review.game.rating);
+          }
+        }
+        
+        setActivityFeed([]);
+        showConfirmation(
+          'Success',
+          'All reviews deleted successfully!',
+          () => {},
+          'success',
+          'OK',
+          ''
+        );
+      },
+      'danger',
+      'Delete All',
+      'Cancel'
     );
   };
 
@@ -342,7 +377,7 @@ export default function ActivityScreen() {
     <ScrollView showsVerticalScrollIndicator={false}>
       <View className="px-5 pb-8">
         {/* Delete All Reviews Button */}
-        {activityFeed.length > 0 && (
+        {reviews.length > 0 && (
           <TouchableOpacity
             className="mb-4 p-3 bg-[#FF6B6B]/20 border border-[#FF6B6B]/40 rounded-xl flex-row items-center justify-center"
             onPress={handleDeleteAllReviews}
@@ -350,45 +385,37 @@ export default function ActivityScreen() {
           >
             <Trash size={18} color="#FF6B6B" weight="bold" />
             <Text className="ml-2 text-[#FF6B6B] font-semibold">
-              Delete All Reviews ({activityFeed.length})
+              Delete All Reviews ({reviews.length})
             </Text>
           </TouchableOpacity>
         )}
         
-        {activityFeed.map((activity) => (
-          <View key={activity.id} className="mb-6 bg-[#232946] rounded-2xl p-4">
+        {reviews.map((review) => (
+          <View key={review.id} className="mb-6 bg-[#232946] rounded-2xl p-4">
             <View className="flex-row items-center mb-2">
               <View className="w-8 h-8 rounded-full bg-[#121629] justify-center items-center mr-3">
                 <GameController size={20} color="#94A3B8" weight="bold" />
               </View>
               <View className="flex-1">
                 <Text className="text-white font-medium">
-                  You {activity.type}{' '}
+                  You reviewed{' '}
                   <Text className="font-bold text-[#00D2FF]">
-                    {activity.game.title}
+                    {review.game.name}
                   </Text>
                 </Text>
-                <Text className="text-xs text-[#94A3B8]">
-                  {activity.timestamp}
-                </Text>
+                <Text className="text-xs text-[#94A3B8]">{review.date}</Text>
               </View>
               <View className="flex-row items-center">
                 <TouchableOpacity 
                   className="p-2 mr-1 bg-[#374151] rounded-lg"
-                  onPress={() => {
-                    console.log('Edit button pressed for:', activity.id);
-                    handleEditReview(activity);
-                  }}
+                  onPress={() => handleEditReview({ id: review.id, game: { id: review.game.id, title: review.game.name, coverUrl: review.game.coverUrl, rating: review.rating }, review: review.reviewText })}
                   activeOpacity={0.7}
                 >
                   <PencilSimple size={18} color="#94A3B8" weight="bold" />
                 </TouchableOpacity>
                 <TouchableOpacity 
                   className="p-2 mr-2 bg-[#FF6B6B]/20 rounded-lg"
-                  onPress={() => {
-                    console.log('Delete button pressed for:', activity.id);
-                    handleDeleteReview(activity.id);
-                  }}
+                  onPress={() => handleDeleteReview(review)}
                   activeOpacity={0.7}
                 >
                   <Trash size={18} color="#FF6B6B" weight="bold" />
@@ -396,18 +423,18 @@ export default function ActivityScreen() {
                 <TouchableOpacity className="p-1">
                   <Heart
                     size={20}
-                    color={activity.liked ? '#FF6B6B' : '#94A3B8'}
-                    weight={activity.liked ? 'fill' : 'regular'}
+                    color={'#94A3B8'}
+                    weight={'regular'}
                   />
                 </TouchableOpacity>
               </View>
             </View>
             <View className="flex-row items-center">
               <TouchableOpacity 
-                onPress={() => router.push(`/game/${activity.game.id}`)}
+                onPress={() => router.push(`/game/${review.game.id}`)}
               >
                 <Image
-                  source={{ uri: activity.game.coverUrl }}
+                  source={{ uri: review.game.coverUrl }}
                   className="w-16 h-24 rounded-xl mr-3"
                 />
               </TouchableOpacity>
@@ -415,15 +442,15 @@ export default function ActivityScreen() {
                 <View className="flex-row items-center mb-1">
                   <Star size={16} color="#FFD700" weight="fill" />
                   <Text className="ml-1 text-[#FFD700] font-semibold">
-                    {activity.game.rating}
+                    {review.rating}
                   </Text>
                 </View>
-                <Text className="text-white leading-5">{activity.review}</Text>
+                <Text className="text-white leading-5">{review.reviewText}</Text>
               </View>
             </View>
           </View>
         ))}
-        {activityFeed.length === 0 && (
+        {reviews.length === 0 && (
           <View className="flex-1 justify-center items-center py-20">
             <View className="w-20 h-20 rounded-full bg-[#232946] justify-center items-center mb-4">
               <GameController size={32} color="#94A3B8" weight="bold" />
@@ -456,7 +483,7 @@ export default function ActivityScreen() {
               />
               <View className="flex-1">
                 <Text className="text-white font-semibold">{game.title}</Text>
-                <Text className="text-[#94A3B8]">{game.genre}</Text>
+                {!!game.genre && <Text className="text-[#94A3B8]">{game.genre}</Text>}
                 <Text className="text-xs text-[#94A3B8]">
                   Added {game.addedDate}
                 </Text>
@@ -591,7 +618,7 @@ export default function ActivityScreen() {
           <View className="flex-1">
             <Text className="font-bold text-xl text-white">Activity</Text>
             <Text className="text-xs text-gray-400">
-              Reviews: {activityFeed.length} | Library: {libraryGames.length} | Lists: {customLists.length}
+              Reviews: {reviews.length} | Library: {libraryGames.length} | Lists: {customLists.length}
             </Text>
           </View>
           <TouchableOpacity className="w-10 h-10 rounded-full justify-center items-center">
@@ -787,6 +814,19 @@ export default function ActivityScreen() {
           </View>
         </Modal>
       </SafeAreaView>
+      
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        visible={confirmationState.visible}
+        onClose={hideConfirmation}
+        onConfirm={confirmationState.onConfirm}
+        title={confirmationState.title}
+        message={confirmationState.message}
+        type={confirmationState.type}
+        confirmText={confirmationState.confirmText}
+        cancelText={confirmationState.cancelText}
+      />
     </LinearGradient>
   );
 }
+

@@ -6,6 +6,12 @@ import { MagnifyingGlass, X, Check, Star, Heart, Calendar, ArrowLeft, Plus, Game
 import { useLocalSearchParams, router } from 'expo-router';
 import { igdbService } from '@/services/igdbService';
 import { useAchievements } from '@/hooks/useAchievements';
+import { useDispatch, useSelector } from 'react-redux';
+import { markReviewed } from '@/store/slices/gameSlice';
+import { upsertReview } from '@/store/slices/reviewSlice';
+import { useConfirmation } from '@/hooks/useConfirmation';
+import ConfirmationModal from '@/components/ConfirmationModal';
+import { RootState } from '@/store';
 
 interface IGDBGame {
   id: number;
@@ -34,9 +40,13 @@ interface GameReview {
 
 export default function LogScreen() {
   const params = useLocalSearchParams();
+  const dispatch = useDispatch();
   
   // Achievement tracking
   const { trackReview } = useAchievements();
+  
+  // Confirmation modal
+  const { confirmationState, showConfirmation, hideConfirmation } = useConfirmation();
   
   // Search and Game Selection State
   const [searchQuery, setSearchQuery] = useState('');
@@ -58,8 +68,45 @@ export default function LogScreen() {
   const [tags, setTags] = useState<string[]>([]);
   const [isPublic, setIsPublic] = useState(true);
   
-  // Reviews Storage
-  const [myReviews, setMyReviews] = useState<GameReview[]>([]);
+  // Reviews Storage (Redux persisted)
+  const reduxReviews = useSelector((state: RootState) => state.reviews.reviews);
+  const [myReviews, setMyReviews] = useState<GameReview[]>(reduxReviews as any);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [incomingGameId, setIncomingGameId] = useState<number | null>(null);
+  // Initialize edit mode if params specify an existing review
+  useEffect(() => {
+    const gameIdParam = (params.gameId as string) || (params.game as string);
+    const editParam = params.editMode as string;
+    if (gameIdParam) {
+      const parsedId = parseInt(gameIdParam, 10);
+      if (!isNaN(parsedId)) {
+        setIncomingGameId(parsedId);
+      }
+    }
+    setIsEditMode(editParam === 'true');
+  }, [params]);
+
+  // If edit mode and we have a review for that game, prefill
+  useEffect(() => {
+    if (!incomingGameId) return;
+    const existing = (reduxReviews as any).find((r: any) => r.game.id === incomingGameId);
+    if (existing) {
+      setSelectedGame({
+        id: existing.game.id,
+        name: existing.game.name,
+        cover: existing.game.coverUrl ? { url: existing.game.coverUrl } : undefined,
+      } as any);
+      setShowReviewForm(true);
+      setGameStatus(existing.status);
+      setRating(existing.rating);
+      setReviewText(existing.reviewText);
+      setPlayTime(existing.playTime);
+      setDifficulty(existing.difficulty);
+      setPlatform(existing.platform);
+      setTags(existing.tags);
+      setIsPublic(existing.isPublic);
+    }
+  }, [incomingGameId, isEditMode, reduxReviews]);
 
   // Current date for review
   const currentDate = new Date().toLocaleDateString('en-US', {
@@ -191,24 +238,44 @@ export default function LogScreen() {
       date: currentDate
     };
     
-    setMyReviews(prev => [newReview, ...prev]);
+    // Persist into Redux
+    dispatch(upsertReview({
+      id: isEditMode ? (reduxReviews.find(r => r.game.id === selectedGame.id)?.id || newReview.id) : newReview.id,
+      game: {
+        id: selectedGame.id,
+        name: selectedGame.name,
+        coverUrl: selectedGame.cover?.url ? selectedGame.cover.url.replace('t_thumb', 't_cover_small') : undefined,
+        firstReleaseYear: selectedGame.first_release_date ? new Date(selectedGame.first_release_date * 1000).getFullYear() : undefined,
+      },
+      status: gameStatus,
+      rating,
+      reviewText,
+      playTime,
+      difficulty,
+      platform,
+      tags,
+      isPublic,
+      date: currentDate,
+    }));
     
     // Track achievement for writing a review with genres
     const genres = selectedGame.genres?.map(g => g.name) || [];
     await trackReview(rating, genres);
     
-    Alert.alert('Success', 'Review posted successfully!');
+    // Mark as reviewed globally so game detail shows Edit Review
+    dispatch(markReviewed(String(selectedGame.id)));
     
-    // Reset form
-    setShowReviewForm(false);
-    setSelectedGame(null);
-    setRating(0);
-    setReviewText('');
-    setPlayTime('');
-    setDifficulty('');
-    setPlatform('');
-    setTags([]);
-    setGameStatus('completed');
+    showConfirmation(
+      'Success',
+      'Review posted successfully!',
+      () => {},
+      'success',
+      'OK',
+      ''
+    );
+    
+    // Navigate back to game detail for this game to allow immediate edit if needed
+    router.push(`/game/${selectedGame.id}`);
   };
 
   // Rating description
@@ -265,7 +332,7 @@ export default function LogScreen() {
             >
               <ArrowLeft size={24} color="#FFFFFF" />
             </TouchableOpacity>
-            <Text className="text-2xl font-bold text-white">Write Review</Text>
+            <Text className="text-2xl font-bold text-white">{isEditMode ? 'Edit Review' : 'Write Review'}</Text>
           </View>
 
           {/* Game Info */}
@@ -590,6 +657,18 @@ export default function LogScreen() {
 
         </ScrollView>
       </SafeAreaView>
+      
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        visible={confirmationState.visible}
+        onClose={hideConfirmation}
+        onConfirm={confirmationState.onConfirm}
+        title={confirmationState.title}
+        message={confirmationState.message}
+        type={confirmationState.type}
+        confirmText={confirmationState.confirmText}
+        cancelText={confirmationState.cancelText}
+      />
     </LinearGradient>
   );
 }

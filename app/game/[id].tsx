@@ -9,12 +9,16 @@ import {
   ImageBackground,
   ActivityIndicator,
   Alert,
+  Modal,
+  Platform,
+  Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, router } from 'expo-router';
 import { BlurView } from 'expo-blur';
+import { WebView } from 'react-native-webview';
 import {
   ArrowLeft,
   Star,
@@ -28,11 +32,17 @@ import {
   Eye,
   ThumbsUp,
   PlayCircle,
+  X,
 } from 'phosphor-react-native';
 import { useGameDetails } from '@/hooks/useGames';
 import { IGDBGame } from '@/services/igdbService';
 import ImageGalleryModal from '@/components/ImageGalleryModal';
 import { useAchievements } from '@/hooks/useAchievements';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '@/store';
+import { addToLibrary, removeFromLibrary } from '@/store/slices/gameSlice';
+import { useConfirmation } from '@/hooks/useConfirmation';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -43,7 +53,15 @@ function GameDetailScreen() {
   const [selectedScreenshot, setSelectedScreenshot] = useState(0);
   const [isGalleryVisible, setIsGalleryVisible] = useState(false);
   const [galleryStartIndex, setGalleryStartIndex] = useState(0);
-  const [isInLibrary, setIsInLibrary] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<any>(null);
+  const [isVideoModalVisible, setIsVideoModalVisible] = useState(false);
+  const [isVideoLoading, setIsVideoLoading] = useState(false);
+  const dispatch = useDispatch();
+  
+  // Confirmation modal
+  const { confirmationState, showConfirmation, hideConfirmation } = useConfirmation();
+  const libraryGames = useSelector((state: RootState) => state.game.libraryGames);
+  const reviewedGameIds = useSelector((state: RootState) => state.game.reviewedGameIds);
   
   // Achievement tracking
   const { trackGameAdded, trackGameRemoved } = useAchievements();
@@ -54,36 +72,50 @@ function GameDetailScreen() {
   // Don't fetch if gameId is invalid
   const { data: gameDetail, isLoading, error } = useGameDetails(gameId);
 
+  const isInLibrary = gameDetail ? libraryGames.some(g => g.id === String(gameDetail.id)) : false;
+  const hasReviewed = gameDetail ? reviewedGameIds.includes(String(gameDetail.id)) : false;
+
   // Handle add to library
   const handleAddToLibrary = async () => {
+    if (!gameDetail) return;
     if (!isInLibrary) {
-      setIsInLibrary(true);
-      
-      // Extract genres from game detail
+      dispatch(addToLibrary({
+        id: String(gameDetail.id),
+        title: gameDetail.name,
+        coverUrl: gameDetail.cover?.url,
+        genre: gameDetail.genres?.[0]?.name,
+        addedDate: new Date().toLocaleDateString(),
+      }));
       const genres = gameDetail?.genres?.map(g => g.name) || [];
       await trackGameAdded(genres);
-      
-      Alert.alert('Success', 'Game added to your library!');
+      showConfirmation(
+        'Success',
+        'Game added to your library!',
+        () => {},
+        'success',
+        'OK',
+        ''
+      );
     } else {
-      Alert.alert(
+      showConfirmation(
         'Remove from Library',
         'Are you sure you want to remove this game from your library?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Remove',
-            style: 'destructive',
-            onPress: async () => {
-              setIsInLibrary(false);
-              
-              // Extract genres from game detail
-              const genres = gameDetail?.genres?.map(g => g.name) || [];
-              await trackGameRemoved(genres);
-              
-              Alert.alert('Success', 'Game removed from library!');
-            },
-          },
-        ]
+        async () => {
+          dispatch(removeFromLibrary(String(gameDetail.id)));
+          const genres = gameDetail?.genres?.map(g => g.name) || [];
+          await trackGameRemoved(genres);
+          showConfirmation(
+            'Success',
+            'Game removed from library!',
+            () => {},
+            'success',
+            'OK',
+            ''
+          );
+        },
+        'warning',
+        'Remove',
+        'Cancel'
       );
     }
   };
@@ -176,7 +208,7 @@ function GameDetailScreen() {
       <StatusBar style="light" />
       
       {/* Hero Section */}
-      <View className="h-[45%] relative">
+      <View className="h-[50%] relative">
         <ImageBackground
           source={{ uri: gameDetail.screenshots?.[selectedScreenshot]?.url || gameDetail.cover?.url }}
           className="w-full h-full"
@@ -184,9 +216,9 @@ function GameDetailScreen() {
         >
           {/* Gradient overlays */}
           <LinearGradient
-            colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.1)', 'transparent', 'rgba(15,15,31,0.8)', 'rgba(15,15,31,1)']}
+            colors={['rgba(0,0,0,0.55)', 'rgba(0,0,0,0.3)', 'transparent', 'rgba(15,15,31,0.9)', 'rgba(15,15,31,1)']}
             className="absolute inset-0"
-            locations={[0, 0.2, 0.5, 0.8, 1]}
+            locations={[0, 0.2, 0.55, 0.85, 1]}
           />
 
           {/* Header */}
@@ -201,7 +233,7 @@ function GameDetailScreen() {
                 </BlurView>
               </TouchableOpacity>
 
-              <View className="flex-row gap-3">
+              {/* <View className="flex-row gap-3">
                 <TouchableOpacity
                   onPress={() => setIsBookmarked(!isBookmarked)}
                   className="w-10 h-10 rounded-full bg-black/50 justify-center items-center"
@@ -219,51 +251,37 @@ function GameDetailScreen() {
                     <Share size={20} color="#FFFFFF" weight="bold" />
                   </BlurView>
                 </TouchableOpacity>
-              </View>
+              </View> */}
             </View>
 
             {/* Game Info Overlay */}
-            <View className="flex-1 justify-end px-4 pb-6">
-              <View className="flex-col gap-3">
+            <View className="flex-1 justify-end px-5 pb-7">
+              <View className="flex-row gap-4 items-end">
                 {/* Game Cover */}
-                <View className="self-center">
+                <View>
                   <Image
                     source={{ uri: gameDetail.cover?.url }}
                     className="w-20 h-28 rounded-2xl"
                     resizeMode="cover"
                   />
-                  <View className="absolute -top-1 -right-1 bg-[#FFD700] rounded-full w-6 h-6 justify-center items-center">
-                    <Text className="text-xs font-bold text-black">
-                      {gameDetail.rating ? Math.round(gameDetail.rating / 10) : '?'}
-                    </Text>
-                  </View>
                 </View>
 
-                {/* Game Details */}
-                <View className="items-center">
-                  <Text className="text-lg font-bold text-white mb-2 text-center leading-5" numberOfLines={2}>
+                {/* Title and meta */}
+                <View className="flex-1 min-w-0">
+                  <Text className="text-2xl font-extrabold text-white mb-1" numberOfLines={2}>
                     {gameDetail.name}
                   </Text>
-                  
-                  <View className="flex-row items-center gap-2 mb-3">
-                    <Star size={14} color="#FFD700" weight="fill" />
-                    <Text className="text-[#FFD700] font-semibold text-sm">
+                  <View className="flex-row items-center gap-2 min-w-0">
+                    <Star size={16} color="#FFD700" weight="fill" />
+                    <Text className="text-[#FFD700] font-semibold">
                       {gameDetail.rating ? (gameDetail.rating / 10).toFixed(1) : 'N/A'}
                     </Text>
-                    <Text className="text-gray-400 text-xs">
-                      ({formatNumber(gameDetail.total_rating_count)})
-                    </Text>
+                    {/* <Text className="text-gray-300 text-xs" numberOfLines={1} ellipsizeMode="tail">({formatNumber(gameDetail.total_rating_count)})</Text> */}
                   </View>
-
-                  <View className="flex-row flex-wrap gap-2 justify-center">
-                    {gameDetail.genres?.slice(0, 2).map((genre) => (
-                      <View
-                        key={genre.id}
-                        className="bg-[#00D2FF]/20 border border-[#00D2FF]/40 px-2 py-1 rounded-full"
-                      >
-                        <Text className="text-[#00D2FF] text-xs font-medium">
-                          {genre.name}
-                        </Text>
+                  <View className="flex-row flex-wrap gap-2 mt-2">
+                    {gameDetail.genres?.slice(0, 3).map((genre) => (
+                      <View key={genre.id} className="bg-white/10 border border-white/20 px-2 py-1 rounded-full">
+                        <Text className="text-white text-xs font-medium">{genre.name}</Text>
                       </View>
                     ))}
                   </View>
@@ -278,7 +296,7 @@ function GameDetailScreen() {
 
       {/* Tab Navigation */}
       <View className="px-4 mb-3">
-        <View className="flex-row bg-[#1A1A2E] rounded-2xl p-1">
+        <View className="flex-row bg-[#1A1A2E] rounded-2xl p-1 border border-[#2A2A3E]">
           {['overview', 'media', 'details'].map((tab) => (
             <TouchableOpacity
               key={tab}
@@ -300,7 +318,7 @@ function GameDetailScreen() {
       </View>
 
       {/* Content */}
-      <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 140 }}>
         {selectedTab === 'overview' && (
           <View className="pb-8">
             {/* Stats Row */}
@@ -406,35 +424,50 @@ function GameDetailScreen() {
             {/* Rating Breakdown */}
             <View className="mb-6">
               <Text className="text-white text-xl font-bold mb-3">Ratings & Reviews</Text>
-              <View className="bg-[#1A1A2E] rounded-2xl p-4 gap-4">
+              <View className="bg-[#1A1A2E] rounded-2xl p-4 gap-5">
                 {gameDetail.rating && (
-                  <View className="flex-row justify-between items-center">
-                    <Text className="text-gray-400">User Rating</Text>
-                    <View className="flex-row items-center gap-2">
-                      <Star size={16} color="#FFD700" weight="fill" />
-                      <Text className="text-white font-bold">{(gameDetail.rating / 10).toFixed(1)}/10</Text>
-                      <Text className="text-gray-400">({formatNumber(gameDetail.rating_count || 0)} votes)</Text>
+                  <View>
+                    <View className="flex-row items-center justify-between mb-2">
+                      <Text className="text-gray-400">User Rating</Text>
+                      <View className="flex-row items-center gap-2">
+                        <Star size={16} color="#FFD700" weight="fill" />
+                        <Text className="text-white font-bold">{(gameDetail.rating / 10).toFixed(1)}/10</Text>
+                      </View>
                     </View>
+                    <View className="w-full h-2 bg-[#0F0F1F] rounded-full overflow-hidden">
+                      <View style={{ width: `${Math.min(100, (gameDetail.rating/10)*10*10)}%` }} className="h-full bg-[#FFD700]" />
+                    </View>
+                    <Text className="text-gray-400 text-xs mt-1" numberOfLines={1}>({formatNumber(gameDetail.rating_count || 0)} votes)</Text>
                   </View>
                 )}
                 {gameDetail.total_rating && (
-                  <View className="flex-row justify-between items-center">
-                    <Text className="text-gray-400">Total Rating</Text>
-                    <View className="flex-row items-center gap-2">
-                      <Star size={16} color="#00D2FF" weight="fill" />
-                      <Text className="text-white font-bold">{(gameDetail.total_rating / 10).toFixed(1)}/10</Text>
-                      <Text className="text-gray-400">({formatNumber(gameDetail.total_rating_count || 0)} reviews)</Text>
+                  <View>
+                    <View className="flex-row items-center justify-between mb-2">
+                      <Text className="text-gray-400">Total Rating</Text>
+                      <View className="flex-row items-center gap-2">
+                        <Star size={16} color="#00D2FF" weight="fill" />
+                        <Text className="text-white font-bold">{(gameDetail.total_rating / 10).toFixed(1)}/10</Text>
+                      </View>
                     </View>
+                    <View className="w-full h-2 bg-[#0F0F1F] rounded-full overflow-hidden">
+                      <View style={{ width: `${Math.min(100, (gameDetail.total_rating/10)*10*10)}%` }} className="h-full bg-[#00D2FF]" />
+                    </View>
+                    <Text className="text-gray-400 text-xs mt-1" numberOfLines={1}>({formatNumber(gameDetail.total_rating_count || 0)} reviews)</Text>
                   </View>
                 )}
                 {gameDetail.aggregated_rating && (
-                  <View className="flex-row justify-between items-center">
-                    <Text className="text-gray-400">Critics Score</Text>
-                    <View className="flex-row items-center gap-2">
-                      <Trophy size={16} color="#A78BFA" weight="fill" />
-                      <Text className="text-white font-bold">{Math.round(gameDetail.aggregated_rating)}/100</Text>
-                      <Text className="text-gray-400">({formatNumber(gameDetail.aggregated_rating_count || 0)} critics)</Text>
+                  <View>
+                    <View className="flex-row items-center justify-between mb-2">
+                      <Text className="text-gray-400">Critics Score</Text>
+                      <View className="flex-row items-center gap-2">
+                        <Trophy size={16} color="#A78BFA" weight="fill" />
+                        <Text className="text-white font-bold">{Math.round(gameDetail.aggregated_rating)}/100</Text>
+                      </View>
                     </View>
+                    <View className="w-full h-2 bg-[#0F0F1F] rounded-full overflow-hidden">
+                      <View style={{ width: `${Math.min(100, Math.round(gameDetail.aggregated_rating))}%` }} className="h-full bg-[#A78BFA]" />
+                    </View>
+                    <Text className="text-gray-400 text-xs mt-1" numberOfLines={1}>({formatNumber(gameDetail.aggregated_rating_count || 0)} critics)</Text>
                   </View>
                 )}
               </View>
@@ -530,6 +563,11 @@ function GameDetailScreen() {
                 {gameDetail.videos?.map((video) => (
                   <TouchableOpacity
                     key={video.id}
+                    onPress={() => {
+                      setSelectedVideo(video);
+                      setIsVideoModalVisible(true);
+                      setIsVideoLoading(true);
+                    }}
                     className="bg-[#1A1A2E] rounded-2xl p-4 flex-row items-center gap-3"
                   >
                     <View className="w-12 h-12 bg-[#FF4757] rounded-xl justify-center items-center">
@@ -537,7 +575,9 @@ function GameDetailScreen() {
                     </View>
                     <View className="flex-1">
                       <Text className="text-white font-semibold">{video.name}</Text>
-                      <Text className="text-gray-400 text-sm">Video ID: {video.video_id}</Text>
+                      <Text className="text-gray-400 text-sm">
+                        {Platform.OS === 'web' ? 'Tap to play' : 'Tap to play in app'}
+                      </Text>
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -700,7 +740,7 @@ function GameDetailScreen() {
               >
                 <GameController size={20} color="#FFFFFF" weight="bold" />
                 <Text className="ml-2 text-white font-bold">
-                  {isInLibrary ? 'In Library' : 'Add to Library'}
+                  {isInLibrary ? 'Remove from Library' : 'Add to Library'}
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -710,14 +750,14 @@ function GameDetailScreen() {
                 if (gameDetail) {
                   router.push({
                     pathname: '/log',
-                    params: { gameId: gameDetail.id.toString() }
+                    params: { gameId: gameDetail.id.toString(), editMode: hasReviewed ? 'true' : 'false' }
                   });
                 }
               }}
               className="bg-[#00D2FF] py-3 px-6 rounded-xl flex-row items-center justify-center"
             >
               <Star size={20} color="#FFFFFF" weight="bold" />
-              <Text className="ml-2 text-white font-bold">Review</Text>
+              <Text className="ml-2 text-white font-bold">{hasReviewed ? 'Edit Review' : 'Review'}</Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>
@@ -729,6 +769,86 @@ function GameDetailScreen() {
         images={gameDetail.screenshots || []}
         initialIndex={galleryStartIndex}
         onClose={() => setIsGalleryVisible(false)}
+      />
+      
+      {/* Video Modal */}
+      <Modal
+        visible={isVideoModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsVideoModalVisible(false)}
+      >
+        <View className="flex-1 bg-black/90 justify-center items-center">
+          <View className="w-full h-[60%] bg-black rounded-t-3xl">
+            <View className="flex-row justify-between items-center p-4 border-b border-gray-700">
+              <Text className="text-white text-lg font-semibold">
+                {selectedVideo?.name}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setIsVideoModalVisible(false)}
+                className="w-8 h-8 rounded-full bg-gray-700 justify-center items-center"
+              >
+                <X size={20} color="#FFFFFF" weight="bold" />
+              </TouchableOpacity>
+            </View>
+            <View className="flex-1 p-4">
+              {Platform.OS === 'web' ? (
+                <iframe
+                  width="100%"
+                  height="100%"
+                  src={`https://www.youtube.com/embed/${selectedVideo?.video_id}?autoplay=1`}
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  style={{ borderRadius: 12 }}
+                />
+              ) : (
+                <View className="flex-1">
+                  {isVideoLoading && (
+                    <View className="absolute inset-0 bg-black/50 justify-center items-center z-10 rounded-xl">
+                      <ActivityIndicator size="large" color="#FF4757" />
+                      <Text className="text-white mt-2">Loading video...</Text>
+                    </View>
+                  )}
+                  <WebView
+                    source={{ uri: `https://www.youtube.com/embed/${selectedVideo?.video_id}?autoplay=1` }}
+                    style={{ flex: 1, borderRadius: 12 }}
+                    allowsFullscreenVideo={true}
+                    mediaPlaybackRequiresUserAction={false}
+                    javaScriptEnabled={true}
+                    domStorageEnabled={true}
+                    startInLoadingState={true}
+                    scalesPageToFit={true}
+                    onLoadEnd={() => setIsVideoLoading(false)}
+                    onError={() => setIsVideoLoading(false)}
+                  />
+                  <TouchableOpacity
+                    onPress={() => {
+                      const youtubeUrl = `https://www.youtube.com/watch?v=${selectedVideo?.video_id}`;
+                      Linking.openURL(youtubeUrl);
+                    }}
+                    className="mt-3 bg-[#FF4757] rounded-xl p-3 flex-row items-center justify-center gap-2"
+                  >
+                    <PlayCircle size={20} color="#FFFFFF" weight="fill" />
+                    <Text className="text-white font-semibold">Open in YouTube App</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
+      
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        visible={confirmationState.visible}
+        onClose={hideConfirmation}
+        onConfirm={confirmationState.onConfirm}
+        title={confirmationState.title}
+        message={confirmationState.message}
+        type={confirmationState.type}
+        confirmText={confirmationState.confirmText}
+        cancelText={confirmationState.cancelText}
       />
     </View>
   );

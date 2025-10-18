@@ -7,6 +7,8 @@ import { Header } from '@/components/Header';
 import { GameCard } from '@/components/GameCard';
 import { igdbService } from '@/services/igdbService';
 import { useFeaturedGames, useTrendingGames, useRecentlyReleasedGames } from '@/hooks/useGames';
+import { useConfirmation } from '@/hooks/useConfirmation';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 export default function DiscoverScreen() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -14,6 +16,9 @@ export default function DiscoverScreen() {
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  
+  // Confirmation modal
+  const { confirmationState, showConfirmation, hideConfirmation } = useConfirmation();
 
   // Use React Query hooks for data fetching
   const { data: featuredGames = [], isLoading: loadingFeatured } = useFeaturedGames();
@@ -50,7 +55,14 @@ export default function DiscoverScreen() {
         setSearchResults(results);
       } catch (error) {
         console.error('❌ Search error:', error);
-        Alert.alert('Error', 'Failed to search games. Please try again.');
+        showConfirmation(
+          'Error',
+          'Failed to search games. Please try again.',
+          () => {},
+          'warning',
+          'OK',
+          ''
+        );
         setSearchResults([]);
       } finally {
         setIsSearching(false);
@@ -200,6 +212,18 @@ export default function DiscoverScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
+      
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        visible={confirmationState.visible}
+        onClose={hideConfirmation}
+        onConfirm={confirmationState.onConfirm}
+        title={confirmationState.title}
+        message={confirmationState.message}
+        type={confirmationState.type}
+        confirmText={confirmationState.confirmText}
+        cancelText={confirmationState.cancelText}
+      />
     </LinearGradient>
   );
 }

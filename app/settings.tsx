@@ -31,6 +31,8 @@ import {
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { useAchievements } from '@/hooks/useAchievements';
+import { useConfirmation } from '@/hooks/useConfirmation';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -48,6 +50,9 @@ export default function SettingsScreen() {
   const [achievementNotifications, setAchievementNotifications] = useState(true);
   const [reviewReminders, setReviewReminders] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  
+  // Confirmation modal
+  const { confirmationState, showConfirmation, hideConfirmation } = useConfirmation();
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
   const [compactView, setCompactView] = useState(false);
@@ -62,6 +67,7 @@ export default function SettingsScreen() {
   // Statistics for display
   const [totalAchievements, setTotalAchievements] = useState(0);
   const [favoriteGenres, setFavoriteGenres] = useState<string[]>([]);
+
   
   // Load settings from AsyncStorage on mount
   useEffect(() => {
@@ -136,32 +142,35 @@ export default function SettingsScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert(
+    showConfirmation(
       'Logout',
       'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Logout', style: 'destructive', onPress: logout }
-      ]
+      logout,
+      'warning',
+      'Logout',
+      'Cancel'
     );
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
+    showConfirmation(
       'Delete Account',
       'This will permanently delete your account, all reviews, achievements, and data. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'I understand, delete my account', 
-          style: 'destructive', 
-          onPress: () => {
-            // In a real app, this would call an API
-            Alert.alert('Account Deleted', 'Your account and all data have been permanently deleted.');
-            logout();
-          }
-        }
-      ]
+      () => {
+        // In a real app, this would call an API
+        showConfirmation(
+          'Account Deleted',
+          'Your account and all data have been permanently deleted.',
+          () => {},
+          'success',
+          'OK',
+          ''
+        );
+        logout();
+      },
+      'danger',
+      'Delete Account',
+      'Cancel'
     );
   };
 
@@ -188,59 +197,91 @@ Data: ${JSON.stringify(exportData, null, 2)}`,
         title: 'GameLog Data Export'
       });
       
-      Alert.alert('Export Complete', 'Your data has been exported successfully!');
+      showConfirmation(
+        'Export Complete',
+        'Your data has been exported successfully!',
+        () => {},
+        'success',
+        'OK',
+        ''
+      );
     } catch (error) {
-      Alert.alert('Export Failed', 'Failed to export your data. Please try again.');
+      showConfirmation(
+        'Export Failed',
+        'Failed to export your data. Please try again.',
+        () => {},
+        'warning',
+        'OK',
+        ''
+      );
     }
   };
 
   const handleClearCache = async () => {
-    Alert.alert(
+    showConfirmation(
       'Clear Cache',
       'This will clear temporary files and may improve app performance. Your data will not be affected.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear Cache',
-          onPress: async () => {
-            try {
-              // Clear cache (in a real app, you'd clear specific cache keys)
-              Alert.alert('Cache Cleared', 'App cache has been cleared successfully!');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to clear cache.');
-            }
-          }
+      async () => {
+        try {
+          // Clear cache (in a real app, you'd clear specific cache keys)
+          showConfirmation(
+            'Cache Cleared',
+            'App cache has been cleared successfully!',
+            () => {},
+            'success',
+            'OK',
+            ''
+          );
+        } catch (error) {
+          showConfirmation(
+            'Error',
+            'Failed to clear cache.',
+            () => {},
+            'warning',
+            'OK',
+            ''
+          );
         }
-      ]
+      },
+      'info',
+      'Clear Cache',
+      'Cancel'
     );
   };
   
   const handleResetAchievements = () => {
-    Alert.alert(
+    showConfirmation(
       'Reset Achievements',
       'This will reset all your achievements and progress. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reset All Achievements',
-          style: 'destructive',
-          onPress: async () => {
-            await resetAchievements();
-            await loadStats();
-            Alert.alert('Achievements Reset', 'All achievements have been reset to locked state.');
-          }
-        }
-      ]
+      async () => {
+        await resetAchievements();
+        await loadStats();
+        showConfirmation(
+          'Achievements Reset',
+          'All achievements have been reset to locked state.',
+          () => {},
+          'success',
+          'OK',
+          ''
+        );
+      },
+      'danger',
+      'Reset All Achievements',
+      'Cancel'
     );
   };
   
   const handleNotificationSettings = () => {
-    Alert.alert(
+    showConfirmation(
       'Notification Preferences',
       'Choose what types of notifications you want to receive.',
-      [
-        { text: 'OK', style: 'default' }
-      ]
+      () => {
+        // This would open a more detailed notification settings screen
+        setNotificationsEnabled(true);
+      },
+      'info',
+      'Configure',
+      'Cancel'
     );
   };
 
@@ -452,18 +493,26 @@ Data: ${JSON.stringify(exportData, null, 2)}`,
                     icon: Question,
                     title: 'Help & FAQ',
                     subtitle: 'Get help with using GameLog',
-                    onPress: () => Alert.alert(
+                    onPress: () => showConfirmation(
                       'GameLog Help', 
-                      'Frequently Asked Questions:\n\n• How do I add games to my library?\nTap any game and use "Add to Library" button\n\n• How do achievements work?\nThey unlock automatically as you use the app\n\n• How to write reviews?\nUse the Log tab to search and review games\n\n• How to create lists?\nGo to Lists tab and tap "Create New List"'
+                      'Frequently Asked Questions:\n\n• How do I add games to my library?\nTap any game and use "Add to Library" button\n\n• How do achievements work?\nThey unlock automatically as you use the app\n\n• How to write reviews?\nUse the Log tab to search and review games\n\n• How to create lists?\nGo to Lists tab and tap "Create New List"',
+                      () => {},
+                      'info',
+                      'OK',
+                      ''
                     )
                   })}
                   {renderSettingItem({
                     icon: Info,
                     title: 'About GameLog',
                     subtitle: 'App version and information',
-                    onPress: () => Alert.alert(
+                    onPress: () => showConfirmation(
                       'About GameLog', 
-                      'GameLog v1.0.0\nBuild: 2024.12.01\n\nYour personal game tracking companion.\n\nTrack games, write reviews, unlock achievements, and organize your gaming library.\n\nDeveloped with ❤️ for gamers by gamers.'
+                      'GameLog v1.0.0\nBuild: 2024.12.01\n\nYour personal game tracking companion.\n\nTrack games, write reviews, unlock achievements, and organize your gaming library.\n\nDeveloped with ❤️ for gamers by gamers.',
+                      () => {},
+                      'info',
+                      'OK',
+                      ''
                     )
                   })}
                 </>
@@ -502,6 +551,18 @@ Data: ${JSON.stringify(exportData, null, 2)}`,
           </View>
         </ScrollView>
       </SafeAreaView>
+      
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        visible={confirmationState.visible}
+        onClose={hideConfirmation}
+        onConfirm={confirmationState.onConfirm}
+        title={confirmationState.title}
+        message={confirmationState.message}
+        type={confirmationState.type}
+        confirmText={confirmationState.confirmText}
+        cancelText={confirmationState.cancelText}
+      />
     </LinearGradient>
   );
 }

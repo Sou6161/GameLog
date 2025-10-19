@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -45,6 +45,7 @@ import { useConfirmation } from '@/hooks/useConfirmation';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { useCommunityReviews } from '@/hooks/useCommunityReviews';
 import CommunityReviewCard from '@/components/CommunityReviewCard';
+import { fetchGameReviews } from '@/store/slices/reviewSlice';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -64,6 +65,7 @@ function GameDetailScreen() {
   const { confirmationState, showConfirmation, hideConfirmation } = useConfirmation();
   const libraryGames = useSelector((state: RootState) => state.game.libraryGames);
   const reviewedGameIds = useSelector((state: RootState) => state.game.reviewedGameIds);
+  const appwriteCommunityReviews = useSelector((state: RootState) => state.reviews.reviews);
   
   // Achievement tracking
   const { trackGameAdded, trackGameRemoved } = useAchievements();
@@ -73,6 +75,22 @@ function GameDetailScreen() {
   
   // Community reviews
   const { reviews: communityReviews, loading: communityLoading } = useCommunityReviews(String(gameId));
+  
+  // Fetch community reviews from Appwrite when game loads
+  useEffect(() => {
+    if (gameId) {
+      // Test connection first
+      import('@/services/reviewService').then(({ ReviewService }) => {
+        ReviewService.testConnection().then((success) => {
+          if (success) {
+            dispatch(fetchGameReviews(String(gameId)) as any);
+          } else {
+            console.log('Appwrite connection failed, skipping review fetch');
+          }
+        });
+      });
+    }
+  }, [gameId, dispatch]);
   
   // Don't fetch if gameId is invalid
   const { data: gameDetail, isLoading, error } = useGameDetails(gameId);
@@ -731,7 +749,7 @@ function GameDetailScreen() {
         )}
 
         {selectedTab === 'reviews' && (
-          <View className="pb-8">
+          <View className="pb-12 px-1">
             {/* Community Reviews Header */}
             <View className="mb-6">
               <Text className="text-white text-2xl font-bold mb-2">Community Reviews</Text>
@@ -745,17 +763,42 @@ function GameDetailScreen() {
               <View className="items-center py-8">
                 <Text className="text-gray-400 text-lg">Loading community reviews...</Text>
               </View>
-            ) : communityReviews.length > 0 ? (
-              <View>
-                {communityReviews.map((review) => (
+            ) : appwriteCommunityReviews.length > 0 ? (
+              <View className="space-y-4 w-full">
+                {appwriteCommunityReviews.map((review) => (
                   <CommunityReviewCard
                     key={review.id}
-                    review={review}
+                    review={{
+                      id: review.id,
+                      gameId: review.game.id.toString(),
+                      gameName: review.game.name,
+                      userId: review.userId,
+                      username: review.username,
+                      userAvatar: review.userAvatar,
+                      rating: review.rating,
+                      reviewText: review.reviewText,
+                      playTime: review.playTime,
+                      difficulty: review.difficulty,
+                      platform: review.platform,
+                      tags: (() => {
+                        if (typeof review.tags === 'string' && review.tags) {
+                          return (review.tags as string).split(',').filter((tag: string) => tag.trim());
+                        }
+                        if (Array.isArray(review.tags)) {
+                          return review.tags;
+                        }
+                        return [];
+                      })(),
+                      isPublic: review.isPublic,
+                      date: review.date,
+                      helpful: 0, // Not using helpful anymore
+                      verified: review.verified,
+                    }}
                     onUserPress={(userId) => {
                       // Navigate to user profile (could be implemented later)
                       console.log('Navigate to user profile:', userId);
                     }}
-                    gameName={review.gameName}
+                    gameName={review.game.name}
                     showGameName={false}
                   />
                 ))}

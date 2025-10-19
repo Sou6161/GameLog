@@ -8,10 +8,11 @@ import { igdbService } from '@/services/igdbService';
 import { useAchievements } from '@/hooks/useAchievements';
 import { useDispatch, useSelector } from 'react-redux';
 import { markReviewed } from '@/store/slices/gameSlice';
-import { upsertReview } from '@/store/slices/reviewSlice';
+import { createReview, fetchUserReviews, hasUserReviewedGame, getUserReviewForGame, updateReview } from '@/store/slices/reviewSlice';
 import { useConfirmation } from '@/hooks/useConfirmation';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { RootState } from '@/store';
+import { useAuth } from '@/hooks/useAuth';
 
 interface IGDBGame {
   id: number;
@@ -41,6 +42,7 @@ interface GameReview {
 export default function LogScreen() {
   const params = useLocalSearchParams();
   const dispatch = useDispatch();
+  const { user } = useAuth();
   
   // Achievement tracking
   const { trackReview } = useAchievements();
@@ -67,6 +69,8 @@ export default function LogScreen() {
   const [platform, setPlatform] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [isPublic, setIsPublic] = useState(true);
+  const [hasExistingReview, setHasExistingReview] = useState(false);
+  const [existingReview, setExistingReview] = useState<GameReview | null>(null);
   
   // Reviews Storage (Redux persisted)
   const reduxReviews = useSelector((state: RootState) => state.reviews.reviews);
@@ -107,6 +111,46 @@ export default function LogScreen() {
       setIsPublic(existing.isPublic);
     }
   }, [incomingGameId, isEditMode, reduxReviews]);
+
+  // Check if user has already reviewed the selected game
+  useEffect(() => {
+    const checkExistingReview = async () => {
+      if (!selectedGame || !user?.id) {
+        setHasExistingReview(false);
+        setExistingReview(null);
+        return;
+      }
+
+      try {
+        const hasReviewed = await dispatch(hasUserReviewedGame(user.id, selectedGame.id.toString()) as any);
+        if (hasReviewed) {
+          const userReview = await dispatch(getUserReviewForGame(user.id, selectedGame.id.toString()) as any);
+          if (userReview) {
+            setHasExistingReview(true);
+            setExistingReview(userReview);
+            // Pre-fill the form with existing review data
+            setGameStatus(userReview.status);
+            setRating(userReview.rating);
+            setReviewText(userReview.reviewText);
+            setPlayTime(userReview.playTime);
+            setDifficulty(userReview.difficulty);
+            setPlatform(userReview.platform);
+            setTags(userReview.tags);
+            setIsPublic(userReview.isPublic);
+          }
+        } else {
+          setHasExistingReview(false);
+          setExistingReview(null);
+        }
+      } catch (error) {
+        console.error('Error checking existing review:', error);
+        setHasExistingReview(false);
+        setExistingReview(null);
+      }
+    };
+
+    checkExistingReview();
+  }, [selectedGame, user?.id, dispatch]);
 
   // Current date for review
   const currentDate = new Date().toLocaleDateString('en-US', {
@@ -222,60 +266,103 @@ export default function LogScreen() {
 
   // Submit review
   const handleSubmitReview = async () => {
-    if (!selectedGame) return;
+    if (!selectedGame || !user) {
+      showConfirmation(
+        'Authentication Required',
+        'Please sign in to create a review.',
+        () => {},
+        'warning',
+        'OK',
+        ''
+      );
+      return;
+    }
     
-    const newReview: GameReview = {
-      id: Date.now().toString(),
-      game: selectedGame,
-      status: gameStatus,
-      rating,
-      reviewText,
-      playTime,
-      difficulty,
-      platform,
-      tags,
-      isPublic,
-      date: currentDate
-    };
+    if (!user.id) {
+      showConfirmation(
+        'Authentication Error',
+        'User ID not found. Please sign in again.',
+        () => {},
+        'warning',
+        'OK',
+        ''
+      );
+      return;
+    }
     
-    // Persist into Redux
-    dispatch(upsertReview({
-      id: isEditMode ? (reduxReviews.find(r => r.game.id === selectedGame.id)?.id || newReview.id) : newReview.id,
-      game: {
-        id: selectedGame.id,
-        name: selectedGame.name,
-        coverUrl: selectedGame.cover?.url ? selectedGame.cover.url.replace('t_thumb', 't_cover_small') : undefined,
-        firstReleaseYear: selectedGame.first_release_date ? new Date(selectedGame.first_release_date * 1000).getFullYear() : undefined,
-      },
-      status: gameStatus,
-      rating,
-      reviewText,
-      playTime,
-      difficulty,
-      platform,
-      tags,
-      isPublic,
-      date: currentDate,
-    }));
+    console.log('User object:', user);
+    console.log('User id:', user.id);
+    console.log('User username:', user.username);
     
-    // Track achievement for writing a review with genres
-    const genres = selectedGame.genres?.map(g => g.name) || [];
-    await trackReview(rating, genres);
-    
-    // Mark as reviewed globally so game detail shows Edit Review
-    dispatch(markReviewed(String(selectedGame.id)));
-    
-    showConfirmation(
-      'Success',
-      'Review posted successfully!',
-      () => {},
-      'success',
-      'OK',
-      ''
-    );
-    
-    // Navigate back to game detail for this game to allow immediate edit if needed
-    router.push(`/game/${selectedGame.id}`);
+    try {
+      const reviewData = {
+        userId: user.id,
+        username: user.username || 'Anonymous',
+        userAvatar: user.avatar || '',
+        game: {
+          id: selectedGame.id,
+          name: selectedGame.name,
+          coverUrl: selectedGame.cover?.url ? selectedGame.cover.url.replace('t_thumb', 't_cover_small') : undefined,
+          firstReleaseYear: selectedGame.first_release_date ? new Date(selectedGame.first_release_date * 1000).getFullYear() : undefined,
+        },
+        status: gameStatus,
+        rating,
+        reviewText,
+        playTime,
+        difficulty,
+        platform,
+        tags,
+        isPublic,
+        date: new Date().toISOString(),
+        verified: true, // User is verified since they're logged in
+      };
+      
+      if (hasExistingReview && existingReview) {
+        // Update existing review
+        await dispatch(updateReview(existingReview.id, reviewData) as any);
+        
+        showConfirmation(
+          'Success',
+          'Review updated successfully!',
+          () => {},
+          'success',
+          'OK',
+          ''
+        );
+      } else {
+        // Create new review
+        await dispatch(createReview(reviewData) as any);
+        
+        // Track achievement for writing a review with genres
+        const genres = selectedGame.genres?.map(g => g.name) || [];
+        await trackReview(rating, genres);
+        
+        // Mark as reviewed globally so game detail shows Edit Review
+        dispatch(markReviewed(String(selectedGame.id)));
+        
+        showConfirmation(
+          'Success',
+          'Review posted successfully!',
+          () => {},
+          'success',
+          'OK',
+          ''
+        );
+      }
+      
+      // Navigate back to game detail for this game to allow immediate edit if needed
+      router.push(`/game/${selectedGame.id}`);
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      showConfirmation(
+        'Error',
+        'Failed to post review. Please try again.',
+        () => {},
+        'warning',
+        'OK',
+        ''
+      );
+    }
   };
 
   // Rating description
@@ -359,6 +446,19 @@ export default function LogScreen() {
               </View>
             </View>
           </View>
+
+          {/* Existing Review Warning */}
+          {hasExistingReview && (
+            <View className="bg-yellow-600/20 border border-yellow-500/30 rounded-lg p-4 mb-6">
+              <View className="flex-row items-center mb-2">
+                <Text className="text-yellow-400 font-semibold text-base mr-2">⚠️</Text>
+                <Text className="text-yellow-400 font-semibold text-base">You've already reviewed this game</Text>
+              </View>
+              <Text className="text-yellow-300 text-sm">
+                You can update your existing review below. Changes will replace your previous review.
+              </Text>
+            </View>
+          )}
 
           {/* Game Status */}
           <View className="mb-6">
@@ -500,7 +600,9 @@ export default function LogScreen() {
             onPress={handleSubmitReview}
             className="bg-green-600 rounded-lg p-4 mb-6"
           >
-            <Text className="text-white text-center font-bold text-lg">Post Review</Text>
+            <Text className="text-white text-center font-bold text-lg">
+              {hasExistingReview ? 'Update Review' : 'Post Review'}
+            </Text>
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>

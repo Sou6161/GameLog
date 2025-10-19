@@ -32,6 +32,8 @@ import { useConfirmation } from '@/hooks/useConfirmation';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { deleteReviewByGameId } from '@/store/slices/reviewSlice';
 import { useAchievements } from '@/hooks/useAchievements';
+import { fetchUserReviews, deleteReview } from '@/store/slices/reviewSlice';
+import { useAuth } from '@/hooks/useAuth';
 
 
 
@@ -127,12 +129,20 @@ export default function ActivityScreen() {
   // Initialize empty state - no mock data
   const [customLists, setCustomLists] = useState<any[]>([]);
   const dispatch = useDispatch();
+  const { user } = useAuth();
   const libraryGames = useSelector((state: RootState) => state.game.libraryGames);
   const reviewedGameIds = useSelector((state: RootState) => state.game.reviewedGameIds);
   const reviews = useSelector((state: RootState) => state.reviews.reviews as any[]);
   
   // Confirmation modal
   const { confirmationState, showConfirmation, hideConfirmation } = useConfirmation();
+  
+  // Fetch user reviews when component mounts
+  useEffect(() => {
+    if (user) {
+      dispatch(fetchUserReviews(user.id) as any);
+    }
+  }, [user, dispatch]);
   
   const [editingList, setEditingList] = useState<any>(null);
 
@@ -298,19 +308,31 @@ export default function ActivityScreen() {
       'Delete Review',
       'Are you sure you want to delete this review? This action cannot be undone.',
       async () => {
-        dispatch(deleteReviewByGameId(review.game.id));
-        dispatch(unmarkReviewed(String(review.game.id)));
-        if (review && review.rating) {
-          await trackReviewDeleted(review.rating);
+        try {
+          await dispatch(deleteReview(review.id) as any);
+          dispatch(unmarkReviewed(String(review.game.id)));
+          if (review && review.rating) {
+            await trackReviewDeleted(review.rating);
+          }
+          showConfirmation(
+            'Success',
+            'Review deleted successfully!',
+            () => {},
+            'success',
+            'OK',
+            ''
+          );
+        } catch (error) {
+          console.error('Error deleting review:', error);
+          showConfirmation(
+            'Error',
+            'Failed to delete review. Please try again.',
+            () => {},
+            'warning',
+            'OK',
+            ''
+          );
         }
-        showConfirmation(
-          'Success',
-          'Review deleted successfully!',
-          () => {},
-          'success',
-          'OK',
-          ''
-        );
       },
       'danger',
       'Delete',

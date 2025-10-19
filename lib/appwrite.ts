@@ -1,5 +1,5 @@
 // lib/appwrite.ts
-import { Client, Account, ID } from 'react-native-appwrite';
+import { Client, Account, ID, Databases, Query } from 'react-native-appwrite';
 
 export const appwrite = {
   client: new Client()
@@ -8,9 +8,11 @@ export const appwrite = {
     .setPlatform('com.company.gamelog'), // must match the bundleId/appId you've added in Appwrite Console
 
   account: undefined as unknown as Account,
+  databases: undefined as unknown as Databases,
 };
 
 appwrite.account = new Account(appwrite.client);
+appwrite.databases = new Databases(appwrite.client);
 
 // Helpers
 export async function getCurrentUserSafe() {
@@ -38,3 +40,6 @@ export async function register(email: string, password: string, name: string) {
 export async function logout() {
   try { await appwrite.account.deleteSession('current'); } catch {}
 }
+
+// Export ID and Query for convenience
+export { ID, Query };

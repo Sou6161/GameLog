@@ -21,13 +21,22 @@ import { store } from '@/store';
 import '../global.css';
 import { useAuth } from '@/hooks/useAuth';
 import { AuthScreen } from '@/components/AuthScreen';
+import SplashScreen from '@/components/SplashScreen';
+import { useSplashScreen } from '@/hooks/useSplashScreen';
 
 
 const queryClient = new QueryClient();
 
 function AuthGate() {
   const { isAuthenticated, isLoading } = useAuth();
+  const { isLoading: isSplashLoading } = useSplashScreen();
 
+  // Show splash screen first - this should always show regardless of auth state
+  if (isSplashLoading) {
+    return <SplashScreen onFinish={() => {}} />;
+  }
+
+  // After splash screen, check authentication
   if (isLoading) {
     return null;
   }
@@ -35,7 +44,6 @@ function AuthGate() {
   if (!isAuthenticated) {
     return <AuthScreen />;
   }
-
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />

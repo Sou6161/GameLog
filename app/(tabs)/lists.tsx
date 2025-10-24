@@ -354,7 +354,7 @@ export default function ActivityScreen() {
   };
 
   const handleDeleteAllReviews = () => {
-    if (activityFeed.length === 0) {
+    if (reviews.length === 0) {
       showConfirmation(
         'No Reviews',
         'There are no reviews to delete.',
@@ -368,18 +368,22 @@ export default function ActivityScreen() {
     
     showConfirmation(
       'Delete All Reviews',
-      `Are you sure you want to delete all ${activityFeed.length} reviews? This action cannot be undone.`,
+      `Are you sure you want to delete all ${reviews.length} reviews? This action cannot be undone.`,
       async () => {
         console.log('Deleting all reviews');
         
         // Track all deletions
-        for (const review of activityFeed) {
+        for (const review of reviews) {
           if (review.game && review.game.rating) {
             await trackReviewDeleted(review.game.rating);
           }
         }
         
-        setActivityFeed([]);
+        // Delete all reviews from Redux
+        reviews.forEach(review => {
+          dispatch(deleteReviewByGameId(review.game.id));
+        });
+        
         showConfirmation(
           'Success',
           'All reviews deleted successfully!',

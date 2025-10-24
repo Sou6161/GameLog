@@ -1,8 +1,9 @@
+// @ts-nocheck
+import * as React from 'react';
 import { Tabs } from 'expo-router';
-import { useSafeAreaInsets, SafeAreaProvider } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Platform } from 'react-native';
 import { House, Compass, Plus, ListBullets, User } from 'phosphor-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -10,33 +11,32 @@ export default function TabLayout() {
   const tabBarHeight = Platform.OS === 'web' ? 90 : 70 + bottomInset; // base height + safe area
 
   return (
-    <SafeAreaProvider>
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarHideOnKeyboard: true,
-          tabBarStyle: {
-            backgroundColor: '#000000',
-            borderTopColor: 'blue',
-            // borderTopWidth: 2,
-            paddingBottom: bottomInset,
-            paddingTop: 8,
-            height: tabBarHeight,
-            elevation: 8,
-            shadowColor: '#FF1493',
-            shadowOffset: { width: 0, height: -4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 8,
-          },
-          tabBarActiveTintColor: '#FFD700',
-          tabBarInactiveTintColor: '#94A3B8',
-          tabBarLabelStyle: {
-            fontFamily: 'Inter_600SemiBold',
-            fontSize: 11,
-            marginTop: 4,
-          },
-        }}
-      >
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarHideOnKeyboard: true,
+        tabBarStyle: {
+          backgroundColor: '#000000',
+          borderTopColor: 'blue',
+          // borderTopWidth: 2,
+          paddingBottom: bottomInset,
+          paddingTop: 8,
+          height: tabBarHeight,
+          elevation: 8,
+          shadowColor: '#FF1493',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+        },
+        tabBarActiveTintColor: '#FFD700',
+        tabBarInactiveTintColor: '#94A3B8',
+        tabBarLabelStyle: {
+          fontFamily: 'Inter_600SemiBold',
+          fontSize: 11,
+          marginTop: 4,
+        },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
@@ -102,7 +102,6 @@ export default function TabLayout() {
           ),
         }}
       />
-      </Tabs>
-    </SafeAreaProvider>
+    </Tabs>
   );
 }

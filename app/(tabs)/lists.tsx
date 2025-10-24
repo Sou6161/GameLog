@@ -8,6 +8,7 @@ import {
   Modal,
   Alert,
   Image,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -400,7 +401,10 @@ export default function ActivityScreen() {
   };
 
   const renderReviewsTab = () => (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <ScrollView 
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: Platform.OS === 'web' ? 120 : 100 }}
+    >
       <View className="px-5 pb-8">
         {/* Delete All Reviews Button */}
         {reviews.length > 0 && (
@@ -492,7 +496,10 @@ export default function ActivityScreen() {
   );
 
   const renderLibraryTab = () => (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <ScrollView 
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: Platform.OS === 'web' ? 120 : 100 }}
+    >
       <View className="px-5 pb-8">
         <Text className="text-white font-bold text-lg mb-4">
           Games to Review Later
@@ -554,7 +561,10 @@ export default function ActivityScreen() {
   );
 
   const renderListsTab = () => (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <ScrollView 
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: Platform.OS === 'web' ? 120 : 100 }}
+    >
       <View className="px-5 pb-8">
         <TouchableOpacity
           className="mb-6"
@@ -638,7 +648,7 @@ export default function ActivityScreen() {
       colors={['#0F0F1F', '#121631', '#0A2342']}
       className="flex-1"
     >
-      <SafeAreaView className="flex-1">
+      <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
         {/* Header */}
         <View className="flex-row items-center justify-between px-5 py-4">
           <View className="flex-1">

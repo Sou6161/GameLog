@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MagnifyingGlass, TrendUp, Fire, X } from 'phosphor-react-native';
@@ -133,11 +133,11 @@ export default function DiscoverScreen() {
 
   return (
     <LinearGradient colors={["#0F0F1F", "#121631", "#0A2342"]} className="flex-1">
-      <SafeAreaView className="flex-1">
+      <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
         <ScrollView 
           className="flex-1" 
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 20 }}
+          contentContainerStyle={{ paddingBottom: Platform.OS === 'web' ? 120 : 100 }}
         >
           <View className="px-4 pb-8">
             {/* Search Bar */}

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Animated,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -342,8 +343,12 @@ function HomeContent() {
       end={{ x: 1, y: 1 }}
     >
       <StatusBar style="light" />
-      <SafeAreaView className="flex-1">
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
+        <ScrollView 
+          className="flex-1" 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: Platform.OS === 'web' ? 120 : 100 }}
+        >
           <View className="p-5">
             {/* Enhanced Welcome Section */}
             <View className="mb-8 py-5 relative overflow-hidden">

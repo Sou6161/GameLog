@@ -125,17 +125,17 @@ export function AuthScreen() {
         resizeMode="cover"
         blurRadius={0.5}
       />
-      {/* Twitch-themed overlays */}
-      <View pointerEvents="none" className="absolute inset-0 bg-[#0E0E10]/20" />
-      {/* Bottom Twitch purple fade */}
+      {/* Subtle brightness/contrast overlays */}
+      <View pointerEvents="none" className="absolute inset-0 bg-white/[0.06]" />
+      {/* Bottom dark-blue fade above the image (not too high) */}
       <LinearGradient
-        colors={["rgba(0,0,0,0)", "rgba(14,14,16,0.9)"]}
+        colors={["rgba(0,0,0,0)", "rgba(5,14,28,0.85)"]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
-        className="absolute left-0 right-0 bottom-0 h-[35%]"
+        className="absolute left-0 right-0 bottom-0 h-[28%]"
       />
       <LinearGradient
-        colors={["rgba(14,14,16,0.1)", "rgba(14,14,16,0.8)"]}
+        colors={["rgba(0,0,0,0.15)", "rgba(0,0,0,0.75)"]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
         className="absolute inset-0"
@@ -145,7 +145,7 @@ export function AuthScreen() {
         <ScrollView contentContainerStyle={{ justifyContent: 'center', paddingBottom: 24, flexGrow: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View className="mb-[18px] items-center">
             <Animated.Text
-              className="font-[Audiowide_400Regular] text-[36px] text-white"
+              className="font-[Audiowide_400Regular] text-[36px] text-[#E2E8F0] shadow-neon-cyan"
               style={[
                 {
                   opacity: titleOpacityRef.current ?? 1,
@@ -155,36 +155,42 @@ export function AuthScreen() {
             >
               GameLog
             </Animated.Text>
-            <Text className="mt-2 text-[#A0A0A0] font-medium">{loggedInUser ? `Welcome back, ${loggedInUser.name}` : 'Track • Discover • Share'}</Text>
+            <Text className="mt-2 text-[#B6C6D6] font-medium">{loggedInUser ? `Welcome back, ${loggedInUser.name}` : 'Track • Discover • Share'}</Text>
           </View>
 
-      <View className="bg-[#18181B] rounded-2xl p-[18px] border border-purple-500 shadow-2xl mx-0.5 mb-2">
+      <LinearGradient
+        colors={["rgba(145,70,255,0.25)", "rgba(255,71,87,0.25)"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        className="rounded-[18px] p-[1px] mx-0.5 mb-2"
+      >
+      <View className="bg-[rgba(6,10,18,0.7)] rounded-2xl p-[18px] border border-[rgba(145,70,255,0.25)] shadow-2xl">
           <TextInput
-            className="bg-[#0E0E10] border border-[#3F3F46] rounded-xl py-[14px] px-[14px] mb-3 text-white font-normal"
+            className="bg-[rgba(2,6,14,0.85)] border border-[rgba(145,70,255,0.25)] rounded-xl py-[14px] px-[14px] mb-3 text-[#E6F1FF] font-normal"
             placeholder="Email"
-            placeholderTextColor="#6B7280"
+            placeholderTextColor="#7aa1b8"
             value={email}
             onChangeText={(text) => setEmail(text)}
           />
           <TextInput
-            className="bg-[#0E0E10] border border-[#3F3F46] rounded-xl py-[14px] px-[14px] mb-3 text-white font-normal"
+            className="bg-[rgba(2,6,14,0.85)] border border-[rgba(145,70,255,0.25)] rounded-xl py-[14px] px-[14px] mb-3 text-[#E6F1FF] font-normal"
             placeholder="Password"
-            placeholderTextColor="#6B7280"
+            placeholderTextColor="#7aa1b8"
             value={password}
             onChangeText={(text) => setPassword(text)}
             secureTextEntry
           />
           {!isLogin && (
             <TextInput
-              className="bg-[#0E0E10] border border-[#3F3F46] rounded-xl py-[14px] px-[14px] mb-3 text-white font-normal"
+              className="bg-[rgba(2,6,14,0.85)] border border-[rgba(145,70,255,0.25)] rounded-xl py-[14px] px-[14px] mb-3 text-[#E6F1FF] font-normal"
               placeholder="Name (for sign up)"
-              placeholderTextColor="#6B7280"
+              placeholderTextColor="#7aa1b8"
               value={name}
               onChangeText={(text) => setName(text)}
             />
           )}
 
-          <LinearGradient colors={["#9146FF", "#7C3AED"]} start={{x:0,y:0}} end={{x:1,y:1}} className="rounded-[14px] overflow-hidden shadow-xl">
+          <LinearGradient colors={isLogin ? ["#9146FF", "#7C3AED"] : ["#FF4757", "#E63946"]} start={{x:0,y:0}} end={{x:1,y:1}} className="rounded-[14px] overflow-hidden shadow-xl">
             <TouchableOpacity
               className="py-[14px] items-center"
               onPress={() => (isLogin ? login(email, password) : register(email, password, name))}
@@ -199,6 +205,7 @@ export function AuthScreen() {
             </Text>
           </TouchableOpacity>
           </View>
+          </LinearGradient>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

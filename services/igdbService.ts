@@ -202,7 +202,12 @@ class IGDBService {
   async getFeaturedGames(limit: number = 5): Promise<IGDBGame[]> {
     // Use proxy server for web platform to avoid CORS issues
     if (Platform.OS === 'web') {
-      return this.getFeaturedGamesViaProxy(limit);
+      try {
+        return await this.getFeaturedGamesViaProxy(limit);
+      } catch (error) {
+        console.warn('⚠️ Proxy failed, trying direct API call');
+        // Fall through to direct API call
+      }
     }
     
     const query = `
@@ -226,55 +231,59 @@ class IGDBService {
 
   // Get trending games (recently released with good ratings)
   async getTrendingGames(limit: number = 5): Promise<IGDBGame[]> {
-    // Use mock data for web platform to avoid CORS issues
-    if (Platform.OS === 'web') {
-      return this.getMockTrendingGames(limit);
-    }
+    // Try real API first, fallback to mock if needed
+    try {
     
     const now = Math.floor(Date.now() / 1000);
     const oneYearAgo = now - (365 * 24 * 60 * 60); // 1 year in seconds
     
-    const query = `
-      fields name, cover.url, first_release_date, rating, rating_count, platforms.name, genres.name, summary;
-      where first_release_date > ${oneYearAgo} & first_release_date < ${now} & rating > 70 & cover != null;
-      sort first_release_date desc;
-      limit ${limit};
-    `;
-    
-    const games = await this.makeRequest<IGDBGame[]>('games', query);
-    
-    return games.map(game => ({
-      ...game,
-      cover: game.cover ? {
-        ...game.cover,
-        url: `https:${game.cover.url.replace('t_thumb', 't_cover_big')}`
-      } : undefined
-    }));
+      const query = `
+        fields name, cover.url, first_release_date, rating, rating_count, platforms.name, genres.name, summary;
+        where first_release_date > ${oneYearAgo} & first_release_date < ${now} & rating > 70 & cover != null;
+        sort first_release_date desc;
+        limit ${limit};
+      `;
+      
+      const games = await this.makeRequest<IGDBGame[]>('games', query);
+      
+      return games.map(game => ({
+        ...game,
+        cover: game.cover ? {
+          ...game.cover,
+          url: `https:${game.cover.url.replace('t_thumb', 't_cover_big')}`
+        } : undefined
+      }));
+    } catch (error) {
+      console.warn('⚠️ Real API failed, using mock data');
+      return this.getMockTrendingGames(limit);
+    }
   }
 
   // Get popular games (high rating and popularity)
   async getPopularGames(limit: number = 5): Promise<IGDBGame[]> {
-    // Use mock data for web platform to avoid CORS issues
-    if (Platform.OS === 'web') {
+    // Try real API first, fallback to mock if needed
+    try {
+    
+      const query = `
+        fields name, cover.url, first_release_date, rating, rating_count, platforms.name, genres.name, summary;
+        where rating > 80 & cover != null;
+        sort rating desc;
+        limit ${limit};
+      `;
+      
+      const games = await this.makeRequest<IGDBGame[]>('games', query);
+      
+      return games.map(game => ({
+        ...game,
+        cover: game.cover ? {
+          ...game.cover,
+          url: `https:${game.cover.url.replace('t_thumb', 't_cover_big')}`
+        } : undefined
+      }));
+    } catch (error) {
+      console.warn('⚠️ Real API failed, using mock data');
       return this.getMockPopularGames(limit);
     }
-    
-    const query = `
-      fields name, cover.url, first_release_date, rating, rating_count, platforms.name, genres.name, summary;
-      where rating > 80 & cover != null;
-      sort rating desc;
-      limit ${limit};
-    `;
-    
-    const games = await this.makeRequest<IGDBGame[]>('games', query);
-    
-    return games.map(game => ({
-      ...game,
-      cover: game.cover ? {
-        ...game.cover,
-        url: `https:${game.cover.url.replace('t_thumb', 't_cover_big')}`
-      } : undefined
-    }));
   }
 
   // Get top rated games
@@ -359,7 +368,12 @@ class IGDBService {
   async searchGames(query: string, limit: number = 10): Promise<IGDBGame[]> {
     // Use proxy server for web platform to avoid CORS issues
     if (Platform.OS === 'web') {
-      return this.searchGamesViaProxy(query, limit);
+      try {
+        return await this.searchGamesViaProxy(query, limit);
+      } catch (error) {
+        console.warn('⚠️ Proxy failed, trying direct API call');
+        // Fall through to direct API call
+      }
     }
     
     const searchQuery = `
@@ -382,9 +396,14 @@ class IGDBService {
 
   // Get game details with comprehensive data
   async getGameDetails(gameId: number): Promise<IGDBGame | null> {
-    // Use proxy server for web platform to avoid CORS issues
+    // Try proxy server for web platform first, then direct API
     if (Platform.OS === 'web') {
-      return this.getGameDetailsViaProxy(gameId);
+      try {
+        return await this.getGameDetailsViaProxy(gameId);
+      } catch (error) {
+        console.warn('⚠️ Proxy failed, trying direct API call');
+        // Fall through to direct API call
+      }
     }
     
     const query = `

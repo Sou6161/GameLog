@@ -15,7 +15,7 @@ app.use(express.json());
 
 // IGDB credentials
 const CLIENT_ID = process.env.IGDB_CLIENT_ID || 'tiht9z9xigubud8ca68xu0664b4wub';
-const CLIENT_SECRET = process.env.IGDB_CLIENT_SECRET || 'hvic6qb17hc00lgc8q0d0uowg9kkpa';
+const CLIENT_SECRET = process.env.IGDB_CLIENT_SECRET || '41ejqxud8u68z10yx9feq7w64upcwt';
 
 let accessToken = null;
 let tokenExpiry = 0;

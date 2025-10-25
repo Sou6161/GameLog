@@ -46,6 +46,9 @@ import ConfirmationModal from '@/components/ConfirmationModal';
 import { useCommunityReviews } from '@/hooks/useCommunityReviews';
 import CommunityReviewCard from '@/components/CommunityReviewCard';
 import { fetchGameReviews } from '@/store/slices/reviewSlice';
+import { useLiveStreams } from '@/hooks/useLiveStreams';
+import { LiveStreamCard } from '@/components/LiveStreamCard';
+import { twitchService } from '@/services/twitchService';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -59,7 +62,20 @@ function GameDetailScreen() {
   const [selectedVideo, setSelectedVideo] = useState<any>(null);
   const [isVideoModalVisible, setIsVideoModalVisible] = useState(false);
   const [isVideoLoading, setIsVideoLoading] = useState(false);
+  const [streamFilters, setStreamFilters] = useState({
+    viewerCount: 'all', // all, low, medium, high
+    language: 'all', // all, en, es, fr, de, etc.
+    duration: 'all', // all, short, medium, long
+    quality: 'all', // all, high, medium, low
+  });
+  const [filteredPage, setFilteredPage] = useState(1);
+  const streamsPerPage = 10;
   const dispatch = useDispatch();
+  
+  // Reset filtered page when filters change
+  useEffect(() => {
+    setFilteredPage(1);
+  }, [streamFilters]);
   
   // Confirmation modal
   const { confirmationState, showConfirmation, hideConfirmation } = useConfirmation();
@@ -75,6 +91,7 @@ function GameDetailScreen() {
   
   // Community reviews
   const { reviews: communityReviews, loading: communityLoading } = useCommunityReviews(String(gameId));
+  
   
   // Fetch community reviews from Appwrite when game loads
   useEffect(() => {
@@ -94,6 +111,13 @@ function GameDetailScreen() {
   
   // Don't fetch if gameId is invalid
   const { data: gameDetail, isLoading, error } = useGameDetails(gameId);
+
+  // Live streams - only fetch when we have a game name
+  const { streams: liveStreams, allStreams, loading: streamsLoading, error: streamsError, refetch: refetchStreams, pagination } = useLiveStreams(gameDetail?.name || '');
+
+  // Debug: Check what we have
+  console.log('🔍 Component render - gameDetail:', gameDetail ? 'EXISTS' : 'NULL');
+  console.log('🔍 Component render - gameDetail.name:', gameDetail?.name);
 
   const isInLibrary = gameDetail ? libraryGames.some(g => g.id === String(gameDetail.id)) : false;
   const hasReviewed = gameDetail ? reviewedGameIds.includes(String(gameDetail.id)) : false;
@@ -175,6 +199,105 @@ function GameDetailScreen() {
     return num.toString();
   };
 
+  // Filter streams based on selected filters
+  const getFilteredStreams = (streams: any[]) => {
+    if (!streams || streams.length === 0) return [];
+    
+    const filtered = streams.filter(stream => {
+      // Viewer count filter
+      if (streamFilters.viewerCount !== 'all') {
+        const viewers = stream.viewer_count || 0;
+        
+        if (streamFilters.viewerCount === 'low') {
+          if (viewers > 10) return false;
+        } else if (streamFilters.viewerCount === 'medium') {
+          if (viewers <= 10 || viewers > 100) return false;
+        } else if (streamFilters.viewerCount === 'high') {
+          if (viewers <= 100) return false;
+        }
+      }
+
+      // Language filter
+      if (streamFilters.language !== 'all' && stream.language !== streamFilters.language) {
+        return false;
+      }
+
+      // Duration filter
+      if (streamFilters.duration !== 'all') {
+        const startTime = new Date(stream.started_at);
+        const durationHours = (Date.now() - startTime.getTime()) / (1000 * 60 * 60);
+        if (streamFilters.duration === 'short' && durationHours > 2) return false;
+        if (streamFilters.duration === 'medium' && (durationHours <= 2 || durationHours > 8)) return false;
+        if (streamFilters.duration === 'long' && durationHours <= 8) return false;
+      }
+
+      // Quality filter (based on thumbnail resolution)
+      if (streamFilters.quality !== 'all') {
+        const thumbnailUrl = stream.thumbnail_url;
+        if (thumbnailUrl) {
+          const width = thumbnailUrl.match(/width=(\d+)/)?.[1];
+          if (width) {
+            const widthNum = parseInt(width);
+            if (streamFilters.quality === 'high' && widthNum < 640) return false;
+            if (streamFilters.quality === 'medium' && (widthNum < 320 || widthNum >= 640)) return false;
+            if (streamFilters.quality === 'low' && widthNum >= 320) return false;
+          }
+        }
+      }
+
+      return true;
+    });
+
+    // Debug logging
+    console.log(`🔍 Filter Debug - ${streamFilters.viewerCount}:`, {
+      totalStreams: streams.length,
+      filteredCount: filtered.length,
+      viewerCounts: streams.slice(0, 5).map(s => s.viewer_count),
+      filteredViewerCounts: filtered.slice(0, 5).map(s => s.viewer_count)
+    });
+
+    return filtered;
+  };
+
+  // Get available languages from streams
+  const getAvailableLanguages = (streams: any[]) => {
+    const languages = [...new Set(streams.map(s => s.language).filter(Boolean))];
+    return languages.sort();
+  };
+
+  // Custom pagination for filtered streams
+  const getFilteredPagination = (allStreams: any[]) => {
+    const filteredStreams = getFilteredStreams(allStreams);
+    const totalFilteredPages = Math.ceil(filteredStreams.length / streamsPerPage);
+    const startIndex = (filteredPage - 1) * streamsPerPage;
+    const endIndex = startIndex + streamsPerPage;
+    const paginatedFilteredStreams = filteredStreams.slice(startIndex, endIndex);
+
+    return {
+      streams: paginatedFilteredStreams,
+      totalStreams: filteredStreams.length,
+      totalPages: totalFilteredPages,
+      currentPage: filteredPage,
+      hasNextPage: filteredPage < totalFilteredPages,
+      hasPreviousPage: filteredPage > 1,
+      goToPage: (page: number) => {
+        if (page >= 1 && page <= totalFilteredPages) {
+          setFilteredPage(page);
+        }
+      },
+      goToNextPage: () => {
+        if (filteredPage < totalFilteredPages) {
+          setFilteredPage(filteredPage + 1);
+        }
+      },
+      goToPreviousPage: () => {
+        if (filteredPage > 1) {
+          setFilteredPage(filteredPage - 1);
+        }
+      },
+    };
+  };
+
   // Show error if no valid ID is provided
   if (!id || gameId === 0 || isNaN(gameId)) {
     return (
@@ -231,7 +354,7 @@ function GameDetailScreen() {
       <StatusBar style="light" />
       
       {/* Hero Section */}
-      <View className="h-[50%] relative">
+      <View className="h-[35%] relative">
         <ImageBackground
           source={{ uri: gameDetail.screenshots?.[selectedScreenshot]?.url || gameDetail.cover?.url }}
           className="w-full h-full"
@@ -320,7 +443,7 @@ function GameDetailScreen() {
       {/* Tab Navigation */}
       <View className="px-4 mb-3">
         <View className="flex-row bg-[#1A1A2E] rounded-2xl p-1 border border-[#2A2A3E]">
-          {['overview', 'media', 'details', 'reviews'].map((tab) => (
+          {['overview', 'media', 'details', 'reviews', 'streams'].map((tab) => (
             <TouchableOpacity
               key={tab}
               onPress={() => setSelectedTab(tab)}
@@ -333,7 +456,7 @@ function GameDetailScreen() {
                   selectedTab === tab ? 'text-white' : 'text-gray-400'
                 }`}
               >
-                {tab === 'reviews' ? 'Community' : tab}
+                {tab === 'reviews' ? 'Community' : tab === 'streams' ? 'Live' : tab}
               </Text>
             </TouchableOpacity>
           ))}
@@ -808,6 +931,295 @@ function GameDetailScreen() {
                 <Text className="text-gray-400 text-lg text-center w-full">
                   No community reviews yet.{'\n'}Be the first to share your thoughts!
                 </Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {selectedTab === 'streams' && (
+          <View className="pb-12 px-1">
+            {/* Live Streams Header */}
+            <View className="mb-6">
+              <Text className="text-white text-2xl font-bold mb-2">Live Streams</Text>
+              <Text className="text-gray-400 text-base mb-4">
+                Watch live gameplay of {gameDetail.name}
+              </Text>
+
+              {/* Stream Filters */}
+              <View className="bg-[#1A1A2E] rounded-xl p-4 border border-[#2A2A3E]">
+                <Text className="text-white font-semibold mb-3">Filters</Text>
+                
+                {/* Viewer Count Filter */}
+                <View className="mb-3">
+                  <Text className="text-gray-400 text-sm mb-2">Viewer Count</Text>
+                  <View className="flex-row gap-2">
+                    {[
+                      { key: 'all', label: 'All' },
+                      { key: 'low', label: 'Low (0-10)' },
+                      { key: 'medium', label: 'Medium (11-100)' },
+                      { key: 'high', label: 'High (100+)' }
+                    ].map((option) => (
+                      <TouchableOpacity
+                        key={option.key}
+                        onPress={() => setStreamFilters(prev => ({ ...prev, viewerCount: option.key }))}
+                        className={`px-3 py-2 rounded-lg ${
+                          streamFilters.viewerCount === option.key
+                            ? 'bg-[#00D2FF]'
+                            : 'bg-[#2A2A3E]'
+                        }`}
+                      >
+                        <Text className={`text-xs font-medium ${
+                          streamFilters.viewerCount === option.key
+                            ? 'text-white'
+                            : 'text-gray-400'
+                        }`}>
+                          {option.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Language Filter */}
+                <View className="mb-3">
+                  <Text className="text-gray-400 text-sm mb-2">Language</Text>
+                  <View className="flex-row gap-2 flex-wrap">
+                    <TouchableOpacity
+                      onPress={() => setStreamFilters(prev => ({ ...prev, language: 'all' }))}
+                      className={`px-3 py-2 rounded-lg ${
+                        streamFilters.language === 'all'
+                          ? 'bg-[#00D2FF]'
+                          : 'bg-[#2A2A3E]'
+                      }`}
+                    >
+                      <Text className={`text-xs font-medium ${
+                        streamFilters.language === 'all'
+                          ? 'text-white'
+                          : 'text-gray-400'
+                      }`}>
+                        All Languages
+                      </Text>
+                    </TouchableOpacity>
+                    {getAvailableLanguages(pagination?.totalStreams > 0 ? liveStreams : []).slice(0, 4).map((lang) => (
+                      <TouchableOpacity
+                        key={lang}
+                        onPress={() => setStreamFilters(prev => ({ ...prev, language: lang }))}
+                        className={`px-3 py-2 rounded-lg ${
+                          streamFilters.language === lang
+                            ? 'bg-[#A78BFA]'
+                            : 'bg-[#2A2A3E]'
+                        }`}
+                      >
+                        <Text className={`text-xs font-medium ${
+                          streamFilters.language === lang
+                            ? 'text-white'
+                            : 'text-gray-400'
+                        }`}>
+                          {lang.toUpperCase()}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Duration Filter */}
+                <View className="mb-3">
+                  <Text className="text-gray-400 text-sm mb-2">Stream Duration</Text>
+                  <View className="flex-row gap-2">
+                    {[
+                      { key: 'all', label: 'All' },
+                      { key: 'short', label: 'Short (<2h)' },
+                      { key: 'medium', label: 'Medium (2-8h)' },
+                      { key: 'long', label: 'Long (8h+)' }
+                    ].map((option) => (
+                      <TouchableOpacity
+                        key={option.key}
+                        onPress={() => setStreamFilters(prev => ({ ...prev, duration: option.key }))}
+                        className={`px-3 py-2 rounded-lg ${
+                          streamFilters.duration === option.key
+                            ? 'bg-[#FF4757]'
+                            : 'bg-[#2A2A3E]'
+                        }`}
+                      >
+                        <Text className={`text-xs font-medium ${
+                          streamFilters.duration === option.key
+                            ? 'text-white'
+                            : 'text-gray-400'
+                        }`}>
+                          {option.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Clear Filters */}
+                <TouchableOpacity
+                  onPress={() => setStreamFilters({
+                    viewerCount: 'all',
+                    language: 'all',
+                    duration: 'all',
+                    quality: 'all',
+                  })}
+                  className="bg-[#2A2A3E] px-4 py-2 rounded-lg self-start"
+                >
+                  <Text className="text-gray-400 text-xs font-medium">Clear All Filters</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Live Streams List */}
+            {streamsLoading ? (
+              <View className="items-center py-8">
+                <ActivityIndicator size="large" color="#00D2FF" />
+                <Text className="text-gray-400 text-lg mt-4 w-full text-center">Loading live streams...</Text>
+              </View>
+            ) : streamsError ? (
+              <View className="items-center py-8">
+                <Text className="text-red-400 text-lg text-center mb-2">
+                  Failed to load live streams
+                </Text>
+                <Text className="text-gray-400 text-sm text-center mb-4">
+                  {streamsError}
+                </Text>
+                <TouchableOpacity
+                  onPress={refetchStreams}
+                  className="bg-[#00D2FF] px-6 py-3 rounded-xl"
+                >
+                  <Text className="text-white font-semibold">Try Again</Text>
+                </TouchableOpacity>
+                <Text className="text-gray-500 text-xs text-center mt-3">
+                  Make sure Twitch API credentials are configured
+                </Text>
+              </View>
+            ) : allStreams && allStreams.length > 0 ? (
+              <View className="w-full">
+                {(() => {
+                  const filteredPagination = getFilteredPagination(allStreams);
+                  return (
+                    <>
+                      {/* Filtered Streams Count */}
+                      <View className="mb-4">
+                        <Text className="text-gray-400 text-sm">
+                          Showing {filteredPagination.streams.length} of {filteredPagination.totalStreams} filtered streams (from {allStreams.length} total)
+                        </Text>
+                      </View>
+
+                      {/* Streams List */}
+                      <View className="space-y-4 w-full">
+                        {filteredPagination.streams.map((stream) => (
+                          <LiveStreamCard
+                            key={stream.id}
+                            stream={stream}
+                            streamer={stream.streamer}
+                          />
+                        ))}
+                      </View>
+
+                      {/* Custom Pagination Controls */}
+                      {filteredPagination.totalPages > 1 && (
+                        <View className="mt-6 bg-[#1A1A2E] rounded-xl p-4 border border-[#2A2A3E]">
+                          <View className="flex-row items-center justify-between mb-3">
+                            <Text className="text-gray-400 text-sm">
+                              Showing {((filteredPagination.currentPage - 1) * streamsPerPage) + 1}-{Math.min(filteredPagination.currentPage * streamsPerPage, filteredPagination.totalStreams)} of {filteredPagination.totalStreams} streams
+                            </Text>
+                            <Text className="text-white text-sm font-medium">
+                              Page {filteredPagination.currentPage} of {filteredPagination.totalPages}
+                            </Text>
+                          </View>
+                          
+                          <View className="flex-row items-center justify-between">
+                            <TouchableOpacity
+                              onPress={filteredPagination.goToPreviousPage}
+                              disabled={!filteredPagination.hasPreviousPage}
+                              className={`px-4 py-2 rounded-lg ${
+                                filteredPagination.hasPreviousPage 
+                                  ? 'bg-[#00D2FF]' 
+                                  : 'bg-gray-600'
+                              }`}
+                            >
+                              <Text className={`font-semibold ${
+                                filteredPagination.hasPreviousPage 
+                                  ? 'text-white' 
+                                  : 'text-gray-400'
+                              }`}>
+                                Previous
+                              </Text>
+                            </TouchableOpacity>
+
+                            {/* Page Numbers */}
+                            <View className="flex-row items-center gap-2">
+                              {Array.from({ length: Math.min(5, filteredPagination.totalPages) }, (_, i) => {
+                                let pageNum;
+                                if (filteredPagination.totalPages <= 5) {
+                                  pageNum = i + 1;
+                                } else if (filteredPagination.currentPage <= 3) {
+                                  pageNum = i + 1;
+                                } else if (filteredPagination.currentPage >= filteredPagination.totalPages - 2) {
+                                  pageNum = filteredPagination.totalPages - 4 + i;
+                                } else {
+                                  pageNum = filteredPagination.currentPage - 2 + i;
+                                }
+                                
+                                return (
+                                  <TouchableOpacity
+                                    key={pageNum}
+                                    onPress={() => filteredPagination.goToPage(pageNum)}
+                                    className={`w-8 h-8 rounded-lg items-center justify-center ${
+                                      pageNum === filteredPagination.currentPage
+                                        ? 'bg-[#00D2FF]'
+                                        : 'bg-[#2A2A3E]'
+                                    }`}
+                                  >
+                                    <Text className={`text-sm font-medium ${
+                                      pageNum === filteredPagination.currentPage
+                                        ? 'text-white'
+                                        : 'text-gray-400'
+                                    }`}>
+                                      {pageNum}
+                                    </Text>
+                                  </TouchableOpacity>
+                                );
+                              })}
+                            </View>
+
+                            <TouchableOpacity
+                              onPress={filteredPagination.goToNextPage}
+                              disabled={!filteredPagination.hasNextPage}
+                              className={`px-4 py-2 rounded-lg ${
+                                filteredPagination.hasNextPage 
+                                  ? 'bg-[#00D2FF]' 
+                                  : 'bg-gray-600'
+                              }`}
+                            >
+                              <Text className={`font-semibold ${
+                                filteredPagination.hasNextPage 
+                                  ? 'text-white' 
+                                  : 'text-gray-400'
+                              }`}>
+                                Next
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      )}
+                    </>
+                  );
+                })()}
+              </View>
+            ) : (
+              <View className="items-center py-8">
+                <View className="bg-[#2A2A3E] rounded-xl p-6 w-full max-w-sm">
+                  <Text className="text-gray-300 text-lg text-center font-semibold mb-2">
+                    No Live Streams Found
+                  </Text>
+                  <Text className="text-gray-400 text-sm text-center mb-4">
+                    There are currently no streamers playing {gameDetail.name} on Twitch.
+                  </Text>
+                  <Text className="text-gray-500 text-xs text-center">
+                    Try checking back later or explore other popular games!
+                  </Text>
+                </View>
               </View>
             )}
           </View>

@@ -39,13 +39,16 @@ class TwitchService {
   private baseUrl = 'https://api.twitch.tv/helix';
 
   constructor() {
-    // Temporary hardcoded credentials for testing
-    // TODO: Move to proper environment variable handling
-    this.clientId = 'tiht9z9xigubud8ca68xu0664b4wub';
-    this.accessToken = '1sq75b41wed9sco2lycplghvyhr44m';
+    // Load credentials from environment variables
+    this.clientId = process.env.EXPO_PUBLIC_TWITCH_CLIENT_ID || '';
+    this.accessToken = process.env.EXPO_PUBLIC_TWITCH_ACCESS_TOKEN || '';
     
-    console.log('🔧 Twitch Service initialized with credentials');
-    console.log('✅ Twitch API credentials configured');
+    if (!this.clientId || !this.accessToken) {
+      console.warn('⚠️ Twitch API credentials not found in environment variables');
+      console.warn('Please set EXPO_PUBLIC_TWITCH_CLIENT_ID and EXPO_PUBLIC_TWITCH_ACCESS_TOKEN in your .env file');
+    } else {
+      console.log('✅ Twitch API credentials loaded from environment');
+    }
   }
 
   private getHeaders() {

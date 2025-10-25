@@ -7,7 +7,10 @@ import {
   Image,
   Modal,
   Platform,
+  TextInput,
+  Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -117,22 +120,62 @@ export default function ProfileScreen() {
   // Real achievements data - loaded from achievement service
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   
+  // Bio editing state
+  const [showBioModal, setShowBioModal] = useState(false);
+  const [bioText, setBioText] = useState('');
+  const [isEditingBio, setIsEditingBio] = useState(false);
+  
   // Load achievement data on mount and when achievements change
   useEffect(() => {
     loadAchievementData();
   }, [achievementsList, achievementStats]);
   
+  // Load bio independently to avoid conflicts
+  useEffect(() => {
+    loadBioFromStorage();
+  }, []);
+  
+  // Load bio from AsyncStorage
+  const loadBioFromStorage = async () => {
+    try {
+      const savedBio = await AsyncStorage.getItem('user_bio');
+      
+      if (savedBio && savedBio.trim().length > 0) {
+        setUserStats(prev => ({ ...prev, bio: savedBio }));
+        setBioText(savedBio);
+      }
+    } catch (error) {
+      console.error('Error loading bio from storage:', error);
+    }
+  };
+  
+  // Save bio to AsyncStorage
+  const saveBioToStorage = async (bio: string) => {
+    try {
+      await AsyncStorage.setItem('user_bio', bio);
+      setUserStats(prev => ({ ...prev, bio }));
+      console.log('Bio saved successfully');
+    } catch (error) {
+      console.error('Error saving bio to storage:', error);
+      Alert.alert('Error', 'Failed to save bio. Please try again.');
+    }
+  };
+  
   const loadAchievementData = async () => {
     if (achievementStats) {
-      // Update user stats from achievement system
-      setUserStats(prev => ({
-        ...prev,
-        gamesPlayed: achievementStats.gameCount,
-        reviewsWritten: achievementStats.reviewCount,
-        listsCreated: achievementStats.listCount,
-        currentStreak: achievementStats.currentStreak,
-        longestStreak: achievementStats.longestStreak,
-      }));
+      // Update user stats from achievement system while preserving bio
+      setUserStats(prev => {
+        const currentBio = prev.bio; // Preserve the current bio
+        return {
+          ...prev,
+          bio: currentBio, // Keep the bio
+          gamesPlayed: achievementStats.gameCount,
+          reviewsWritten: achievementStats.reviewCount,
+          listsCreated: achievementStats.listCount,
+          currentStreak: achievementStats.currentStreak,
+          longestStreak: achievementStats.longestStreak,
+        };
+      });
     }
     
     // Load recent achievements
@@ -147,6 +190,7 @@ export default function ProfileScreen() {
     
     setUserStats(prev => ({ 
       ...prev, 
+      bio: prev.bio, // Preserve bio
       achievements: count,
       favoriteGenres: genres 
     }));
@@ -160,6 +204,37 @@ export default function ProfileScreen() {
   const handleUploadPhoto = () => {
     // This would integrate with image picker
     setShowAvatarModal(false);
+  };
+
+  // Bio editing functions
+  const handleEditBio = () => {
+    setBioText(userStats.bio);
+    setIsEditingBio(true);
+    setShowBioModal(true);
+  };
+
+  const handleSaveBio = async () => {
+    const trimmedBio = bioText.trim();
+    
+    try {
+      await AsyncStorage.setItem('user_bio', trimmedBio);
+      
+      // Update state immediately
+      setUserStats(prev => ({ ...prev, bio: trimmedBio }));
+      
+      setIsEditingBio(false);
+      setShowBioModal(false);
+      
+    } catch (error) {
+      console.error('Error saving bio:', error);
+      Alert.alert('Error', 'Failed to save bio. Please try again.');
+    }
+  };
+
+  const handleCancelBio = () => {
+    setBioText(userStats.bio);
+    setIsEditingBio(false);
+    setShowBioModal(false);
   };
 
 
@@ -514,15 +589,12 @@ export default function ProfileScreen() {
                 className="relative mb-6"
                 onPress={() => setShowAvatarModal(true)}
               >
-                <LinearGradient
-                  colors={['#9146FF', '#7C3AED']}
-                  className="w-28 h-28 rounded-full p-1"
-                >
+                <View className="w-28 h-28 rounded-full border-2 border-white overflow-hidden">
                   <Image
                     source={{ uri: selectedAvatar }}
                     className="w-full h-full rounded-full"
                   />
-                </LinearGradient>
+                </View>
                 <View className="absolute bottom-0 right-0 w-10 h-10 bg-[#9146FF] rounded-full justify-center items-center border-3 border-[#0E0E10] shadow-lg">
                   <Camera size={18} color="#FFFFFF" weight="fill" />
                 </View>
@@ -531,15 +603,32 @@ export default function ProfileScreen() {
               <Text className="font-bold text-3xl text-white mb-3">
                 {userName}
               </Text>
-              {userStats.bio ? (
-                <Text className="text-[#94A3B8] text-lg text-center mb-4 leading-6">
-                  {userStats.bio}
-                </Text>
-              ) : (
-                <Text className="text-[#94A3B8] text-lg text-center mb-4 leading-6 italic">
-                  Add a bio to tell others about your gaming interests
-                </Text>
-              )}
+              
+              {/* Bio Section - Beautiful Design */}
+              <View className="mb-6">
+                <View className="bg-[#18181B] rounded-2xl p-5 border border-[#3F3F46] min-w-full shadow-lg">
+                  <View className="flex-row items-start justify-between mb-3">
+                    <View className="flex-1 min-w-full">
+                      {/* <Text className="text-[#9146FF] text-sm font-semibold mb-1">About Me</Text> */}
+                      <Text className="text-[#E2E8F0] text-base leading-6">
+                        {userStats.bio || "Tell others about your gaming interests, favorite genres, or what you're currently playing..."}
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  <LinearGradient
+                    colors={['#9146FF', '#7C3AED']}
+                    className="py-3 px-4 rounded-xl"
+                  >
+                    <TouchableOpacity 
+                      className="flex-row items-center justify-center"
+                      onPress={handleEditBio}
+                    >
+                      <Text className="text-white font-semibold text-sm">Edit Bio</Text>
+                    </TouchableOpacity>
+                  </LinearGradient>
+                </View>
+              </View>
               
               {/* Quick Stats */}
               <View className="flex-row space-x-6 mt-2">
@@ -660,6 +749,65 @@ export default function ProfileScreen() {
                   Upload Your Photo
                 </Text>
               </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Bio Editing Modal */}
+        <Modal
+          visible={showBioModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={handleCancelBio}
+        >
+          <View className="flex-1 bg-black/50 justify-center items-center px-4">
+            <View className="bg-[#18181B] rounded-2xl p-6 border border-[#3F3F46] w-full max-w-md shadow-2xl">
+              <View className="flex-row items-center justify-between mb-6">
+                <Text className="font-bold text-xl text-white">
+                  {isEditingBio ? 'Edit Bio' : 'Add Bio'}
+                </Text>
+                <TouchableOpacity
+                  className="w-10 h-10 rounded-full justify-center items-center"
+                  onPress={handleCancelBio}
+                >
+                  <X size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+
+              <TextInput
+                className="bg-[#0E0E10] border border-[#3F3F46] rounded-xl p-4 text-white text-lg mb-6 min-h-[120px]"
+                placeholder="Tell others about your gaming interests, favorite genres, or what you're currently playing..."
+                placeholderTextColor="#6B7280"
+                value={bioText}
+                onChangeText={setBioText}
+                multiline={true}
+                textAlignVertical="top"
+                maxLength={200}
+              />
+
+              <View className="flex-row space-x-3">
+                <TouchableOpacity
+                  className="flex-1 bg-[#3F3F46] py-3 px-4 rounded-xl"
+                  onPress={handleCancelBio}
+                >
+                  <Text className="text-white font-medium text-center">
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  className="flex-1 bg-[#9146FF] py-3 px-4 rounded-xl"
+                  onPress={handleSaveBio}
+                >
+                  <Text className="text-white font-medium text-center">
+                    Save Bio
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text className="text-[#6B7280] text-sm text-center mt-3">
+                {bioText.length}/200 characters
+              </Text>
             </View>
           </View>
         </Modal>

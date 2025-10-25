@@ -62,14 +62,19 @@ interface IGDBAuthResponse {
 }
 
 class IGDBService {
-  private clientId = process.env.EXPO_PUBLIC_IGDB_CLIENT_ID || 'tiht9z9xigubud8ca68xu0664b4wub';
-  private clientSecret = process.env.EXPO_PUBLIC_IGDB_CLIENT_SECRET || 'hvic6qb17hc00lgc8q0d0uowg9kkpa';
+  private clientId = process.env.EXPO_PUBLIC_IGDB_CLIENT_ID || '';
+  private clientSecret = process.env.EXPO_PUBLIC_IGDB_CLIENT_SECRET || '';
   private baseUrl = 'https://api.igdb.com/v4';
   private accessToken: string | null = null;
   private tokenExpiry: number = 0;
 
   // Get access token for IGDB API
   private async authenticate(): Promise<string> {
+    // Check if credentials are configured
+    if (!this.clientId || !this.clientSecret) {
+      throw new Error('IGDB API credentials not configured. Please set EXPO_PUBLIC_IGDB_CLIENT_ID and EXPO_PUBLIC_IGDB_CLIENT_SECRET in your .env file');
+    }
+
     // If token exists and is not expired, return it
     if (this.accessToken && Date.now() < this.tokenExpiry) {
       return this.accessToken;

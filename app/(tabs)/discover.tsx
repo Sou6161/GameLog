@@ -89,8 +89,8 @@ export default function DiscoverScreen() {
       return (
         <View className="flex-1 justify-center items-center px-5">
           <View className="items-center">
-            <ActivityIndicator size="large" color="#00D2FF" />
-            <Text className="text-[#00D2FF] text-lg font-medium mt-4">Searching games...</Text>
+            <ActivityIndicator size="large" color="#9146FF" />
+            <Text className="text-[#9146FF] text-lg font-medium mt-4">Searching games...</Text>
           </View>
         </View>
       );
@@ -132,7 +132,7 @@ export default function DiscoverScreen() {
   };
 
   return (
-    <LinearGradient colors={["#0F0F1F", "#121631", "#0A2342"]} className="flex-1">
+    <LinearGradient colors={["#0E0E10", "#18181B", "#1F1F23"]} className="flex-1">
       <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
         <ScrollView 
           className="flex-1" 
@@ -141,7 +141,7 @@ export default function DiscoverScreen() {
         >
           <View className="px-4 pb-8">
             {/* Search Bar */}
-            <View className="flex-row items-center bg-[#1A2238] rounded-xl px-4 py-3 mb-6 border border-[#374151]">
+            <View className="flex-row items-center bg-[#18181B] rounded-xl px-4 py-3 mb-6 border border-[#3F3F46]">
               <MagnifyingGlass size={20} color="#94A3B8" weight="bold" />
               <TextInput
                 className="flex-1 ml-3 text-white font-normal text-base"
@@ -170,7 +170,7 @@ export default function DiscoverScreen() {
                   <Text className="text-white text-xl font-bold ml-1">Featured</Text>
                 </View>
                 {loadingFeatured ? (
-                  <ActivityIndicator size="small" color="#00D2FF" />
+                  <ActivityIndicator size="small" color="#9146FF" />
                 ) : (
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5">
                     {featuredGames.map((game) => (
@@ -185,11 +185,11 @@ export default function DiscoverScreen() {
             {!hasSearched && (
               <View className="mb-8">
                 <View className="flex-row items-center mb-4">
-                  <TrendUp size={24} color="#00D2FF" weight="bold" />
+                  <TrendUp size={24} color="#9146FF" weight="bold" />
                   <Text className="text-white text-xl font-bold ml-3">Trending Now</Text>
                 </View>
                 {loadingTrending ? (
-                  <ActivityIndicator size="small" color="#00D2FF" />
+                  <ActivityIndicator size="small" color="#9146FF" />
                 ) : (
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5">
                     {trendingGames.map((game) => (
@@ -204,11 +204,11 @@ export default function DiscoverScreen() {
             {!hasSearched && (
               <View className="mb-8">
                 <View className="flex-row items-center mb-4">
-                  <Fire size={24} color="#FF6B6B" weight="bold" />
+                  <Fire size={24} color="#FF4757" weight="bold" />
                   <Text className="text-white text-xl font-bold ml-3">New Releases</Text>
                 </View>
                 {loadingNewReleases ? (
-                  <ActivityIndicator size="small" color="#FF6B6B" />
+                  <ActivityIndicator size="small" color="#FF4757" />
                 ) : (
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5">
                     {newReleases.map((game) => (
@@ -220,15 +220,15 @@ export default function DiscoverScreen() {
             )}
 
             {/* Trending Community Reviews */}
-            {!hasSearched && (
+            {/* {!hasSearched && (
               <View className="mb-8">
                 <View className="flex-row items-center mb-4">
-                  <TrendUp size={24} color="#00D2FF" weight="bold" />
+                  <TrendUp size={24} color="#9146FF" weight="bold" />
                   <Text className="text-white text-xl font-bold ml-3">Trending Reviews</Text>
                   <Text className="text-gray-400 w-full text-sm ml-2">({trendingReviews.length})</Text>
                 </View>
                 {loadingTrendingReviews ? (
-                  <ActivityIndicator size="small" color="#00D2FF" />
+                  <ActivityIndicator size="small" color="#9146FF" />
                 ) : (
                   <ScrollView 
                     horizontal 
@@ -251,7 +251,7 @@ export default function DiscoverScreen() {
                   </ScrollView>
                 )}
               </View>
-            )}
+            )} */}
           </View>
         </ScrollView>
       </SafeAreaView>

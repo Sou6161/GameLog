@@ -30,12 +30,12 @@ export const LiveStreamCard: React.FC<LiveStreamCardProps> = ({ stream, streamer
     <TouchableOpacity
       onPress={handleWatchStream}
       style={{
-        backgroundColor: '#1A1A2E',
+        backgroundColor: '#18181B',
         borderRadius: 12,
         marginBottom: 16,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: '#2A2A3E',
+        borderColor: '#3F3F46',
       }}
       activeOpacity={0.8}
     >
@@ -93,7 +93,7 @@ export const LiveStreamCard: React.FC<LiveStreamCardProps> = ({ stream, streamer
           justifyContent: 'center',
         }}>
           <View style={{
-            backgroundColor: 'rgba(0,210,255,0.9)',
+            backgroundColor: 'rgba(145,70,255,0.9)',
             borderRadius: 25,
             padding: 12,
           }}>
@@ -166,15 +166,15 @@ export const LiveStreamCard: React.FC<LiveStreamCardProps> = ({ stream, streamer
         {stream.language && stream.language !== 'en' && (
           <View style={{ marginTop: 8 }}>
             <View style={{
-              backgroundColor: 'rgba(167,139,250,0.2)',
+              backgroundColor: 'rgba(145,70,255,0.2)',
               borderWidth: 1,
-              borderColor: 'rgba(167,139,250,0.4)',
+              borderColor: 'rgba(145,70,255,0.4)',
               paddingHorizontal: 8,
               paddingVertical: 4,
               borderRadius: 12,
               alignSelf: 'flex-start',
             }}>
-              <Text style={{ color: '#A78BFA', fontSize: 10 }}>
+              <Text style={{ color: '#9146FF', fontSize: 10 }}>
                 {stream.language.toUpperCase()}
               </Text>
             </View>

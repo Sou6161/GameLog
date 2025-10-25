@@ -350,7 +350,7 @@ function GameDetailScreen() {
   }
 
   return (
-    <View className="flex-1 bg-[#0F0F1F]">
+    <View className="flex-1 bg-[#0E0E10]">
       <StatusBar style="light" />
       
       {/* Hero Section */}
@@ -362,7 +362,7 @@ function GameDetailScreen() {
         >
           {/* Gradient overlays */}
           <LinearGradient
-            colors={['rgba(0,0,0,0.55)', 'rgba(0,0,0,0.3)', 'transparent', 'rgba(15,15,31,0.9)', 'rgba(15,15,31,1)']}
+            colors={['rgba(0,0,0,0.55)', 'rgba(0,0,0,0.3)', 'transparent', 'rgba(14,14,16,0.9)', 'rgba(14,14,16,1)']}
             className="absolute inset-0"
             locations={[0, 0.2, 0.55, 0.85, 1]}
           />
@@ -442,13 +442,13 @@ function GameDetailScreen() {
 
       {/* Tab Navigation */}
       <View className="px-4 mb-3">
-        <View className="flex-row bg-[#1A1A2E] rounded-2xl p-1 border border-[#2A2A3E]">
+        <View className="flex-row bg-[#18181B] rounded-2xl p-1 border border-[#3F3F46]">
           {['overview', 'media', 'details', 'reviews', 'streams'].map((tab) => (
             <TouchableOpacity
               key={tab}
               onPress={() => setSelectedTab(tab)}
               className={`flex-1 py-2 rounded-xl ${
-                selectedTab === tab ? 'bg-[#00D2FF]' : 'bg-transparent'
+                selectedTab === tab ? 'bg-[#9146FF]' : 'bg-transparent'
               }`}
             >
               <Text
@@ -468,7 +468,7 @@ function GameDetailScreen() {
         {selectedTab === 'overview' && (
           <View className="pb-8">
             {/* Stats Row */}
-            <View className="flex-row justify-between mb-6 bg-[#1A1A2E] p-4 rounded-2xl">
+            <View className="flex-row justify-between mb-6 bg-[#18181B] p-4 rounded-2xl border border-[#3F3F46]">
               <View className="items-center">
                 <View className="w-10 h-10 bg-[#FF4757]/20 rounded-full justify-center items-center mb-2">
                   <Fire size={20} color="#FF4757" weight="fill" />
@@ -478,8 +478,8 @@ function GameDetailScreen() {
               </View>
               
               <View className="items-center">
-                <View className="w-10 h-10 bg-[#00D2FF]/20 rounded-full justify-center items-center mb-2">
-                  <Eye size={20} color="#00D2FF" weight="fill" />
+                <View className="w-10 h-10 bg-[#9146FF]/20 rounded-full justify-center items-center mb-2">
+                  <Eye size={20} color="#9146FF" weight="fill" />
                 </View>
                 <Text className="text-white font-bold">{formatNumber(gameDetail.follows)}</Text>
                 <Text className="text-gray-400 text-xs w-full">Follows</Text>
@@ -494,8 +494,8 @@ function GameDetailScreen() {
               </View>
               
               <View className="items-center">
-                <View className="w-10 h-10 bg-[#A78BFA]/20 rounded-full justify-center items-center mb-2">
-                  <ThumbsUp size={20} color="#A78BFA" weight="fill" />
+                <View className="w-10 h-10 bg-[#00B5AD]/20 rounded-full justify-center items-center mb-2">
+                  <ThumbsUp size={20} color="#00B5AD" weight="fill" />
                 </View>
                 <Text className="text-white font-bold">{formatNumber(gameDetail.aggregated_rating_count)}</Text>
                 <Text className="text-gray-400 text-xs w-full">Reviews</Text>
@@ -520,7 +520,7 @@ function GameDetailScreen() {
             {/* Detailed Game Information */}
             <View className="mb-6">
               <Text className="text-white text-xl font-bold mb-3">Game Information</Text>
-              <View className="bg-[#1A1A2E] rounded-2xl p-3 gap-2">
+              <View className="bg-[#18181B] rounded-2xl p-3 gap-2 border border-[#3F3F46]">
                 <View className="flex-col">
                   <Text className="text-gray-400 text-sm mb-1">Release Date</Text>
                   <Text className="text-white font-medium text-sm">
@@ -570,7 +570,7 @@ function GameDetailScreen() {
             {/* Rating Breakdown */}
             <View className="mb-6">
               <Text className="text-white text-xl font-bold mb-3">Ratings & Reviews</Text>
-              <View className="bg-[#1A1A2E] rounded-2xl p-4 gap-5">
+              <View className="bg-[#18181B] rounded-2xl p-4 gap-5 border border-[#3F3F46]">
                 {gameDetail.rating && (
                   <View>
                     <View className="flex-row items-center justify-between mb-2">
@@ -580,7 +580,7 @@ function GameDetailScreen() {
                         <Text className="text-white font-bold">{(gameDetail.rating / 10).toFixed(1)}/10</Text>
                       </View>
                     </View>
-                    <View className="w-full h-2 bg-[#0F0F1F] rounded-full overflow-hidden">
+                    <View className="w-full h-2 bg-[#0E0E10] rounded-full overflow-hidden">
                       <View style={{ width: `${Math.min(100, (gameDetail.rating/10)*10*10)}%` }} className="h-full bg-[#FFD700]" />
                     </View>
                     <Text className="text-gray-400 text-xs mt-1" numberOfLines={1}>({formatNumber(gameDetail.rating_count || 0)} votes)</Text>
@@ -591,12 +591,12 @@ function GameDetailScreen() {
                     <View className="flex-row items-center justify-between mb-2">
                       <Text className="text-gray-400">Total Rating</Text>
                       <View className="flex-row items-center gap-2">
-                        <Star size={16} color="#00D2FF" weight="fill" />
+                        <Star size={16} color="#9146FF" weight="fill" />
                         <Text className="text-white font-bold">{(gameDetail.total_rating / 10).toFixed(1)}/10</Text>
                       </View>
                     </View>
                     <View className="w-full h-2 bg-[#0F0F1F] rounded-full overflow-hidden">
-                      <View style={{ width: `${Math.min(100, (gameDetail.total_rating/10)*10*10)}%` }} className="h-full bg-[#00D2FF]" />
+                      <View style={{ width: `${Math.min(100, (gameDetail.total_rating/10)*10*10)}%` }} className="h-full bg-[#9146FF]" />
                     </View>
                     <Text className="text-gray-400 text-xs mt-1" numberOfLines={1}>({formatNumber(gameDetail.total_rating_count || 0)} reviews)</Text>
                   </View>
@@ -946,7 +946,7 @@ function GameDetailScreen() {
               </Text>
 
               {/* Stream Filters */}
-              <View className="bg-[#1A1A2E] rounded-xl p-4 border border-[#2A2A3E]">
+              <View className="bg-[#18181B] rounded-xl p-4 border border-[#3F3F46]">
                 <Text className="text-white font-semibold mb-3">Filters</Text>
                 
                 {/* Viewer Count Filter */}
@@ -964,8 +964,8 @@ function GameDetailScreen() {
                         onPress={() => setStreamFilters(prev => ({ ...prev, viewerCount: option.key }))}
                         className={`px-3 py-2 rounded-lg ${
                           streamFilters.viewerCount === option.key
-                            ? 'bg-[#00D2FF]'
-                            : 'bg-[#2A2A3E]'
+                            ? 'bg-[#9146FF]'
+                            : 'bg-[#3F3F46]'
                         }`}
                       >
                         <Text className={`text-xs font-medium ${
@@ -988,8 +988,8 @@ function GameDetailScreen() {
                       onPress={() => setStreamFilters(prev => ({ ...prev, language: 'all' }))}
                       className={`px-3 py-2 rounded-lg ${
                         streamFilters.language === 'all'
-                          ? 'bg-[#00D2FF]'
-                          : 'bg-[#2A2A3E]'
+                          ? 'bg-[#9146FF]'
+                          : 'bg-[#3F3F46]'
                       }`}
                     >
                       <Text className={`text-xs font-medium ${
@@ -1006,8 +1006,8 @@ function GameDetailScreen() {
                         onPress={() => setStreamFilters(prev => ({ ...prev, language: lang }))}
                         className={`px-3 py-2 rounded-lg ${
                           streamFilters.language === lang
-                            ? 'bg-[#A78BFA]'
-                            : 'bg-[#2A2A3E]'
+                            ? 'bg-[#00B5AD]'
+                            : 'bg-[#3F3F46]'
                         }`}
                       >
                         <Text className={`text-xs font-medium ${
@@ -1038,7 +1038,7 @@ function GameDetailScreen() {
                         className={`px-3 py-2 rounded-lg ${
                           streamFilters.duration === option.key
                             ? 'bg-[#FF4757]'
-                            : 'bg-[#2A2A3E]'
+                            : 'bg-[#3F3F46]'
                         }`}
                       >
                         <Text className={`text-xs font-medium ${
@@ -1061,7 +1061,7 @@ function GameDetailScreen() {
                     duration: 'all',
                     quality: 'all',
                   })}
-                  className="bg-[#2A2A3E] px-4 py-2 rounded-lg self-start"
+                  className="bg-[#3F3F46] px-4 py-2 rounded-lg self-start"
                 >
                   <Text className="text-gray-400 text-xs font-medium">Clear All Filters</Text>
                 </TouchableOpacity>
@@ -1118,7 +1118,7 @@ function GameDetailScreen() {
 
                       {/* Custom Pagination Controls */}
                       {filteredPagination.totalPages > 1 && (
-                        <View className="mt-6 bg-[#1A1A2E] rounded-xl p-4 border border-[#2A2A3E]">
+                        <View className="mt-6 bg-[#18181B] rounded-xl p-4 border border-[#3F3F46]">
                           <View className="flex-row items-center justify-between mb-3">
                             <Text className="text-gray-400 text-sm">
                               Showing {((filteredPagination.currentPage - 1) * streamsPerPage) + 1}-{Math.min(filteredPagination.currentPage * streamsPerPage, filteredPagination.totalStreams)} of {filteredPagination.totalStreams} streams
@@ -1134,7 +1134,7 @@ function GameDetailScreen() {
                               disabled={!filteredPagination.hasPreviousPage}
                               className={`px-4 py-2 rounded-lg ${
                                 filteredPagination.hasPreviousPage 
-                                  ? 'bg-[#00D2FF]' 
+                                  ? 'bg-[#9146FF]' 
                                   : 'bg-gray-600'
                               }`}
                             >
@@ -1167,8 +1167,8 @@ function GameDetailScreen() {
                                     onPress={() => filteredPagination.goToPage(pageNum)}
                                     className={`w-8 h-8 rounded-lg items-center justify-center ${
                                       pageNum === filteredPagination.currentPage
-                                        ? 'bg-[#00D2FF]'
-                                        : 'bg-[#2A2A3E]'
+                                        ? 'bg-[#9146FF]'
+                                        : 'bg-[#3F3F46]'
                                     }`}
                                   >
                                     <Text className={`text-sm font-medium ${
@@ -1188,7 +1188,7 @@ function GameDetailScreen() {
                               disabled={!filteredPagination.hasNextPage}
                               className={`px-4 py-2 rounded-lg ${
                                 filteredPagination.hasNextPage 
-                                  ? 'bg-[#00D2FF]' 
+                                  ? 'bg-[#9146FF]' 
                                   : 'bg-gray-600'
                               }`}
                             >
@@ -1227,7 +1227,7 @@ function GameDetailScreen() {
       </ScrollView>
       
       {/* Bottom Action Bar */}
-      <View className="bg-[#1A1A2E] px-4 py-3 border-t border-[#2A2A3E]">
+      <View className="bg-[#18181B] px-4 py-3 border-t border-[#3F3F46]">
         <SafeAreaView edges={['bottom']}>
           <View className="flex-row gap-3">
             <TouchableOpacity
@@ -1235,7 +1235,7 @@ function GameDetailScreen() {
               className="flex-1"
             >
               <LinearGradient
-                colors={isInLibrary ? ['#10B981', '#059669'] : ['#00D2FF', '#6c5ce7']}
+                colors={isInLibrary ? ['#FF4757', '#E63946'] : ['#9146FF', '#7C3AED']}
                 className="py-3 rounded-xl flex-row items-center justify-center"
               >
                 <GameController size={20} color="#FFFFFF" weight="bold" />
@@ -1254,7 +1254,7 @@ function GameDetailScreen() {
                   });
                 }
               }}
-              className="bg-[#00D2FF] py-3 px-6 rounded-xl flex-row items-center justify-center"
+              className="bg-[#9146FF] py-3 px-6 rounded-xl flex-row items-center justify-center"
             >
               <Star size={20} color="#FFFFFF" weight="bold" />
               <Text className="ml-2 text-white font-bold">{hasReviewed ? 'Edit Review' : 'Review'}</Text>

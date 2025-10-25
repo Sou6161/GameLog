@@ -409,7 +409,7 @@ export default function LogScreen() {
   // Review form view
   if (showReviewForm && selectedGame) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-900">
+      <SafeAreaView className="flex-1 bg-[#0E0E10]">
         <ScrollView className="flex-1 px-4 py-6">
           {/* Header */}
           <View className="flex-row items-center mb-6">
@@ -423,7 +423,7 @@ export default function LogScreen() {
           </View>
 
           {/* Game Info */}
-          <View className="bg-gray-800 rounded-lg p-4 mb-6">
+          <View className="bg-[#18181B] rounded-lg p-4 mb-6 border border-[#3F3F46]">
             <View className="flex-row items-center">
               {selectedGame.cover?.url ? (
                 <Image 
@@ -431,7 +431,7 @@ export default function LogScreen() {
                   className="w-20 h-28 rounded mr-4"
                 />
               ) : (
-                <View className="w-20 h-28 bg-gray-700 rounded mr-4 items-center justify-center">
+                <View className="w-20 h-28 bg-[#3F3F46] rounded mr-4 items-center justify-center">
                   <GameController size={24} color="#9CA3AF" />
                 </View>
               )}
@@ -442,19 +442,19 @@ export default function LogScreen() {
                     {new Date(selectedGame.first_release_date * 1000).getFullYear()}
                   </Text>
                 )}
-                <Text className="text-green-400 font-semibold">{currentDate}</Text>
+                <Text className="text-[#00B5AD] font-semibold">{currentDate}</Text>
               </View>
             </View>
           </View>
 
           {/* Existing Review Warning */}
           {hasExistingReview && (
-            <View className="bg-yellow-600/20 border border-yellow-500/30 rounded-lg p-4 mb-6">
+            <View className="bg-[#FFD700]/20 border border-[#FFD700]/30 rounded-lg p-4 mb-6">
               <View className="flex-row items-center mb-2">
-                <Text className="text-yellow-400 font-semibold text-base mr-2">⚠️</Text>
-                <Text className="text-yellow-400 font-semibold text-base">You've already reviewed this game</Text>
+                <Text className="text-[#FFD700] font-semibold text-base mr-2">⚠️</Text>
+                <Text className="text-[#FFD700] font-semibold text-base">You've already reviewed this game</Text>
               </View>
-              <Text className="text-yellow-300 text-sm">
+              <Text className="text-[#FFD700] text-sm">
                 You can update your existing review below. Changes will replace your previous review.
               </Text>
             </View>
@@ -469,7 +469,7 @@ export default function LogScreen() {
                   key={option.id}
                   onPress={() => setGameStatus(option.id)}
                   className={`mr-3 mb-2 px-4 py-2 rounded-lg flex-row items-center ${
-                    gameStatus === option.id ? 'bg-green-600' : 'bg-gray-700'
+                    gameStatus === option.id ? 'bg-[#9146FF]' : 'bg-[#3F3F46]'
                   }`}
                 >
                   <Text className="mr-2">{option.icon}</Text>
@@ -482,7 +482,7 @@ export default function LogScreen() {
           {/* Rating */}
           <View className="mb-6">
             <Text className="text-white text-lg font-semibold mb-3">Rating</Text>
-            <View className="bg-gray-800 rounded-lg p-4">
+            <View className="bg-[#18181B] rounded-lg p-4 border border-[#3F3F46]">
               <View className="flex-row items-center justify-center mb-2">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => (
                   <TouchableOpacity key={star} onPress={() => handleRatingPress(star)}>
@@ -494,7 +494,7 @@ export default function LogScreen() {
                   </TouchableOpacity>
                 ))}
               </View>
-              <Text className="text-center text-yellow-400 font-semibold text-lg">
+              <Text className="text-center text-[#FFD700] font-semibold text-lg">
                 {rating > 0 ? `${rating}/10 - ${getRatingDescription(rating)}` : getRatingDescription(rating)}
               </Text>
             </View>
@@ -540,7 +540,7 @@ export default function LogScreen() {
           {/* Review Text */}
           <View className="mb-6">
             <Text className="text-white text-lg font-semibold mb-3">Your Review</Text>
-            <View className="bg-gray-800 rounded-lg p-4">
+            <View className="bg-[#18181B] rounded-lg p-4 border border-[#3F3F46]">
               <TextInput
                 value={reviewText}
                 onChangeText={setReviewText}
@@ -598,7 +598,7 @@ export default function LogScreen() {
           {/* Submit Button */}
           <TouchableOpacity 
             onPress={handleSubmitReview}
-            className="bg-green-600 rounded-lg p-4 mb-6"
+            className="bg-[#9146FF] rounded-lg p-4 mb-6"
           >
             <Text className="text-white text-center font-bold text-lg">
               {hasExistingReview ? 'Update Review' : 'Post Review'}
@@ -612,7 +612,7 @@ export default function LogScreen() {
   // Main search and reviews view
   return (
     <LinearGradient
-      colors={['#0F0F1F', '#121631', '#0A2342']}
+      colors={['#0E0E10', '#18181B', '#1F1F23']}
       className="flex-1"
     >
       <SafeAreaView className="flex-1">
@@ -631,11 +631,11 @@ export default function LogScreen() {
                 onChangeText={handleSearchChange}
                 placeholder="Search for games to review..."
                 placeholderTextColor="#9CA3AF"
-                className="bg-gray-800 text-white px-4 py-3 rounded-lg pr-10"
+                className="bg-[#18181B] text-white px-4 py-3 rounded-lg pr-10 border border-[#3F3F46]"
               />
               <View className="absolute right-3 top-3">
                 {isSearching ? (
-                  <ActivityIndicator size="small" color="#10B981" />
+                  <ActivityIndicator size="small" color="#9146FF" />
                 ) : (
                   <MagnifyingGlass size={20} color="#9CA3AF" />
                 )}
@@ -644,12 +644,12 @@ export default function LogScreen() {
 
             {/* Search Results */}
             {searchResults.length > 0 && (
-              <View className="mt-2 bg-gray-800 rounded-lg max-h-60">
+              <View className="mt-2 bg-[#18181B] rounded-lg max-h-60 border border-[#3F3F46]">
                 <ScrollView>
                   {searchResults.map((game) => (
                     <TouchableOpacity 
                       key={game.id} 
-                      className="p-3 border-b border-gray-700 last:border-b-0"
+                      className="p-3 border-b border-[#3F3F46] last:border-b-0"
                       onPress={() => handleGameSelect(game)}
                     >
                       <View className="flex-row items-center">
@@ -659,7 +659,7 @@ export default function LogScreen() {
                             className="w-10 h-14 rounded mr-3"
                           />
                         ) : (
-                          <View className="w-10 h-14 bg-gray-700 rounded mr-3 items-center justify-center">
+                          <View className="w-10 h-14 bg-[#3F3F46] rounded mr-3 items-center justify-center">
                             <GameController size={20} color="#9CA3AF" />
                           </View>
                         )}
@@ -673,7 +673,7 @@ export default function LogScreen() {
                             </Text>
                           )}
                         </View>
-                        <Plus size={20} color="#10B981" />
+                        <Plus size={20} color="#9146FF" />
                       </View>
                     </TouchableOpacity>
                   ))}

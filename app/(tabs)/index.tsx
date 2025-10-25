@@ -57,13 +57,13 @@ function FeaturedGameCard({ game }: { game: IGDBGame }) {
       case 'hot':
         return '#FF4757';
       case 'trending':
-        return '#00D2FF';
+        return '#9146FF';
       case 'champion':
         return '#FFD700';
       case 'classic':
-        return '#A55EEA';
+        return '#00B5AD';
       default:
-        return '#FF4757';
+        return '#9146FF';
     }
   };
 
@@ -104,7 +104,7 @@ function FeaturedGameCard({ game }: { game: IGDBGame }) {
       />
 
       {/* Main card container */}
-      <View className="flex-1 rounded-3xl overflow-hidden bg-[#1A1A2E] border-2 border-white/20">
+      <View className="flex-1 rounded-3xl overflow-hidden bg-[#18181B] border-2 border-white/20">
         <Image
           source={{ uri: game.cover?.url || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop' }}
           className="w-full h-full absolute"
@@ -115,7 +115,7 @@ function FeaturedGameCard({ game }: { game: IGDBGame }) {
         <View
           className="absolute inset-0 bg-transparent opacity-30"
           style={{
-            backgroundImage: `linear-gradient(rgba(0, 210, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 210, 255, 0.1) 1px, transparent 1px)`,
+            backgroundImage: `linear-gradient(rgba(145, 70, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(145, 70, 255, 0.1) 1px, transparent 1px)`,
             backgroundSize: '20px 20px',
           }}
         />
@@ -337,7 +337,7 @@ function HomeContent() {
 
   return (
     <LinearGradient
-      colors={['#0F0F1F', '#121631', '#0A2342']}
+      colors={['#0E0E10', '#18181B', '#1F1F23']}
       className="flex-1"
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
@@ -354,7 +354,7 @@ function HomeContent() {
             <View className="mb-8 py-5 relative overflow-hidden">
               <Text className="font-bold text-[28px] text-white mb-1.5 flex-row items-center">
                 Welcome back,{' '}
-                <Text className="text-[#00D2FF] shadow-neon-blue">Gamer</Text>
+                <Text className="text-[#9146FF] shadow-neon-blue">Gamer</Text>
               </Text>
               <Text className="font-normal text-base text-[#A0A0A0] mb-5">
                 Ready to level up your gaming experience?
@@ -366,11 +366,11 @@ function HomeContent() {
               <SectionHeader
                 title="Featured Games"
                 icon={Heart}
-                color="#FF6B6B"
+                color="#FF4757"
               />
               {featuredLoading ? (
                 <View className="h-[360px] justify-center items-center">
-                  <ActivityIndicator size="large" color="#FF6B6B" />
+                  <ActivityIndicator size="large" color="#FF4757" />
                 </View>
               ) : featuredError ? (
                 <View className="h-[360px] justify-center items-center">
@@ -393,10 +393,10 @@ function HomeContent() {
 
             {/* Trending Now */}
             <View className="mb-8">
-              <SectionHeader title="Trending Now" icon={Fire} color="#00D2FF" />
+              <SectionHeader title="Trending Now" icon={Fire} color="#9146FF" />
               {trendingLoading ? (
                 <View className="h-[200px] justify-center items-center">
-                  <ActivityIndicator size="large" color="#00D2FF" />
+                  <ActivityIndicator size="large" color="#9146FF" />
                 </View>
               ) : trendingError ? (
                 <View className="h-[200px] justify-center items-center">
@@ -422,11 +422,11 @@ function HomeContent() {
               <SectionHeader
                 title="Popular This Week"
                 icon={Lightning}
-                color="#FFE66D"
+                color="#FFD700"
               />
               {popularLoading ? (
                 <View className="h-[200px] justify-center items-center">
-                  <ActivityIndicator size="large" color="#FFE66D" />
+                  <ActivityIndicator size="large" color="#FFD700" />
                 </View>
               ) : popularError ? (
                 <View className="h-[200px] justify-center items-center">
@@ -452,11 +452,11 @@ function HomeContent() {
               <SectionHeader
                 title="Top Rated Games"
                 icon={Trophy}
-                color="#A78BFA"
+                color="#00B5AD"
               />
               {topRatedLoading ? (
                 <View className="h-[200px] justify-center items-center">
-                  <ActivityIndicator size="large" color="#A78BFA" />
+                  <ActivityIndicator size="large" color="#00B5AD" />
                 </View>
               ) : topRatedError ? (
                 <View className="h-[200px] justify-center items-center">
@@ -482,11 +482,11 @@ function HomeContent() {
               <SectionHeader
                 title="Upcoming Games"
                 icon={GameController}
-                color="#34D399"
+                color="#9146FF"
               />
               {upcomingLoading ? (
                 <View className="h-[200px] justify-center items-center">
-                  <ActivityIndicator size="large" color="#34D399" />
+                  <ActivityIndicator size="large" color="#9146FF" />
                 </View>
               ) : upcomingError ? (
                 <View className="h-[200px] justify-center items-center">
@@ -512,11 +512,11 @@ function HomeContent() {
               <SectionHeader
                 title="Indie Games"
                 icon={Sparkle}
-                color="#F59E0B"
+                color="#FFD700"
               />
               {indieLoading ? (
                 <View className="h-[200px] justify-center items-center">
-                  <ActivityIndicator size="large" color="#F59E0B" />
+                  <ActivityIndicator size="large" color="#FFD700" />
                 </View>
               ) : indieError ? (
                 <View className="h-[200px] justify-center items-center">
@@ -542,11 +542,11 @@ function HomeContent() {
               <SectionHeader
                 title="Recently Released"
                 icon={Clock}
-                color="#10B981"
+                color="#00B5AD"
               />
               {recentlyReleasedLoading ? (
                 <View className="h-[200px] justify-center items-center">
-                  <ActivityIndicator size="large" color="#10B981" />
+                  <ActivityIndicator size="large" color="#00B5AD" />
                 </View>
               ) : recentlyReleasedError ? (
                 <View className="h-[200px] justify-center items-center">
@@ -572,11 +572,11 @@ function HomeContent() {
               <SectionHeader
                 title="Most Anticipated"
                 icon={Rocket}
-                color="#EF4444"
+                color="#FF4757"
               />
               {mostAnticipatedLoading ? (
                 <View className="h-[200px] justify-center items-center">
-                  <ActivityIndicator size="large" color="#EF4444" />
+                  <ActivityIndicator size="large" color="#FF4757" />
                 </View>
               ) : mostAnticipatedError ? (
                 <View className="h-[200px] justify-center items-center">
@@ -600,12 +600,12 @@ function HomeContent() {
             {/* Enhanced Quick Actions */}
             <View className="flex-row justify-between mt-6 mb-10 gap-3">
               <TouchableOpacity
-                className="flex-1 items-center p-5 rounded-2xl border border-white/10 relative overflow-hidden bg-[#FF6B6B15]"
+                className="flex-1 items-center p-5 rounded-2xl border border-white/10 relative overflow-hidden bg-[#FF475715]"
                 activeOpacity={0.8}
               >
                 <View className="absolute -top-12 -left-12 -right-12 -bottom-12 bg-white/[0.02] rounded-[50px]" />
-                <View className="w-12 h-12 rounded-3xl justify-center items-center mb-3 border border-white/10 bg-[#FF6B6B20]">
-                  <Play size={20} color="#FF6B6B" weight="fill" />
+                <View className="w-12 h-12 rounded-3xl justify-center items-center mb-3 border border-white/10 bg-[#FF475720]">
+                  <Play size={20} color="#FF4757" weight="fill" />
                 </View>
                 <Text className="font-semibold text-xs text-white text-center mb-1">
                   Log Game
@@ -616,12 +616,12 @@ function HomeContent() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                className="flex-1 items-center p-5 rounded-2xl border border-white/10 relative overflow-hidden bg-[#00D2FF15]"
+                className="flex-1 items-center p-5 rounded-2xl border border-white/10 relative overflow-hidden bg-[#9146FF15]"
                 activeOpacity={0.8}
               >
                 <View className="absolute -top-12 -left-12 -right-12 -bottom-12 bg-white/[0.02] rounded-[50px]" />
-                <View className="w-12 h-12 rounded-3xl justify-center items-center mb-3 border border-white/10 bg-[#00D2FF20]">
-                  <Star size={20} color="#00D2FF" weight="fill" />
+                <View className="w-12 h-12 rounded-3xl justify-center items-center mb-3 border border-white/10 bg-[#9146FF20]">
+                  <Star size={20} color="#9146FF" weight="fill" />
                 </View>
                 <Text className="font-semibold text-xs text-white text-center mb-1">
                   Rate Game
@@ -632,12 +632,12 @@ function HomeContent() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                className="flex-1 items-center p-5 rounded-2xl border border-white/10 relative overflow-hidden bg-[#FFE66D15]"
+                className="flex-1 items-center p-5 rounded-2xl border border-white/10 relative overflow-hidden bg-[#FFD70015]"
                 activeOpacity={0.8}
               >
                 <View className="absolute -top-12 -left-12 -right-12 -bottom-12 bg-white/[0.02] rounded-[50px]" />
-                <View className="w-12 h-12 rounded-3xl justify-center items-center mb-3 border border-white/10 bg-[#FFE66D20]">
-                  <Heart size={20} color="#FFE66D" weight="fill" />
+                <View className="w-12 h-12 rounded-3xl justify-center items-center mb-3 border border-white/10 bg-[#FFD70020]">
+                  <Heart size={20} color="#FFD700" weight="fill" />
                 </View>
                 <Text className="font-semibold text-xs text-white text-center mb-1">
                   Wishlist

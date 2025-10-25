@@ -307,13 +307,13 @@ Data: ${JSON.stringify(exportData, null, 2)}`,
     destructive?: boolean;
   }) => (
     <TouchableOpacity 
-      className={`flex-row items-center justify-between p-4 bg-[#1A2238] rounded-xl mb-2 border border-[#374151] ${destructive ? 'border-red-500' : ''}`} 
+      className={`flex-row items-center justify-between p-4 bg-[#18181B] rounded-xl mb-2 border border-[#3F3F46] ${destructive ? 'border-red-500' : ''}`} 
       onPress={onPress}
       disabled={showSwitch}
     >
       <View className="flex-row items-center flex-1">
-        <View className={`w-10 h-10 rounded-full justify-center items-center mr-3 ${destructive ? 'bg-red-500/20' : 'bg-[#865EF6]/20'}`}>
-          <Icon size={20} color={destructive ? '#EF4444' : '#865EF6'} weight="fill" />
+        <View className={`w-10 h-10 rounded-full justify-center items-center mr-3 ${destructive ? 'bg-red-500/20' : 'bg-[#9146FF]/20'}`}>
+          <Icon size={20} color={destructive ? '#EF4444' : '#9146FF'} weight="fill" />
         </View>
         <View className="flex-1">
           <Text className={`font-semibold text-base ${destructive ? 'text-red-500' : 'text-white'}`}>
@@ -331,7 +331,7 @@ Data: ${JSON.stringify(exportData, null, 2)}`,
           <Switch
             value={switchValue}
             onValueChange={onSwitchChange}
-            trackColor={{ false: '#374151', true: '#865EF6' }}
+            trackColor={{ false: '#3F3F46', true: '#9146FF' }}
             thumbColor={switchValue ? '#FFFFFF' : '#9CA3AF'}
           />
         ) : showArrow ? (
@@ -354,7 +354,7 @@ Data: ${JSON.stringify(exportData, null, 2)}`,
 
   return (
     <LinearGradient
-      colors={['#0F0F1F', '#121631', '#0A2342']}
+      colors={['#0E0E10', '#18181B', '#1F1F23']}
       className="flex-1"
     >
       <SafeAreaView className="flex-1">

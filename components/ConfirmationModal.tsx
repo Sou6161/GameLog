@@ -55,9 +55,9 @@ export default function ConfirmationModal({
       case 'info':
         return {
           icon: Info,
-          iconColor: '#00D2FF',
-          gradientColors: ['#00D2FF', '#6c5ce7'],
-          confirmBg: '#00D2FF',
+          iconColor: '#9146FF',
+          gradientColors: ['#9146FF', '#7C3AED'],
+          confirmBg: '#9146FF',
         };
       case 'success':
         return {
@@ -69,9 +69,9 @@ export default function ConfirmationModal({
       default: // warning
         return {
           icon: Warning,
-          iconColor: '#F59E0B',
-          gradientColors: ['#F59E0B', '#D97706'],
-          confirmBg: '#F59E0B',
+          iconColor: '#FFD700',
+          gradientColors: ['#FFD700', '#F59E0B'],
+          confirmBg: '#FFD700',
         };
     }
   };
@@ -94,7 +94,7 @@ export default function ConfirmationModal({
         />
         
         <View 
-          className="bg-[#1A1A2E] rounded-3xl mx-6 overflow-hidden border border-[#374151]"
+          className="bg-[#18181B] rounded-3xl mx-6 overflow-hidden border border-[#3F3F46]"
           style={{ width: width - 48 }}
         >
           {/* Header with gradient */}
@@ -135,7 +135,7 @@ export default function ConfirmationModal({
               <View className="flex-row gap-3">
                 <TouchableOpacity
                   onPress={onClose}
-                  className="flex-1 bg-[#374151] rounded-xl py-4 items-center"
+                  className="flex-1 bg-[#3F3F46] rounded-xl py-4 items-center"
                 >
                   <Text className="text-white font-semibold text-base">
                     {cancelText}

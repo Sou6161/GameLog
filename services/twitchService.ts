@@ -40,8 +40,8 @@ class TwitchService {
 
   constructor() {
     // Load credentials from environment variables
-    this.clientId = process.env.EXPO_PUBLIC_TWITCH_CLIENT_ID || '';
-    this.accessToken = process.env.EXPO_PUBLIC_TWITCH_ACCESS_TOKEN || '';
+    this.clientId = process.env.EXPO_PUBLIC_TWITCH_CLIENT_ID || 'tiht9z9xigubud8ca68xu0664b4wub';
+    this.accessToken = process.env.EXPO_PUBLIC_TWITCH_ACCESS_TOKEN || 'jru7gxl4fmvq5ei4tjsef8123btc25';
     
     if (!this.clientId || !this.accessToken) {
       console.warn('⚠️ Twitch API credentials not found in environment variables');

@@ -18,7 +18,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, router } from 'expo-router';
 import { BlurView } from 'expo-blur';
-import { WebView } from 'react-native-webview';
 import {
   ArrowLeft,
   Star,
@@ -710,9 +709,19 @@ function GameDetailScreen() {
                   <TouchableOpacity
                     key={video.id}
                     onPress={() => {
-                      setSelectedVideo(video);
-                      setIsVideoModalVisible(true);
-                      setIsVideoLoading(true);
+                      if (Platform.OS === 'web') {
+                        // For web, open in modal
+                        setSelectedVideo(video);
+                        setIsVideoModalVisible(true);
+                        setIsVideoLoading(true);
+                      } else {
+                        // For mobile, open directly in YouTube app/browser
+                        const youtubeUrl = `https://www.youtube.com/watch?v=${video.video_id}`;
+                        Linking.openURL(youtubeUrl).catch(err => {
+                          console.error('Failed to open YouTube:', err);
+                          Alert.alert('Error', 'Unable to open YouTube. Please try again.');
+                        });
+                      }
                     }}
                     className="bg-[#1A1A2E] rounded-2xl p-4 flex-row items-center gap-3"
                   >
@@ -722,7 +731,7 @@ function GameDetailScreen() {
                     <View className="flex-1">
                       <Text className="text-white font-semibold">{video.name}</Text>
                       <Text className="text-gray-400 text-sm">
-                        {Platform.OS === 'web' ? 'Tap to play' : 'Tap to play in app'}
+                        {Platform.OS === 'web' ? 'Tap to play' : 'Tap to open in YouTube'}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -1271,73 +1280,59 @@ function GameDetailScreen() {
         onClose={() => setIsGalleryVisible(false)}
       />
       
-      {/* Video Modal */}
-      <Modal
-        visible={isVideoModalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setIsVideoModalVisible(false)}
-      >
-        <View className="flex-1 bg-black/90 justify-center items-center">
-          <View className="w-full h-[60%] bg-black rounded-t-3xl">
-            <View className="flex-row justify-between items-center p-4 border-b border-gray-700">
-              <Text className="text-white text-lg font-semibold">
-                {selectedVideo?.name}
-              </Text>
-              <TouchableOpacity
-                onPress={() => setIsVideoModalVisible(false)}
-                className="w-8 h-8 rounded-full bg-gray-700 justify-center items-center"
-              >
-                <X size={20} color="#FFFFFF" weight="bold" />
-              </TouchableOpacity>
-            </View>
-            <View className="flex-1 p-4">
-              {Platform.OS === 'web' ? (
-                <iframe
-                  width="100%"
-                  height="100%"
-                  src={`https://www.youtube.com/embed/${selectedVideo?.video_id}?autoplay=1`}
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  style={{ borderRadius: 12 }}
-                />
-              ) : (
-                <View className="flex-1">
-                  {isVideoLoading && (
-                    <View className="absolute inset-0 bg-black/50 justify-center items-center z-10 rounded-xl">
-                      <ActivityIndicator size="large" color="#FF4757" />
-                      <Text className="text-white mt-2">Loading video...</Text>
-                    </View>
-                  )}
-                  <WebView
-                    source={{ uri: `https://www.youtube.com/embed/${selectedVideo?.video_id}?autoplay=1` }}
-                    style={{ flex: 1, borderRadius: 12 }}
-                    allowsFullscreenVideo={true}
-                    mediaPlaybackRequiresUserAction={false}
-                    javaScriptEnabled={true}
-                    domStorageEnabled={true}
-                    startInLoadingState={true}
-                    scalesPageToFit={true}
-                    onLoadEnd={() => setIsVideoLoading(false)}
-                    onError={() => setIsVideoLoading(false)}
+      {/* Video Modal - Only for Web */}
+      {Platform.OS === 'web' && (
+        <Modal
+          visible={isVideoModalVisible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setIsVideoModalVisible(false)}
+        >
+          <View className="flex-1 bg-black/90 justify-center items-center">
+            <View className="w-full h-[60%] bg-black rounded-t-3xl">
+              <View className="flex-row justify-between items-center p-4 border-b border-gray-700">
+                <Text className="text-white text-lg font-semibold" numberOfLines={1}>
+                  {selectedVideo?.name || 'Video'}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setIsVideoModalVisible(false)}
+                  className="w-8 h-8 rounded-full bg-gray-700 justify-center items-center"
+                >
+                  <X size={20} color="#FFFFFF" weight="bold" />
+                </TouchableOpacity>
+              </View>
+              <View className="flex-1 p-4">
+                {!selectedVideo?.video_id ? (
+                  <View className="flex-1 justify-center items-center">
+                    <Text className="text-white text-lg font-semibold mb-4 text-center px-4">
+                      {selectedVideo?.name || 'Video'}
+                    </Text>
+                    <Text className="text-gray-400 text-center mb-6 px-4">
+                      No video available
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setIsVideoModalVisible(false)}
+                      className="bg-[#9146FF] px-6 py-3 rounded-xl"
+                    >
+                      <Text className="text-white font-semibold">Close</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    src={`https://www.youtube.com/embed/${selectedVideo.video_id}?autoplay=1&playsinline=1&modestbranding=1&rel=0`}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                    style={{ borderRadius: 12 }}
                   />
-                  <TouchableOpacity
-                    onPress={() => {
-                      const youtubeUrl = `https://www.youtube.com/watch?v=${selectedVideo?.video_id}`;
-                      Linking.openURL(youtubeUrl);
-                    }}
-                    className="mt-3 bg-[#FF4757] rounded-xl p-3 flex-row items-center justify-center gap-2"
-                  >
-                    <PlayCircle size={20} color="#FFFFFF" weight="fill" />
-                    <Text className="text-white font-semibold">Open in YouTube App</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
+                )}
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+      )}
       
       {/* Confirmation Modal */}
       <ConfirmationModal

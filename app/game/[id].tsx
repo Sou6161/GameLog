@@ -37,14 +37,12 @@ import { useGameDetails } from '@/hooks/useGames';
 import { IGDBGame } from '@/services/igdbService';
 import ImageGalleryModal from '@/components/ImageGalleryModal';
 import { useAchievements } from '@/hooks/useAchievements';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '@/store';
-import { addToLibrary, removeFromLibrary } from '@/store/slices/gameSlice';
+import { useGameStore } from '@/store/gameStore';
+import { useReviewStore } from '@/store/reviewStore';
 import { useConfirmation } from '@/hooks/useConfirmation';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { useCommunityReviews } from '@/hooks/useCommunityReviews';
 import CommunityReviewCard from '@/components/CommunityReviewCard';
-import { fetchGameReviews } from '@/store/slices/reviewSlice';
 import { useLiveStreams } from '@/hooks/useLiveStreams';
 import { LiveStreamCard } from '@/components/LiveStreamCard';
 import { twitchService } from '@/services/twitchService';
@@ -69,8 +67,7 @@ function GameDetailScreen() {
   });
   const [filteredPage, setFilteredPage] = useState(1);
   const streamsPerPage = 10;
-  const dispatch = useDispatch();
-  
+
   // Reset filtered page when filters change
   useEffect(() => {
     setFilteredPage(1);
@@ -78,9 +75,12 @@ function GameDetailScreen() {
   
   // Confirmation modal
   const { confirmationState, showConfirmation, hideConfirmation } = useConfirmation();
-  const libraryGames = useSelector((state: RootState) => state.game.libraryGames);
-  const reviewedGameIds = useSelector((state: RootState) => state.game.reviewedGameIds);
-  const appwriteCommunityReviews = useSelector((state: RootState) => state.reviews.reviews);
+  const libraryGames = useGameStore((s) => s.libraryGames);
+  const reviewedGameIds = useGameStore((s) => s.reviewedGameIds);
+  const backendReviews = useReviewStore((s) => s.reviews);
+  const addToLibrary = useGameStore((s) => s.addToLibrary);
+  const removeFromLibrary = useGameStore((s) => s.removeFromLibrary);
+  const fetchGameReviews = useReviewStore((s) => s.fetchGameReviews);
   
   // Achievement tracking
   const { trackGameAdded, trackGameRemoved } = useAchievements();
@@ -92,21 +92,21 @@ function GameDetailScreen() {
   const { reviews: communityReviews, loading: communityLoading } = useCommunityReviews(String(gameId));
   
   
-  // Fetch community reviews from Appwrite when game loads
+  // Fetch community reviews from the backend when game loads
   useEffect(() => {
     if (gameId) {
       // Test connection first
       import('@/services/reviewService').then(({ ReviewService }) => {
         ReviewService.testConnection().then((success) => {
           if (success) {
-            dispatch(fetchGameReviews(String(gameId)) as any);
+            fetchGameReviews(String(gameId));
           } else {
-            console.log('Appwrite connection failed, skipping review fetch');
+            console.log('Backend connection failed, skipping review fetch');
           }
         });
       });
     }
-  }, [gameId, dispatch]);
+  }, [gameId]);
   
   // Don't fetch if gameId is invalid
   const { data: gameDetail, isLoading, error } = useGameDetails(gameId);
@@ -125,13 +125,13 @@ function GameDetailScreen() {
   const handleAddToLibrary = async () => {
     if (!gameDetail) return;
     if (!isInLibrary) {
-      dispatch(addToLibrary({
+      addToLibrary({
         id: String(gameDetail.id),
         title: gameDetail.name,
         coverUrl: gameDetail.cover?.url,
         genre: gameDetail.genres?.[0]?.name,
         addedDate: new Date().toLocaleDateString(),
-      }));
+      });
       const genres = gameDetail?.genres?.map(g => g.name) || [];
       await trackGameAdded(genres);
       showConfirmation(
@@ -147,7 +147,7 @@ function GameDetailScreen() {
         'Remove from Library',
         'Are you sure you want to remove this game from your library?',
         async () => {
-          dispatch(removeFromLibrary(String(gameDetail.id)));
+          removeFromLibrary(String(gameDetail.id));
           const genres = gameDetail?.genres?.map(g => g.name) || [];
           await trackGameRemoved(genres);
           showConfirmation(
@@ -895,9 +895,9 @@ function GameDetailScreen() {
               <View className="items-center py-8">
                 <Text className="text-gray-400 text-lg">Loading community reviews...</Text>
               </View>
-            ) : appwriteCommunityReviews.length > 0 ? (
+            ) : backendReviews.length > 0 ? (
               <View className="space-y-4 w-full">
-                {appwriteCommunityReviews.map((review) => (
+                {backendReviews.map((review) => (
                   <CommunityReviewCard
                     key={review.id}
                     review={{

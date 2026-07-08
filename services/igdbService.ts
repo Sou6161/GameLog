@@ -1,6 +1,9 @@
 import axios from 'axios';
 import { Platform, Alert } from 'react-native';
 
+// Base URL of the GameLog Node backend (serves the IGDB proxy under /api/games).
+const PROXY_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001';
+
 interface IGDBGame {
   id: number;
   name: string;
@@ -140,7 +143,7 @@ class IGDBService {
   private async searchGamesViaProxy(query: string, limit: number = 10): Promise<IGDBGame[]> {
     try {
       console.log('🌐 Using proxy server for search:', query);
-      const response = await axios.post('http://localhost:3001/api/games/search', {
+      const response = await axios.post(`${PROXY_BASE}/api/games/search`, {
         query,
         limit
       });
@@ -156,7 +159,7 @@ class IGDBService {
   // Get featured games via proxy server for web platform
   private async getFeaturedGamesViaProxy(limit: number = 5): Promise<IGDBGame[]> {
     try {
-      const response = await axios.get(`http://localhost:3001/api/games/featured?limit=${limit}`);
+      const response = await axios.get(`${PROXY_BASE}/api/games/featured?limit=${limit}`);
       
       return response.data;
     } catch (error) {
@@ -168,7 +171,7 @@ class IGDBService {
   // Get trending games via proxy server for web platform
   private async getTrendingGamesViaProxy(limit: number = 5): Promise<IGDBGame[]> {
     try {
-      const response = await axios.get(`http://localhost:3001/api/games/trending?limit=${limit}`);
+      const response = await axios.get(`${PROXY_BASE}/api/games/trending?limit=${limit}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching trending games via proxy:', error);
@@ -179,7 +182,7 @@ class IGDBService {
   // Get popular games via proxy server for web platform
   private async getPopularGamesViaProxy(limit: number = 5): Promise<IGDBGame[]> {
     try {
-      const response = await axios.get(`http://localhost:3001/api/games/popular?limit=${limit}`);
+      const response = await axios.get(`${PROXY_BASE}/api/games/popular?limit=${limit}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching popular games via proxy:', error);
@@ -190,7 +193,7 @@ class IGDBService {
   // Get top rated games via proxy server for web platform
   private async getTopRatedGamesViaProxy(limit: number = 5): Promise<IGDBGame[]> {
     try {
-      const response = await axios.get(`http://localhost:3001/api/games/top-rated?limit=${limit}`);
+      const response = await axios.get(`${PROXY_BASE}/api/games/top-rated?limit=${limit}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching top rated games via proxy:', error);
@@ -201,7 +204,7 @@ class IGDBService {
   // Get upcoming games via proxy server for web platform
   private async getUpcomingGamesViaProxy(limit: number = 5): Promise<IGDBGame[]> {
     try {
-      const response = await axios.get(`http://localhost:3001/api/games/upcoming?limit=${limit}`);
+      const response = await axios.get(`${PROXY_BASE}/api/games/upcoming?limit=${limit}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching upcoming games via proxy:', error);
@@ -212,7 +215,7 @@ class IGDBService {
   // Get indie games via proxy server for web platform
   private async getIndieGamesViaProxy(limit: number = 5): Promise<IGDBGame[]> {
     try {
-      const response = await axios.get(`http://localhost:3001/api/games/indie?limit=${limit}`);
+      const response = await axios.get(`${PROXY_BASE}/api/games/indie?limit=${limit}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching indie games via proxy:', error);
@@ -223,7 +226,7 @@ class IGDBService {
   // Get games by genre via proxy server for web platform
   private async getGamesByGenreViaProxy(genreId: number, limit: number = 10): Promise<IGDBGame[]> {
     try {
-      const response = await axios.get(`http://localhost:3001/api/games/genre/${genreId}?limit=${limit}`);
+      const response = await axios.get(`${PROXY_BASE}/api/games/genre/${genreId}?limit=${limit}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching games by genre via proxy:', error);
@@ -234,7 +237,7 @@ class IGDBService {
   // Get recently released games via proxy server for web platform
   private async getRecentlyReleasedGamesViaProxy(limit: number = 10): Promise<IGDBGame[]> {
     try {
-      const response = await axios.get(`http://localhost:3001/api/games/recent?limit=${limit}`);
+      const response = await axios.get(`${PROXY_BASE}/api/games/recent?limit=${limit}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching recently released games via proxy:', error);
@@ -245,7 +248,7 @@ class IGDBService {
   // Get most anticipated games via proxy server for web platform
   private async getMostAnticipatedGamesViaProxy(limit: number = 10): Promise<IGDBGame[]> {
     try {
-      const response = await axios.get(`http://localhost:3001/api/games/anticipated?limit=${limit}`);
+      const response = await axios.get(`${PROXY_BASE}/api/games/anticipated?limit=${limit}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching most anticipated games via proxy:', error);
@@ -256,7 +259,7 @@ class IGDBService {
   // Get racing games via proxy server for web platform
   private async getRacingGamesViaProxy(limit: number = 10): Promise<IGDBGame[]> {
     try {
-      const response = await axios.get(`http://localhost:3001/api/games/racing?limit=${limit}`);
+      const response = await axios.get(`${PROXY_BASE}/api/games/racing?limit=${limit}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching racing games via proxy:', error);
@@ -267,7 +270,7 @@ class IGDBService {
   // Get sports games via proxy server for web platform
   private async getSportsGamesViaProxy(limit: number = 10): Promise<IGDBGame[]> {
     try {
-      const response = await axios.get(`http://localhost:3001/api/games/sports?limit=${limit}`);
+      const response = await axios.get(`${PROXY_BASE}/api/games/sports?limit=${limit}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching sports games via proxy:', error);
@@ -278,7 +281,7 @@ class IGDBService {
   // Get fighting games via proxy server for web platform
   private async getFightingGamesViaProxy(limit: number = 10): Promise<IGDBGame[]> {
     try {
-      const response = await axios.get(`http://localhost:3001/api/games/fighting?limit=${limit}`);
+      const response = await axios.get(`${PROXY_BASE}/api/games/fighting?limit=${limit}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching fighting games via proxy:', error);
@@ -289,7 +292,7 @@ class IGDBService {
   // Get strategy games via proxy server for web platform
   private async getStrategyGamesViaProxy(limit: number = 10): Promise<IGDBGame[]> {
     try {
-      const response = await axios.get(`http://localhost:3001/api/games/strategy?limit=${limit}`);
+      const response = await axios.get(`${PROXY_BASE}/api/games/strategy?limit=${limit}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching strategy games via proxy:', error);
@@ -300,7 +303,7 @@ class IGDBService {
   // Get horror games via proxy server for web platform
   private async getHorrorGamesViaProxy(limit: number = 10): Promise<IGDBGame[]> {
     try {
-      const response = await axios.get(`http://localhost:3001/api/games/horror?limit=${limit}`);
+      const response = await axios.get(`${PROXY_BASE}/api/games/horror?limit=${limit}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching horror games via proxy:', error);
@@ -312,7 +315,7 @@ class IGDBService {
   private async getGameDetailsViaProxy(gameId: number): Promise<IGDBGame | null> {
     try {
       console.log('🎮 Fetching game details via proxy for ID:', gameId);
-      const response = await axios.get(`http://localhost:3001/api/games/${gameId}`);
+      const response = await axios.get(`${PROXY_BASE}/api/games/${gameId}`);
       
       console.log('✅ Game details received via proxy:', response.data.name);
       return response.data;

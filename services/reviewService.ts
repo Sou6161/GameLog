@@ -1,9 +1,7 @@
-import { appwrite, ID, Query } from '@/lib/appwrite';
+import { apiRequest } from '@/lib/api';
 
-const DATABASE_ID = '68f4a3b40026f763fcdc';
-const REVIEWS_COLLECTION_ID = 'reviews';
-
-export interface AppwriteReview {
+// Review shape returned by the backend. `$id` is the Postgres review UUID.
+export interface Review {
   $id: string;
   userId: string;
   username: string;
@@ -23,18 +21,12 @@ export interface AppwriteReview {
 
 export class ReviewService {
   // Create a new review
-  static async createReview(reviewData: Omit<AppwriteReview, '$id'>): Promise<AppwriteReview> {
+  static async createReview(reviewData: Omit<Review, '$id'>): Promise<Review> {
     try {
-      console.log('Creating review with data:', reviewData);
-      console.log('ID.unique():', ID.unique());
-      console.log('appwrite.databases:', appwrite.databases);
-      
-      const review = await appwrite.databases.createDocument(
-        DATABASE_ID,
-        REVIEWS_COLLECTION_ID,
-        ID.unique(),
-        {
-          userId: reviewData.userId,
+      const res = await apiRequest<{ review: Review }>('/api/reviews', {
+        method: 'POST',
+        auth: true,
+        body: {
           username: reviewData.username,
           userAvatar: reviewData.userAvatar || '',
           gameId: reviewData.gameId,
@@ -48,55 +40,35 @@ export class ReviewService {
           isPublic: reviewData.isPublic,
           date: reviewData.date,
           verified: reviewData.verified,
-        }
-      );
-
-      return review as AppwriteReview;
+        },
+      });
+      return res.review;
     } catch (error) {
       console.error('Error creating review:', error);
       throw new Error('Failed to create review');
     }
   }
 
-  // Get all reviews for a specific game (community reviews)
-  static async getGameReviews(gameId: string): Promise<AppwriteReview[]> {
+  // Get all public reviews for a specific game (community reviews)
+  static async getGameReviews(gameId: string): Promise<Review[]> {
     try {
-      console.log('Fetching reviews for gameId:', gameId);
-      console.log('Database ID:', DATABASE_ID);
-      console.log('Collection ID:', REVIEWS_COLLECTION_ID);
-      
-      const reviews = await appwrite.databases.listDocuments(
-        DATABASE_ID,
-        REVIEWS_COLLECTION_ID,
-        [
-          Query.equal('gameId', gameId),
-          Query.equal('isPublic', true),
-          Query.orderDesc('date')
-        ]
+      const res = await apiRequest<{ reviews: Review[] }>(
+        `/api/reviews?gameId=${encodeURIComponent(gameId)}&isPublic=true`
       );
-
-      console.log('Fetched reviews:', reviews.documents);
-      return reviews.documents as AppwriteReview[];
+      return res.reviews;
     } catch (error) {
       console.error('Error fetching game reviews:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
       throw new Error('Failed to fetch game reviews');
     }
   }
 
   // Get all reviews by a specific user
-  static async getUserReviews(userId: string): Promise<AppwriteReview[]> {
+  static async getUserReviews(userId: string): Promise<Review[]> {
     try {
-      const reviews = await appwrite.databases.listDocuments(
-        DATABASE_ID,
-        REVIEWS_COLLECTION_ID,
-        [
-          Query.equal('userId', userId),
-          Query.orderDesc('date')
-        ]
+      const res = await apiRequest<{ reviews: Review[] }>(
+        `/api/reviews?userId=${encodeURIComponent(userId)}`
       );
-
-      return reviews.documents as AppwriteReview[];
+      return res.reviews;
     } catch (error) {
       console.error('Error fetching user reviews:', error);
       throw new Error('Failed to fetch user reviews');
@@ -104,15 +76,12 @@ export class ReviewService {
   }
 
   // Get a specific review by ID
-  static async getReviewById(reviewId: string): Promise<AppwriteReview | null> {
+  static async getReviewById(reviewId: string): Promise<Review | null> {
     try {
-      const review = await appwrite.databases.getDocument(
-        DATABASE_ID,
-        REVIEWS_COLLECTION_ID,
-        reviewId
+      const res = await apiRequest<{ review: Review }>(
+        `/api/reviews/${encodeURIComponent(reviewId)}`
       );
-
-      return review as AppwriteReview;
+      return res.review;
     } catch (error) {
       console.error('Error fetching review by ID:', error);
       return null;
@@ -120,16 +89,13 @@ export class ReviewService {
   }
 
   // Update a review
-  static async updateReview(reviewId: string, updateData: Partial<AppwriteReview>): Promise<AppwriteReview> {
+  static async updateReview(reviewId: string, updateData: Partial<Review>): Promise<Review> {
     try {
-      const review = await appwrite.databases.updateDocument(
-        DATABASE_ID,
-        REVIEWS_COLLECTION_ID,
-        reviewId,
-        updateData
+      const res = await apiRequest<{ review: Review }>(
+        `/api/reviews/${encodeURIComponent(reviewId)}`,
+        { method: 'PATCH', auth: true, body: updateData }
       );
-
-      return review as AppwriteReview;
+      return res.review;
     } catch (error) {
       console.error('Error updating review:', error);
       throw new Error('Failed to update review');
@@ -139,11 +105,10 @@ export class ReviewService {
   // Delete a review
   static async deleteReview(reviewId: string): Promise<void> {
     try {
-      await appwrite.databases.deleteDocument(
-        DATABASE_ID,
-        REVIEWS_COLLECTION_ID,
-        reviewId
-      );
+      await apiRequest(`/api/reviews/${encodeURIComponent(reviewId)}`, {
+        method: 'DELETE',
+        auth: true,
+      });
     } catch (error) {
       console.error('Error deleting review:', error);
       throw new Error('Failed to delete review');
@@ -151,19 +116,12 @@ export class ReviewService {
   }
 
   // Get all public reviews (for trending/community)
-  static async getAllPublicReviews(limit: number = 20): Promise<AppwriteReview[]> {
+  static async getAllPublicReviews(limit: number = 20): Promise<Review[]> {
     try {
-      const reviews = await appwrite.databases.listDocuments(
-        DATABASE_ID,
-        REVIEWS_COLLECTION_ID,
-        [
-          Query.equal('isPublic', true),
-          Query.orderDesc('date'),
-          Query.limit(limit)
-        ]
+      const res = await apiRequest<{ reviews: Review[] }>(
+        `/api/reviews?isPublic=true&limit=${limit}`
       );
-
-      return reviews.documents as AppwriteReview[];
+      return res.reviews;
     } catch (error) {
       console.error('Error fetching all public reviews:', error);
       throw new Error('Failed to fetch public reviews');
@@ -173,16 +131,10 @@ export class ReviewService {
   // Check if user has reviewed a specific game
   static async hasUserReviewedGame(userId: string, gameId: string): Promise<boolean> {
     try {
-      const reviews = await appwrite.databases.listDocuments(
-        DATABASE_ID,
-        REVIEWS_COLLECTION_ID,
-        [
-          Query.equal('userId', userId),
-          Query.equal('gameId', gameId)
-        ]
+      const res = await apiRequest<{ reviews: Review[] }>(
+        `/api/reviews?userId=${encodeURIComponent(userId)}&gameId=${encodeURIComponent(gameId)}`
       );
-
-      return reviews.documents.length > 0;
+      return res.reviews.length > 0;
     } catch (error) {
       console.error('Error checking if user reviewed game:', error);
       return false;
@@ -190,34 +142,22 @@ export class ReviewService {
   }
 
   // Get user's review for a specific game
-  static async getUserReviewForGame(userId: string, gameId: string): Promise<AppwriteReview | null> {
+  static async getUserReviewForGame(userId: string, gameId: string): Promise<Review | null> {
     try {
-      const reviews = await appwrite.databases.listDocuments(
-        DATABASE_ID,
-        REVIEWS_COLLECTION_ID,
-        [
-          Query.equal('userId', userId),
-          Query.equal('gameId', gameId)
-        ]
+      const res = await apiRequest<{ reviews: Review[] }>(
+        `/api/reviews?userId=${encodeURIComponent(userId)}&gameId=${encodeURIComponent(gameId)}`
       );
-
-      return reviews.documents.length > 0 ? (reviews.documents[0] as AppwriteReview) : null;
+      return res.reviews.length > 0 ? res.reviews[0] : null;
     } catch (error) {
       console.error('Error fetching user review for game:', error);
       return null;
     }
   }
 
-  // Test function to check if collection is accessible
+  // Test function to check if the backend is reachable
   static async testConnection(): Promise<boolean> {
     try {
-      console.log('Testing Appwrite connection...');
-      const result = await appwrite.databases.listDocuments(
-        DATABASE_ID,
-        REVIEWS_COLLECTION_ID,
-        [Query.limit(1)]
-      );
-      console.log('Connection test successful:', result);
+      await apiRequest('/api/reviews?limit=1');
       return true;
     } catch (error) {
       console.error('Connection test failed:', error);
@@ -227,4 +167,3 @@ export class ReviewService {
 }
 
 export default ReviewService;
-

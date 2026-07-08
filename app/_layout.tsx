@@ -14,10 +14,8 @@ import {
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
 import { Audiowide_400Regular } from '@expo-google-fonts/audiowide';
-import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { store } from '@/store';
 import '../global.css';
 import { useAuth } from '@/hooks/useAuth';
 import { AuthScreen } from '@/components/AuthScreen';
@@ -72,13 +70,11 @@ export default function RootLayout() {
   }
 
   return (
-    <Provider store={store}>
-      <QueryClientProvider client={queryClient}>
-        <SafeAreaProvider>
-          <AuthGate />
-          <StatusBar style="light" />
-        </SafeAreaProvider>
-      </QueryClientProvider>
-    </Provider>
+    <QueryClientProvider client={queryClient}>
+      <SafeAreaProvider>
+        <AuthGate />
+        <StatusBar style="light" />
+      </SafeAreaProvider>
+    </QueryClientProvider>
   );
 }

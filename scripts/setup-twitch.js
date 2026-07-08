@@ -18,9 +18,8 @@ if (!envExists) {
 EXPO_PUBLIC_TWITCH_CLIENT_ID=your_client_id_here
 EXPO_PUBLIC_TWITCH_ACCESS_TOKEN=your_access_token_here
 
-# Appwrite Configuration (if not already set)
-EXPO_PUBLIC_APPWRITE_ENDPOINT=your_appwrite_endpoint
-EXPO_PUBLIC_APPWRITE_PROJECT_ID=your_appwrite_project_id
+# GameLog Backend (Node.js + Postgres)
+EXPO_PUBLIC_API_URL=http://localhost:3001
 `;
 
   fs.writeFileSync(envPath, envContent);

@@ -1,4 +1,4 @@
-import { databases, functions, DATABASE_ID, COLLECTIONS } from './appwrite';
+import { apiRequest } from '@/lib/api';
 
 export interface Game {
   id: string;
@@ -24,91 +24,64 @@ export interface GameStatus {
   hours?: number;
 }
 
+// Normalize a raw IGDB game (as returned by the backend) into our Game shape.
+function normalize(raw: any): Game {
+  return {
+    id: String(raw.id),
+    igdbId: raw.id,
+    title: raw.name,
+    coverUrl: raw.cover?.url,
+    releaseDate: raw.first_release_date
+      ? new Date(raw.first_release_date * 1000).toISOString()
+      : undefined,
+    rating: raw.rating,
+    platforms: (raw.platforms || []).map((p: any) => p.name),
+    genres: (raw.genres || []).map((g: any) => g.name),
+    summary: raw.summary,
+  };
+}
+
 class GameService {
-  // Search games via IGDB API (through Appwrite Function)
+  // Search games via the backend IGDB proxy.
   async searchGames(query: string): Promise<Game[]> {
     try {
-      const response = await functions.createExecution(
-        'igdb-search',
-        JSON.stringify({ query })
-      );
-      
-      return JSON.parse(response.response);
+      const data = await apiRequest<any[]>('/api/games/search', {
+        method: 'POST',
+        body: { query, limit: 10 },
+      });
+      return data.map(normalize);
     } catch (error) {
       console.error('Error searching games:', error);
       return [];
     }
   }
 
-  // Get game details
+  // Get game details via the backend IGDB proxy.
   async getGameDetails(igdbId: number): Promise<Game | null> {
     try {
-      const response = await functions.createExecution(
-        'igdb-detail',
-        JSON.stringify({ igdbId })
-      );
-      
-      return JSON.parse(response.response);
+      const raw = await apiRequest<any>(`/api/games/${igdbId}`);
+      return normalize(raw);
     } catch (error) {
       console.error('Error fetching game details:', error);
       return null;
     }
   }
 
-  // Get trending games
+  // Get trending games via the backend IGDB proxy.
   async getTrendingGames(): Promise<Game[]> {
     try {
-      const response = await databases.listDocuments(
-        DATABASE_ID,
-        COLLECTIONS.GAMES,
-        [
-          // Add queries for trending logic
-        ]
-      );
-      
-      return response.documents as Game[];
+      const data = await apiRequest<any[]>('/api/games/trending?limit=10');
+      return data.map(normalize);
     } catch (error) {
       console.error('Error fetching trending games:', error);
       return [];
     }
   }
 
-  // Log game session
-  async logGameSession(data: Partial<GameStatus>): Promise<GameStatus | null> {
-    try {
-      const response = await databases.createDocument(
-        DATABASE_ID,
-        COLLECTIONS.STATUSES,
-        'unique()',
-        {
-          ...data,
-          createdAt: new Date().toISOString(),
-        }
-      );
-      
-      return response as GameStatus;
-    } catch (error) {
-      console.error('Error logging game session:', error);
-      return null;
-    }
-  }
-
-  // Get user's game statuses
-  async getUserGameStatuses(userId: string): Promise<GameStatus[]> {
-    try {
-      const response = await databases.listDocuments(
-        DATABASE_ID,
-        COLLECTIONS.STATUSES,
-        [
-          // Add user filter query
-        ]
-      );
-      
-      return response.documents as GameStatus[];
-    } catch (error) {
-      console.error('Error fetching user game statuses:', error);
-      return [];
-    }
+  // Game statuses (library) are stored locally in Redux for now, so there is no
+  // server-side source. Returns an empty list; kept for API compatibility.
+  async getUserGameStatuses(_userId: string): Promise<GameStatus[]> {
+    return [];
   }
 }
 

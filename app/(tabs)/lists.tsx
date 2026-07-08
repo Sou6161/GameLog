@@ -26,14 +26,11 @@ import {
   MagnifyingGlass,
 } from 'phosphor-react-native';
 import { router } from 'expo-router';
-import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '@/store';
-import { removeFromLibrary, unmarkReviewed } from '@/store/slices/gameSlice';
+import { useGameStore } from '@/store/gameStore';
+import { useReviewStore } from '@/store/reviewStore';
 import { useConfirmation } from '@/hooks/useConfirmation';
 import ConfirmationModal from '@/components/ConfirmationModal';
-import { deleteReviewByGameId } from '@/store/slices/reviewSlice';
 import { useAchievements } from '@/hooks/useAchievements';
-import { fetchUserReviews, deleteReview } from '@/store/slices/reviewSlice';
 import { useAuth } from '@/hooks/useAuth';
 
 
@@ -129,11 +126,15 @@ export default function ActivityScreen() {
   
   // Initialize empty state - no mock data
   const [customLists, setCustomLists] = useState<any[]>([]);
-  const dispatch = useDispatch();
   const { user } = useAuth();
-  const libraryGames = useSelector((state: RootState) => state.game.libraryGames);
-  const reviewedGameIds = useSelector((state: RootState) => state.game.reviewedGameIds);
-  const reviews = useSelector((state: RootState) => state.reviews.reviews as any[]);
+  const libraryGames = useGameStore((s) => s.libraryGames);
+  const reviewedGameIds = useGameStore((s) => s.reviewedGameIds);
+  const reviews = useReviewStore((s) => s.reviews) as any[];
+  const removeFromLibrary = useGameStore((s) => s.removeFromLibrary);
+  const unmarkReviewed = useGameStore((s) => s.unmarkReviewed);
+  const fetchUserReviews = useReviewStore((s) => s.fetchUserReviews);
+  const deleteReview = useReviewStore((s) => s.deleteReview);
+  const deleteReviewByGameId = useReviewStore((s) => s.deleteReviewByGameId);
   
   // Confirmation modal
   const { confirmationState, showConfirmation, hideConfirmation } = useConfirmation();
@@ -141,9 +142,9 @@ export default function ActivityScreen() {
   // Fetch user reviews when component mounts
   useEffect(() => {
     if (user) {
-      dispatch(fetchUserReviews(user.id) as any);
+      fetchUserReviews(user.id);
     }
-  }, [user, dispatch]);
+  }, [user]);
   
   const [editingList, setEditingList] = useState<any>(null);
 
@@ -282,7 +283,7 @@ export default function ActivityScreen() {
       'Remove from Library',
       'Are you sure you want to remove this game from your library?',
       async () => {
-        dispatch(removeFromLibrary(gameId));
+        removeFromLibrary(gameId);
         
         // Track achievement for removing a game
         await trackGameRemoved();
@@ -310,8 +311,8 @@ export default function ActivityScreen() {
       'Are you sure you want to delete this review? This action cannot be undone.',
       async () => {
         try {
-          await dispatch(deleteReview(review.id) as any);
-          dispatch(unmarkReviewed(String(review.game.id)));
+          await deleteReview(review.id);
+          unmarkReviewed(String(review.game.id));
           if (review && review.rating) {
             await trackReviewDeleted(review.rating);
           }
@@ -382,7 +383,7 @@ export default function ActivityScreen() {
         
         // Delete all reviews from Redux
         reviews.forEach(review => {
-          dispatch(deleteReviewByGameId(review.game.id));
+          deleteReviewByGameId(review.game.id);
         });
         
         showConfirmation(

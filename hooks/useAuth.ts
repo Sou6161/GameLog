@@ -1,12 +1,14 @@
 import { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 import { authService } from '@/services/authService';
-import { setUser, logout, setLoading } from '@/store/slices/authSlice';
-import { RootState } from '@/store';
+import { useAuthStore } from '@/store/authStore';
 
 export function useAuth() {
-  const dispatch = useDispatch();
-  const { user, isAuthenticated, isLoading } = useSelector((state: RootState) => state.auth);
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isLoading = useAuthStore((s) => s.isLoading);
+  const setUser = useAuthStore((s) => s.setUser);
+  const setLoading = useAuthStore((s) => s.setLoading);
+  const logoutStore = useAuthStore((s) => s.logout);
 
   useEffect(() => {
     checkAuthStatus();
@@ -16,37 +18,37 @@ export function useAuth() {
     try {
       const currentUser = await authService.getCurrentUser();
       if (currentUser) {
-        dispatch(setUser({
+        setUser({
           id: currentUser.$id,
           username: currentUser.name,
           email: currentUser.email,
-        }));
+        });
       } else {
-        dispatch(logout());
+        logoutStore();
       }
     } catch (error) {
-      dispatch(logout());
+      logoutStore();
     }
   };
 
   const login = async (email: string, password: string) => {
     try {
-      dispatch(setLoading(true));
+      setLoading(true);
       await authService.login({ email, password });
       await checkAuthStatus();
     } catch (error) {
-      dispatch(setLoading(false));
+      setLoading(false);
       throw error;
     }
   };
 
   const register = async (email: string, password: string, username: string) => {
     try {
-      dispatch(setLoading(true));
+      setLoading(true);
       await authService.register({ email, password, username });
       await login(email, password);
     } catch (error) {
-      dispatch(setLoading(false));
+      setLoading(false);
       throw error;
     }
   };
@@ -54,7 +56,7 @@ export function useAuth() {
   const signOut = async () => {
     try {
       await authService.logout();
-      dispatch(logout());
+      logoutStore();
     } catch (error) {
       console.error('Logout error:', error);
     }

@@ -6,12 +6,10 @@ import { MagnifyingGlass, X, Check, Star, Heart, Calendar, ArrowLeft, Plus, Game
 import { useLocalSearchParams, router } from 'expo-router';
 import { igdbService } from '@/services/igdbService';
 import { useAchievements } from '@/hooks/useAchievements';
-import { useDispatch, useSelector } from 'react-redux';
-import { markReviewed } from '@/store/slices/gameSlice';
-import { createReview, fetchUserReviews, hasUserReviewedGame, getUserReviewForGame, updateReview } from '@/store/slices/reviewSlice';
+import { useGameStore } from '@/store/gameStore';
+import { useReviewStore } from '@/store/reviewStore';
 import { useConfirmation } from '@/hooks/useConfirmation';
 import ConfirmationModal from '@/components/ConfirmationModal';
-import { RootState } from '@/store';
 import { useAuth } from '@/hooks/useAuth';
 
 interface IGDBGame {
@@ -41,8 +39,13 @@ interface GameReview {
 
 export default function LogScreen() {
   const params = useLocalSearchParams();
-  const dispatch = useDispatch();
   const { user } = useAuth();
+  const markReviewed = useGameStore((s) => s.markReviewed);
+  const createReview = useReviewStore((s) => s.createReview);
+  const updateReview = useReviewStore((s) => s.updateReview);
+  const hasUserReviewedGame = useReviewStore((s) => s.hasUserReviewedGame);
+  const getUserReviewForGame = useReviewStore((s) => s.getUserReviewForGame);
+  const reduxReviews = useReviewStore((s) => s.reviews);
   
   // Achievement tracking
   const { trackReview } = useAchievements();
@@ -72,8 +75,7 @@ export default function LogScreen() {
   const [hasExistingReview, setHasExistingReview] = useState(false);
   const [existingReview, setExistingReview] = useState<GameReview | null>(null);
   
-  // Reviews Storage (Redux persisted)
-  const reduxReviews = useSelector((state: RootState) => state.reviews.reviews);
+  // Reviews Storage (Zustand)
   const [myReviews, setMyReviews] = useState<GameReview[]>(reduxReviews as any);
   const [isEditMode, setIsEditMode] = useState(false);
   const [incomingGameId, setIncomingGameId] = useState<number | null>(null);
@@ -122,9 +124,9 @@ export default function LogScreen() {
       }
 
       try {
-        const hasReviewed = await dispatch(hasUserReviewedGame(user.id, selectedGame.id.toString()) as any);
+        const hasReviewed = await hasUserReviewedGame(user.id, selectedGame.id.toString());
         if (hasReviewed) {
-          const userReview = await dispatch(getUserReviewForGame(user.id, selectedGame.id.toString()) as any);
+          const userReview = await getUserReviewForGame(user.id, selectedGame.id.toString());
           if (userReview) {
             setHasExistingReview(true);
             setExistingReview(userReview);
@@ -150,7 +152,7 @@ export default function LogScreen() {
     };
 
     checkExistingReview();
-  }, [selectedGame, user?.id, dispatch]);
+  }, [selectedGame, user?.id]);
 
   // Current date for review
   const currentDate = new Date().toLocaleDateString('en-US', {
@@ -319,7 +321,7 @@ export default function LogScreen() {
       
       if (hasExistingReview && existingReview) {
         // Update existing review
-        await dispatch(updateReview(existingReview.id, reviewData) as any);
+        await updateReview(existingReview.id, reviewData);
         
         showConfirmation(
           'Success',
@@ -331,14 +333,14 @@ export default function LogScreen() {
         );
       } else {
         // Create new review
-        await dispatch(createReview(reviewData) as any);
+        await createReview(reviewData);
         
         // Track achievement for writing a review with genres
         const genres = selectedGame.genres?.map(g => g.name) || [];
         await trackReview(rating, genres);
         
         // Mark as reviewed globally so game detail shows Edit Review
-        dispatch(markReviewed(String(selectedGame.id)));
+        markReviewed(String(selectedGame.id));
         
         showConfirmation(
           'Success',

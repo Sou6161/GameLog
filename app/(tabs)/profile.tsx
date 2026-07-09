@@ -13,6 +13,8 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
+import { colors, gradients, glow, alpha } from '@/constants/theme';
 import {
   Gear,
   Trophy,
@@ -248,59 +250,31 @@ export default function ProfileScreen() {
         </Text>
         <View className="flex-row flex-wrap justify-between">
           {/* Activity Streak */}
-          <View className="w-[48%] mb-4">
-            <LinearGradient
-              colors={['#FF4757', '#E63946']}
-              className="rounded-2xl p-4 items-center h-32"
-            >
-              <Fire size={28} color="#FFFFFF" weight="fill" />
-              <Text className="font-bold text-2xl text-white mt-2">
-                {userStats.currentStreak}
-              </Text>
-              <Text className="text-white/90 text-sm font-medium">Day Streak</Text>
-            </LinearGradient>
+          <View className="w-[48%] mb-4 rounded-2xl p-4 items-center h-32" style={{ backgroundColor: colors.red }}>
+            <Fire size={28} color={colors.void} weight="fill" />
+            <Text className="font-bold text-2xl mt-2" style={{ color: colors.void }}>{userStats.currentStreak}</Text>
+            <Text className="text-sm font-semibold" style={{ color: alpha(colors.void, 0.75) }}>Day Streak</Text>
           </View>
-          
+
           {/* Total Playtime */}
-          <View className="w-[48%] mb-4">
-            <LinearGradient
-              colors={['#9146FF', '#7C3AED']}
-              className="rounded-2xl p-4 items-center h-32"
-            >
-              <Clock size={28} color="#FFFFFF" weight="fill" />
-              <Text className="font-bold text-xl text-white mt-2">
-                {userStats.totalPlaytime}
-              </Text>
-              <Text className="text-white/90 text-sm font-medium">Total Time</Text>
-            </LinearGradient>
+          <View className="w-[48%] mb-4 rounded-2xl p-4 items-center h-32" style={{ backgroundColor: colors.teal }}>
+            <Clock size={28} color={colors.void} weight="fill" />
+            <Text className="font-bold text-xl mt-2" style={{ color: colors.void }}>{userStats.totalPlaytime}</Text>
+            <Text className="text-sm font-semibold" style={{ color: alpha(colors.void, 0.75) }}>Total Time</Text>
           </View>
-          
+
           {/* Achievements */}
-          <View className="w-[48%] mb-4">
-            <LinearGradient
-              colors={['#FFD700', '#F59E0B']}
-              className="rounded-2xl p-4 items-center h-32"
-            >
-              <Trophy size={28} color="#FFFFFF" weight="fill" />
-              <Text className="font-bold text-2xl text-white mt-2">
-                {userStats.achievements}
-              </Text>
-              <Text className="text-white/90 text-sm font-medium">Achievements</Text>
-            </LinearGradient>
+          <View className="w-[48%] mb-4 rounded-2xl p-4 items-center h-32" style={{ backgroundColor: colors.gold }}>
+            <Trophy size={28} color={colors.void} weight="fill" />
+            <Text className="font-bold text-2xl mt-2" style={{ color: colors.void }}>{userStats.achievements}</Text>
+            <Text className="text-sm font-semibold" style={{ color: alpha(colors.void, 0.75) }}>Achievements</Text>
           </View>
-          
+
           {/* Join Date */}
-          <View className="w-[48%] mb-4">
-            <LinearGradient
-              colors={['#00B5AD', '#059669']}
-              className="rounded-2xl p-4 items-center h-32"
-            >
-              <Calendar size={28} color="#FFFFFF" weight="fill" />
-              <Text className="font-bold text-lg text-white mt-2">
-                {userStats.joinDate}
-              </Text>
-              <Text className="text-white/90 text-sm font-medium">Member Since</Text>
-            </LinearGradient>
+          <View className="w-[48%] mb-4 rounded-2xl p-4 items-center h-32" style={{ backgroundColor: colors.cyan }}>
+            <Calendar size={28} color={colors.void} weight="fill" />
+            <Text className="font-bold text-lg mt-2" style={{ color: colors.void }}>{userStats.joinDate}</Text>
+            <Text className="text-sm font-semibold" style={{ color: alpha(colors.void, 0.75) }}>Member Since</Text>
           </View>
         </View>
       </View>
@@ -313,16 +287,16 @@ export default function ProfileScreen() {
         {userStats.favoriteGenres.length > 0 ? (
           <View className="flex-row flex-wrap gap-3">
             {userStats.favoriteGenres.map((genre, index) => (
-              <View key={index} className="bg-[#18181B] px-4 py-3 rounded-full border border-[#3F3F46]">
+              <View key={index} className="bg-[#12171E] px-4 py-3 rounded-full border border-[#232C37]">
                 <Text className="text-white font-medium">{genre}</Text>
               </View>
             ))}
           </View>
         ) : (
-          <View className="bg-[#18181B] rounded-xl p-6 border border-[#3F3F46] items-center">
-            <GameController size={32} color="#94A3B8" weight="bold" />
+          <View className="bg-[#12171E] rounded-xl p-6 border border-[#232C37] items-center">
+            <GameController size={32} color="#AEB9C4" weight="bold" />
             <Text className="text-white font-bold text-lg mt-3 mb-2">No Favorite Genres Yet</Text>
-            <Text className="text-[#94A3B8] text-center leading-5">
+            <Text className="text-[#AEB9C4] text-center leading-5">
               Start reviewing games to discover your favorite genres!
             </Text>
           </View>
@@ -345,17 +319,17 @@ export default function ProfileScreen() {
               const IconComponent = achievement.icon || Trophy; // Fallback to Trophy icon
               
               return (
-                <View key={achievement.id} className={`bg-[#18181B] rounded-xl p-4 mt-2 border ${
-                  achievement.unlocked ? 'border-[#9146FF]/30' : 'border-[#3F3F46]'
+                <View key={achievement.id} className={`bg-[#12171E] rounded-xl p-4 mt-2 border ${
+                  achievement.unlocked ? 'border-[#14C8B0]/30' : 'border-[#232C37]'
                 } ${!achievement.unlocked ? 'opacity-60' : ''}`}>
                   <View className="flex-row items-center">
                     <View
                       className="w-12 h-12 rounded-full justify-center items-center mr-4"
-                      style={{ backgroundColor: achievement.unlocked ? achievement.color : '#3F3F46' }}
+                      style={{ backgroundColor: achievement.unlocked ? achievement.color : '#232C37' }}
                     >
                       <IconComponent
                         size={24}
-                        color={achievement.unlocked ? '#FFFFFF' : '#6B7280'}
+                        color={achievement.unlocked ? '#FFFFFF' : '#6E7B88'}
                         weight="fill"
                       />
                     </View>
@@ -366,13 +340,13 @@ export default function ProfileScreen() {
                         {achievement.title || 'Unknown Achievement'}
                       </Text>
                       <Text className={`text-sm mt-1 ${
-                        achievement.unlocked ? 'text-[#94A3B8]' : 'text-gray-500'
+                        achievement.unlocked ? 'text-[#AEB9C4]' : 'text-gray-500'
                       }`}>
                         {achievement.description || 'No description available'}
                       </Text>
                     </View>
                     {achievement.unlocked && (
-                      <CheckCircle size={20} color="#22C55E" weight="fill" />
+                      <CheckCircle size={20} color="#34D399" weight="fill" />
                     )}
                   </View>
                 </View>
@@ -380,10 +354,10 @@ export default function ProfileScreen() {
             })}
           </View>
         ) : (
-          <View className="bg-[#18181B] rounded-xl p-6 border border-[#3F3F46] items-center">
-            <Trophy size={32} color="#94A3B8" weight="bold" />
+          <View className="bg-[#12171E] rounded-xl p-6 border border-[#232C37] items-center">
+            <Trophy size={32} color="#AEB9C4" weight="bold" />
             <Text className="text-white font-bold text-lg mt-3 mb-2">No Achievements Yet</Text>
-            <Text className="text-[#94A3B8] text-center leading-5">
+            <Text className="text-[#AEB9C4] text-center leading-5">
               Complete activities to unlock achievements and track your progress!
             </Text>
           </View>
@@ -400,7 +374,7 @@ export default function ProfileScreen() {
       {recentActivity.length > 0 ? (
         <View className="space-y-3">
           {recentActivity.map((item) => (
-            <View key={item.id} className="bg-[#18181B] rounded-2xl p-4 border border-[#3F3F46]">
+            <View key={item.id} className="bg-[#12171E] rounded-2xl p-4 border border-[#232C37]">
               <View className="flex-row items-center">
                 <Image
                   source={{ uri: item.gameImage }}
@@ -408,20 +382,20 @@ export default function ProfileScreen() {
                 />
                 <View className="flex-1 ml-4">
                   <Text className="font-bold text-base text-white mb-1">{item.game}</Text>
-                  <Text className="text-[#94A3B8] text-sm mb-2">{item.action}</Text>
+                  <Text className="text-[#AEB9C4] text-sm mb-2">{item.action}</Text>
                   {item.rating && (
                     <View className="flex-row items-center mb-1">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Star
                           key={star}
                           size={14}
-                          color={star <= (item.rating || 0) ? '#F59E0B' : '#374151'}
+                          color={star <= (item.rating || 0) ? '#FBBF24' : '#232C37'}
                           weight={star <= (item.rating || 0) ? 'fill' : 'regular'}
                         />
                       ))}
                     </View>
                   )}
-                  <Text className="text-xs text-[#6B7280]">{item.date}</Text>
+                  <Text className="text-xs text-[#6E7B88]">{item.date}</Text>
                 </View>
               </View>
             </View>
@@ -429,11 +403,11 @@ export default function ProfileScreen() {
         </View>
       ) : (
         <View className="flex-1 justify-center items-center py-20">
-          <View className="w-20 h-20 rounded-full bg-[#18181B] justify-center items-center mb-4 border border-[#3F3F46]">
-            <GameController size={32} color="#94A3B8" weight="bold" />
+          <View className="w-20 h-20 rounded-full bg-[#12171E] justify-center items-center mb-4 border border-[#232C37]">
+            <GameController size={32} color="#AEB9C4" weight="bold" />
           </View>
           <Text className="text-white text-xl font-bold mb-2">No Activity Yet</Text>
-          <Text className="text-[#94A3B8] text-center px-8">
+          <Text className="text-[#AEB9C4] text-center px-8">
             Start playing and reviewing games to see your activity here!
           </Text>
         </View>
@@ -448,42 +422,42 @@ export default function ProfileScreen() {
       </Text>
       
       {/* Main Stats Card */}
-      <View className="bg-[#18181B] rounded-2xl p-5 mb-6 border border-[#3F3F46]">
+      <View className="bg-[#12171E] rounded-2xl p-5 mb-6 border border-[#232C37]">
         <View className="space-y-4">
           <View className="flex-row justify-between items-center py-2">
             <View className="flex-row items-center">
-              <Calendar size={20} color="#9146FF" weight="fill" />
-              <Text className="text-[#94A3B8] ml-3 font-medium">Member Since</Text>
+              <Calendar size={20} color="#14C8B0" weight="fill" />
+              <Text className="text-[#AEB9C4] ml-3 font-medium">Member Since</Text>
             </View>
             <Text className="font-bold text-white text-lg">{userStats.joinDate}</Text>
           </View>
           
-          <View className="h-px bg-[#3F3F46]" />
+          <View className="h-px bg-[#232C37]" />
           
           <View className="flex-row justify-between items-center py-2">
             <View className="flex-row items-center">
-              <GameController size={20} color="#9146FF" weight="fill" />
-              <Text className="text-[#94A3B8] ml-3 font-medium">Games Played</Text>
+              <GameController size={20} color="#14C8B0" weight="fill" />
+              <Text className="text-[#AEB9C4] ml-3 font-medium">Games Played</Text>
             </View>
             <Text className="font-bold text-white text-lg">{userStats.gamesPlayed}</Text>
           </View>
           
-          <View className="h-px bg-[#3F3F46]" />
+          <View className="h-px bg-[#232C37]" />
           
           <View className="flex-row justify-between items-center py-2">
             <View className="flex-row items-center">
-              <Clock size={20} color="#9146FF" weight="fill" />
-              <Text className="text-[#94A3B8] ml-3 font-medium">Total Playtime</Text>
+              <Clock size={20} color="#14C8B0" weight="fill" />
+              <Text className="text-[#AEB9C4] ml-3 font-medium">Total Playtime</Text>
             </View>
             <Text className="font-bold text-white text-lg">{userStats.totalPlaytime}</Text>
           </View>
           
-          <View className="h-px bg-[#3F3F46]" />
+          <View className="h-px bg-[#232C37]" />
           
           <View className="flex-row justify-between items-center py-2">
             <View className="flex-row items-center">
-              <Star size={20} color="#9146FF" weight="fill" />
-              <Text className="text-[#94A3B8] ml-3 font-medium">Reviews Written</Text>
+              <Star size={20} color="#14C8B0" weight="fill" />
+              <Text className="text-[#AEB9C4] ml-3 font-medium">Reviews Written</Text>
             </View>
             <Text className="font-bold text-white text-lg">{userStats.reviewsWritten}</Text>
           </View>
@@ -491,20 +465,20 @@ export default function ProfileScreen() {
       </View>
       
       {/* Streak Stats */}
-      <View className="bg-[#18181B] rounded-2xl p-5 border border-[#3F3F46]">
+      <View className="bg-[#12171E] rounded-2xl p-5 border border-[#232C37]">
         <Text className="font-bold text-lg text-white mb-4">Activity Streaks</Text>
         <View className="space-y-3">
           <View className="flex-row justify-between items-center">
             <View className="flex-row items-center">
-              <Fire size={18} color="#FF4757" weight="fill" />
-              <Text className="text-[#94A3B8] ml-3 font-medium">Current Streak</Text>
+              <Fire size={18} color="#EF4444" weight="fill" />
+              <Text className="text-[#AEB9C4] ml-3 font-medium">Current Streak</Text>
             </View>
             <Text className="font-bold text-white">{userStats.currentStreak} days</Text>
           </View>
           <View className="flex-row justify-between items-center">
             <View className="flex-row items-center">
-              <Crown size={18} color="#FFD700" weight="fill" />
-              <Text className="text-[#94A3B8] ml-3 font-medium">Longest Streak</Text>
+              <Crown size={18} color="#FBBF24" weight="fill" />
+              <Text className="text-[#AEB9C4] ml-3 font-medium">Longest Streak</Text>
             </View>
             <Text className="font-bold text-white">{userStats.longestStreak} days</Text>
           </View>
@@ -518,15 +492,15 @@ export default function ProfileScreen() {
   if (isLoading) {
     return (
       <LinearGradient
-        colors={['#0F0F1F', '#121631', '#0A2342']}
+        colors={gradients.screen}
         className="flex-1"
       >
         <SafeAreaView className="flex-1 justify-center items-center">
-          <View className="w-16 h-16 rounded-full bg-[#9146FF] justify-center items-center mb-4">
+          <View className="w-16 h-16 rounded-full bg-[#14C8B0] justify-center items-center mb-4">
             <GameController size={32} color="#FFFFFF" weight="fill" />
           </View>
           <Text className="text-white text-xl font-bold mb-2">Loading Profile...</Text>
-          <Text className="text-[#94A3B8] text-center px-8">
+          <Text className="text-[#AEB9C4] text-center px-8">
             Please wait while we load your profile data
           </Text>
         </SafeAreaView>
@@ -538,19 +512,19 @@ export default function ProfileScreen() {
   if (!isAuthenticated || !user) {
     return (
       <LinearGradient
-        colors={['#0F0F1F', '#121631', '#0A2342']}
+        colors={gradients.screen}
         className="flex-1"
       >
         <SafeAreaView className="flex-1 justify-center items-center px-8">
-          <View className="w-20 h-20 rounded-full bg-[#18181B] justify-center items-center mb-6 border border-[#3F3F46]">
-            <GameController size={40} color="#94A3B8" weight="bold" />
+          <View className="w-20 h-20 rounded-full bg-[#12171E] justify-center items-center mb-6 border border-[#232C37]">
+            <GameController size={40} color="#AEB9C4" weight="bold" />
           </View>
           <Text className="text-white text-2xl font-bold mb-4 text-center">Welcome to GameLog!</Text>
-          <Text className="text-[#94A3B8] text-center mb-8 leading-6">
+          <Text className="text-[#AEB9C4] text-center mb-8 leading-6">
             Sign in to track your games, write reviews, and unlock achievements
           </Text>
           <TouchableOpacity
-            className="bg-[#9146FF] py-4 px-8 rounded-xl"
+            className="bg-[#14C8B0] py-4 px-8 rounded-xl"
             onPress={() => router.push('/settings' as any)}
           >
             <Text className="text-white font-bold text-lg">Go to Settings</Text>
@@ -561,19 +535,18 @@ export default function ProfileScreen() {
   }
 
   return (
-    <LinearGradient
-      colors={['#0E0E10', '#18181B', '#1F1F23']}
-      className="flex-1"
-    >
+    <LinearGradient colors={gradients.screen} className="flex-1" start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+      <StatusBar style="light" />
       <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
         {/* Header */}
-        <View className="flex-row items-center justify-between px-5 py-4">
-          <Text className="font-bold text-xl text-white">Profile</Text>
+        <View className="flex-row items-center justify-between px-5 pt-3 pb-4">
+          <Text className="font-bold text-[24px]" style={{ color: colors.text }}>Profile</Text>
           <TouchableOpacity
             className="w-10 h-10 rounded-full justify-center items-center"
+            style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
             onPress={() => router.push('/settings' as any)}
           >
-            <Gear size={24} color="#FFFFFF" weight="bold" />
+            <Gear size={20} color={colors.text} weight="bold" />
           </TouchableOpacity>
         </View>
 
@@ -589,44 +562,45 @@ export default function ProfileScreen() {
                 className="relative mb-6"
                 onPress={() => setShowAvatarModal(true)}
               >
-                <View className="w-28 h-28 rounded-full border-2 border-white overflow-hidden">
-                  <Image
-                    source={{ uri: selectedAvatar }}
-                    className="w-full h-full rounded-full"
-                  />
+                <View
+                  style={{ width: 116, height: 116, borderRadius: 58, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.teal, ...glow(colors.teal, 0.5, 18) }}
+                >
+                  <View className="w-[108px] h-[108px] rounded-full overflow-hidden" style={{ borderWidth: 3, borderColor: colors.bg }}>
+                    <Image source={{ uri: selectedAvatar }} className="w-full h-full rounded-full" />
+                  </View>
                 </View>
-                <View className="absolute bottom-0 right-0 w-10 h-10 bg-[#9146FF] rounded-full justify-center items-center border-3 border-[#0E0E10] shadow-lg">
-                  <Camera size={18} color="#FFFFFF" weight="fill" />
+                <View
+                  className="absolute bottom-0 right-0 w-10 h-10 rounded-full justify-center items-center"
+                  style={{ backgroundColor: colors.teal, borderWidth: 3, borderColor: colors.bg, ...glow(colors.teal, 0.6, 8) }}
+                >
+                  <Camera size={18} color={colors.void} weight="fill" />
                 </View>
               </TouchableOpacity>
 
-              <Text className="font-bold text-3xl text-white mb-3">
+              <Text className="font-bold text-3xl mb-3" style={{ color: colors.text }}>
                 {userName}
               </Text>
               
               {/* Bio Section - Beautiful Design */}
               <View className="mb-6">
-                <View className="bg-[#18181B] rounded-2xl p-5 border border-[#3F3F46] min-w-full shadow-lg">
+                <View className="bg-[#12171E] rounded-2xl p-5 border border-[#232C37] min-w-full shadow-lg">
                   <View className="flex-row items-start justify-between mb-3">
                     <View className="flex-1 min-w-full">
-                      {/* <Text className="text-[#9146FF] text-sm font-semibold mb-1">About Me</Text> */}
-                      <Text className="text-[#E2E8F0] text-base leading-6">
+                      {/* <Text className="text-[#14C8B0] text-sm font-semibold mb-1">About Me</Text> */}
+                      <Text className="text-[#F2F6F8] text-base leading-6">
                         {userStats.bio || "Tell others about your gaming interests, favorite genres, or what you're currently playing..."}
                       </Text>
                     </View>
                   </View>
                   
-                  <LinearGradient
-                    colors={['#9146FF', '#7C3AED']}
-                    className="py-3 px-4 rounded-xl"
+                  <TouchableOpacity
+                    className="py-3 px-4 rounded-xl flex-row items-center justify-center"
+                    style={{ backgroundColor: colors.teal }}
+                    activeOpacity={0.9}
+                    onPress={handleEditBio}
                   >
-                    <TouchableOpacity 
-                      className="flex-row items-center justify-center"
-                      onPress={handleEditBio}
-                    >
-                      <Text className="text-white font-semibold text-sm">Edit Bio</Text>
-                    </TouchableOpacity>
-                  </LinearGradient>
+                    <Text className="font-bold text-sm" style={{ color: colors.void }}>Edit Bio</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
               
@@ -634,63 +608,41 @@ export default function ProfileScreen() {
               <View className="flex-row space-x-6 mt-2">
                 <View className="items-center">
                   <Text className="font-bold text-2xl text-white">{userStats.gamesPlayed}</Text>
-                  <Text className="text-[#94A3B8] text-sm mt-1">Games</Text>
+                  <Text className="text-[#AEB9C4] text-sm mt-1">Games</Text>
                 </View>
                 <View className="items-center">
                   <Text className="font-bold text-2xl text-white">{userStats.reviewsWritten}</Text>
-                  <Text className="text-[#94A3B8] text-sm mt-1">Reviews</Text>
+                  <Text className="text-[#AEB9C4] text-sm mt-1">Reviews</Text>
                 </View>
                 <View className="items-center">
                   <Text className="font-bold text-2xl text-white">{userStats.listsCreated}</Text>
-                  <Text className="text-[#94A3B8] text-sm mt-1">Lists</Text>
+                  <Text className="text-[#AEB9C4] text-sm mt-1">Lists</Text>
                 </View>
               </View>
             </View>
 
             {/* Navigation Tabs */}
-            <View className="flex-row mb-6">
-              <TouchableOpacity
-                className={`flex-1 py-3 rounded-xl mr-2 ${
-                  activeTab === 'overview' ? 'bg-[#9146FF]' : 'bg-[#18181B] border border-[#3F3F46]'
-                }`}
-                onPress={() => setActiveTab('overview')}
-              >
-                <Text
-                  className={`font-semibold text-center ${
-                    activeTab === 'overview' ? 'text-white' : 'text-white'
-                  }`}
-                >
-                  Overview
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className={`flex-1 py-3 rounded-xl mx-1 ${
-                  activeTab === 'activity' ? 'bg-[#9146FF]' : 'bg-[#18181B] border border-[#3F3F46]'
-                }`}
-                onPress={() => setActiveTab('activity')}
-              >
-                <Text
-                  className={`font-semibold text-center ${
-                    activeTab === 'activity' ? 'text-white' : 'text-white'
-                  }`}
-                >
-                  Activity
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className={`flex-1 py-3 rounded-xl ml-2 ${
-                  activeTab === 'stats' ? 'bg-[#9146FF]' : 'bg-[#18181B] border border-[#3F3F46]'
-                }`}
-                onPress={() => setActiveTab('stats')}
-              >
-                <Text
-                  className={`font-semibold text-center ${
-                    activeTab === 'stats' ? 'text-white' : 'text-white'
-                  }`}
-                >
-                  Stats
-                </Text>
-              </TouchableOpacity>
+            <View className="flex-row mb-6 gap-2.5">
+              {[
+                { id: 'overview', label: 'Overview' },
+                { id: 'activity', label: 'Activity' },
+                { id: 'stats', label: 'Stats' },
+              ].map((tab) => {
+                const active = activeTab === tab.id;
+                return (
+                  <TouchableOpacity key={tab.id} className="flex-1 rounded-2xl overflow-hidden" activeOpacity={0.85} onPress={() => setActiveTab(tab.id)}>
+                    {active ? (
+                      <View className="py-3" style={{ backgroundColor: colors.teal, ...glow(colors.teal, 0.4, 10) }}>
+                        <Text className="font-bold text-center" style={{ color: colors.void }}>{tab.label}</Text>
+                      </View>
+                    ) : (
+                      <View className="py-3" style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
+                        <Text className="font-semibold text-center" style={{ color: colors.textDim }}>{tab.label}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
             {/* Tab Content */}
@@ -708,7 +660,7 @@ export default function ProfileScreen() {
           onRequestClose={() => setShowAvatarModal(false)}
         >
           <View className="flex-1 bg-black/50 justify-end">
-            <View className="bg-[#18181B] rounded-t-3xl p-6 border-t border-[#3F3F46]">
+            <View className="bg-[#12171E] rounded-t-3xl p-6 border-t border-[#232C37]">
               <View className="flex-row items-center justify-between mb-6">
                 <Text className="font-bold text-xl text-white">
                   Choose Avatar
@@ -727,8 +679,8 @@ export default function ProfileScreen() {
                     key={index}
                     className={`w-20 h-20 rounded-full border-3 mb-4 ${
                       selectedAvatar === avatar
-                        ? 'border-[#9146FF]'
-                        : 'border-[#3F3F46]'
+                        ? 'border-[#14C8B0]'
+                        : 'border-[#232C37]'
                     }`}
                     onPress={() => handleAvatarSelect(avatar)}
                   >
@@ -741,7 +693,7 @@ export default function ProfileScreen() {
               </View>
 
               <TouchableOpacity
-                className="mt-6 bg-[#9146FF] py-3 px-4 rounded-xl flex-row items-center justify-center"
+                className="mt-6 bg-[#14C8B0] py-3 px-4 rounded-xl flex-row items-center justify-center"
                 onPress={handleUploadPhoto}
               >
                 <Camera size={20} color="#FFFFFF" weight="fill" />
@@ -761,7 +713,7 @@ export default function ProfileScreen() {
           onRequestClose={handleCancelBio}
         >
           <View className="flex-1 bg-black/50 justify-center items-center px-4">
-            <View className="bg-[#18181B] rounded-2xl p-6 border border-[#3F3F46] w-full max-w-md shadow-2xl">
+            <View className="bg-[#12171E] rounded-2xl p-6 border border-[#232C37] w-full max-w-md shadow-2xl">
               <View className="flex-row items-center justify-between mb-6">
                 <Text className="font-bold text-xl text-white">
                   {isEditingBio ? 'Edit Bio' : 'Add Bio'}
@@ -775,9 +727,9 @@ export default function ProfileScreen() {
               </View>
 
               <TextInput
-                className="bg-[#0E0E10] border border-[#3F3F46] rounded-xl p-4 text-white text-lg mb-6 min-h-[120px]"
+                className="bg-[#0A0E13] border border-[#232C37] rounded-xl p-4 text-white text-lg mb-6 min-h-[120px]"
                 placeholder="Tell others about your gaming interests, favorite genres, or what you're currently playing..."
-                placeholderTextColor="#6B7280"
+                placeholderTextColor="#6E7B88"
                 value={bioText}
                 onChangeText={setBioText}
                 multiline={true}
@@ -787,7 +739,7 @@ export default function ProfileScreen() {
 
               <View className="flex-row space-x-3">
                 <TouchableOpacity
-                  className="flex-1 bg-[#3F3F46] py-3 px-4 rounded-xl"
+                  className="flex-1 bg-[#232C37] py-3 px-4 rounded-xl"
                   onPress={handleCancelBio}
                 >
                   <Text className="text-white font-medium text-center">
@@ -796,7 +748,7 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
                 
                 <TouchableOpacity
-                  className="flex-1 bg-[#9146FF] py-3 px-4 rounded-xl"
+                  className="flex-1 bg-[#14C8B0] py-3 px-4 rounded-xl"
                   onPress={handleSaveBio}
                 >
                   <Text className="text-white font-medium text-center">
@@ -805,7 +757,7 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
               </View>
 
-              <Text className="text-[#6B7280] text-sm text-center mt-3">
+              <Text className="text-[#6E7B88] text-sm text-center mt-3">
                 {bioText.length}/200 characters
               </Text>
             </View>

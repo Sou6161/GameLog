@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Switch, Alert, Share } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
+import { colors, gradients, alpha } from '@/constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { 
   ArrowLeft,
@@ -306,21 +308,26 @@ Data: ${JSON.stringify(exportData, null, 2)}`,
     showArrow?: boolean;
     destructive?: boolean;
   }) => (
-    <TouchableOpacity 
-      className={`flex-row items-center justify-between p-4 bg-[#18181B] rounded-xl mb-2 border border-[#3F3F46] ${destructive ? 'border-red-500' : ''}`} 
+    <TouchableOpacity
+      className="flex-row items-center justify-between p-4 rounded-2xl mb-2.5"
+      style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: destructive ? alpha(colors.red, 0.4) : colors.border }}
       onPress={onPress}
+      activeOpacity={0.85}
       disabled={showSwitch}
     >
       <View className="flex-row items-center flex-1">
-        <View className={`w-10 h-10 rounded-full justify-center items-center mr-3 ${destructive ? 'bg-red-500/20' : 'bg-[#9146FF]/20'}`}>
-          <Icon size={20} color={destructive ? '#EF4444' : '#9146FF'} weight="fill" />
+        <View
+          className="w-11 h-11 rounded-2xl justify-center items-center mr-3"
+          style={{ backgroundColor: destructive ? alpha(colors.red, 0.16) : alpha(colors.teal, 0.16) }}
+        >
+          <Icon size={20} color={destructive ? colors.red : colors.teal} weight="fill" />
         </View>
         <View className="flex-1">
-          <Text className={`font-semibold text-base ${destructive ? 'text-red-500' : 'text-white'}`}>
+          <Text className="font-semibold text-base" style={{ color: destructive ? colors.red : colors.text }}>
             {title}
           </Text>
           {subtitle && (
-            <Text className={`text-sm mt-1 ${destructive ? 'text-red-400' : 'text-gray-400'}`}>
+            <Text className="text-sm mt-0.5" style={{ color: destructive ? alpha(colors.red, 0.8) : colors.textMuted }}>
               {subtitle}
             </Text>
           )}
@@ -331,12 +338,12 @@ Data: ${JSON.stringify(exportData, null, 2)}`,
           <Switch
             value={switchValue}
             onValueChange={onSwitchChange}
-            trackColor={{ false: '#3F3F46', true: '#9146FF' }}
-            thumbColor={switchValue ? '#FFFFFF' : '#9CA3AF'}
+            trackColor={{ false: colors.elevated, true: colors.teal }}
+            thumbColor="#FFFFFF"
           />
         ) : showArrow ? (
           <View className="rotate-180">
-            <ArrowLeft size={20} color="#6B7280" />
+            <ArrowLeft size={20} color={colors.textMuted} />
           </View>
         ) : null}
       </View>
@@ -345,23 +352,23 @@ Data: ${JSON.stringify(exportData, null, 2)}`,
 
   const renderSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <View className="mb-6">
-      <Text className="font-bold text-lg text-white mb-3 px-1">{title}</Text>
-      <View className="space-y-2">
-        {children}
+      <View className="flex-row items-center gap-2 mb-3 px-1">
+        <View className="w-1 h-4 rounded-full" style={{ backgroundColor: colors.teal }} />
+        <Text className="font-bold text-lg" style={{ color: colors.text }}>{title}</Text>
       </View>
+      {children}
     </View>
   );
 
   return (
-    <LinearGradient
-      colors={['#0E0E10', '#18181B', '#1F1F23']}
-      className="flex-1"
-    >
-      <SafeAreaView className="flex-1">
+    <LinearGradient colors={gradients.screen} className="flex-1" start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+      <StatusBar style="light" />
+      <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
         {/* Header */}
-        <View className="flex-row items-center justify-between px-5 py-4">
-          <TouchableOpacity 
-            className="w-10 h-10 rounded-full justify-center items-center" 
+        <View className="flex-row items-center justify-between px-5 pt-3 pb-4">
+          <TouchableOpacity
+            className="w-10 h-10 rounded-full justify-center items-center"
+            style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
             onPress={() => {
               if (router.canGoBack()) {
                 router.back();
@@ -370,9 +377,9 @@ Data: ${JSON.stringify(exportData, null, 2)}`,
               }
             }}
           >
-            <ArrowLeft size={24} color="#FFFFFF" />
+            <ArrowLeft size={20} color={colors.text} weight="bold" />
           </TouchableOpacity>
-          <Text className="font-bold text-xl text-white">Settings</Text>
+          <Text className="font-bold text-xl" style={{ color: colors.text }}>Settings</Text>
           <View className="w-10" />
         </View>
         

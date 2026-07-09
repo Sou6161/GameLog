@@ -6,8 +6,8 @@ import {
   Modal,
   Dimensions,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { colors, alpha } from '@/constants/theme';
 import {
   Warning,
   Trash,
@@ -46,33 +46,13 @@ export default function ConfirmationModal({
   const getTypeConfig = () => {
     switch (type) {
       case 'danger':
-        return {
-          icon: Trash,
-          iconColor: '#FF4757',
-          gradientColors: ['#FF4757', '#E11D48'],
-          confirmBg: '#FF4757',
-        };
+        return { icon: Trash, headerBg: colors.red, confirmBg: colors.red };
       case 'info':
-        return {
-          icon: Info,
-          iconColor: '#9146FF',
-          gradientColors: ['#9146FF', '#7C3AED'],
-          confirmBg: '#9146FF',
-        };
+        return { icon: Info, headerBg: colors.teal, confirmBg: colors.teal };
       case 'success':
-        return {
-          icon: CheckCircle,
-          iconColor: '#22C55E',
-          gradientColors: ['#22C55E', '#16A34A'],
-          confirmBg: '#22C55E',
-        };
+        return { icon: CheckCircle, headerBg: colors.green, confirmBg: colors.green };
       default: // warning
-        return {
-          icon: Warning,
-          iconColor: '#FFD700',
-          gradientColors: ['#FFD700', '#F59E0B'],
-          confirmBg: '#FFD700',
-        };
+        return { icon: Warning, headerBg: colors.gold, confirmBg: colors.gold };
     }
   };
 
@@ -93,40 +73,34 @@ export default function ConfirmationModal({
           className="absolute inset-0"
         />
         
-        <View 
-          className="bg-[#18181B] rounded-3xl mx-6 overflow-hidden border border-[#3F3F46]"
-          style={{ width: width - 48 }}
+        <View
+          className="rounded-3xl mx-6 overflow-hidden"
+          style={{ width: width - 48, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
         >
-          {/* Header with gradient */}
-          <LinearGradient
-            colors={config.gradientColors}
-            className="px-6 py-4"
-          >
+          {/* Header (solid) */}
+          <View className="px-6 py-4" style={{ backgroundColor: config.headerBg }}>
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center flex-1">
-                <View className="w-12 h-12 rounded-full bg-white/20 justify-center items-center mr-4">
-                  <IconComponent
-                    size={24}
-                    color="#FFFFFF"
-                    weight="fill"
-                  />
+                <View className="w-12 h-12 rounded-full justify-center items-center mr-4" style={{ backgroundColor: alpha(colors.void, 0.18) }}>
+                  <IconComponent size={24} color={colors.void} weight="fill" />
                 </View>
-                <Text className="text-white text-xl font-bold flex-1">
+                <Text className="text-xl font-bold flex-1" style={{ color: colors.void }}>
                   {title}
                 </Text>
               </View>
               <TouchableOpacity
                 onPress={onClose}
-                className="w-8 h-8 rounded-full bg-white/20 justify-center items-center"
+                className="w-8 h-8 rounded-full justify-center items-center"
+                style={{ backgroundColor: alpha(colors.void, 0.18) }}
               >
-                <X size={18} color="#FFFFFF" weight="bold" />
+                <X size={18} color={colors.void} weight="bold" />
               </TouchableOpacity>
             </View>
-          </LinearGradient>
+          </View>
 
           {/* Content */}
           <View className="px-6 py-6">
-            <Text className="text-[#94A3B8] text-base leading-6 mb-6">
+            <Text className="text-base leading-6 mb-6" style={{ color: colors.textDim }}>
               {message}
             </Text>
 
@@ -135,13 +109,14 @@ export default function ConfirmationModal({
               <View className="flex-row gap-3">
                 <TouchableOpacity
                   onPress={onClose}
-                  className="flex-1 bg-[#3F3F46] rounded-xl py-4 items-center"
+                  className="flex-1 rounded-xl py-4 items-center"
+                  style={{ backgroundColor: colors.elevated }}
                 >
-                  <Text className="text-white font-semibold text-base">
+                  <Text className="font-semibold text-base" style={{ color: colors.text }}>
                     {cancelText}
                   </Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   onPress={() => {
                     onConfirm();
@@ -150,7 +125,7 @@ export default function ConfirmationModal({
                   className="flex-1 rounded-xl py-4 items-center"
                   style={{ backgroundColor: config.confirmBg }}
                 >
-                  <Text className="text-white font-semibold text-base">
+                  <Text className="font-bold text-base" style={{ color: colors.void }}>
                     {confirmText}
                   </Text>
                 </TouchableOpacity>
@@ -164,7 +139,7 @@ export default function ConfirmationModal({
                 className="w-full rounded-xl py-4 items-center"
                 style={{ backgroundColor: config.confirmBg }}
               >
-                <Text className="text-white font-semibold text-base">
+                <Text className="font-bold text-base" style={{ color: colors.void }}>
                   {confirmText}
                 </Text>
               </TouchableOpacity>

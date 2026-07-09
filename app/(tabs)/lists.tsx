@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
+import { colors, gradients, glow, alpha } from '@/constants/theme';
 import {
   Plus,
   ListBullets,
@@ -410,51 +412,51 @@ export default function ActivityScreen() {
         {/* Delete All Reviews Button */}
         {reviews.length > 0 && (
           <TouchableOpacity
-            className="mb-4 p-3 bg-[#FF4757]/20 border border-[#FF4757]/40 rounded-xl flex-row items-center justify-center"
+            className="mb-4 p-3 bg-[#EF4444]/20 border border-[#EF4444]/40 rounded-xl flex-row items-center justify-center"
             onPress={handleDeleteAllReviews}
             activeOpacity={0.7}
           >
-            <Trash size={18} color="#FF4757" weight="bold" />
-            <Text className="ml-2 text-[#FF4757] font-semibold">
+            <Trash size={18} color="#EF4444" weight="bold" />
+            <Text className="ml-2 text-[#EF4444] font-semibold">
               Delete All Reviews ({reviews.length})
             </Text>
           </TouchableOpacity>
         )}
         
         {reviews.map((review) => (
-          <View key={review.id} className="mb-6 bg-[#18181B] rounded-2xl p-4 border border-[#3F3F46]">
+          <View key={review.id} className="mb-6 bg-[#12171E] rounded-2xl p-4 border border-[#232C37]">
             <View className="flex-row items-center mb-2">
-              <View className="w-8 h-8 rounded-full bg-[#121629] justify-center items-center mr-3">
-                <GameController size={20} color="#94A3B8" weight="bold" />
+              <View className="w-8 h-8 rounded-full bg-[#232C37] justify-center items-center mr-3">
+                <GameController size={20} color="#AEB9C4" weight="bold" />
               </View>
               <View className="flex-1">
                 <Text className="text-white font-medium">
                   You reviewed{' '}
-                  <Text className="font-bold text-[#9146FF]">
+                  <Text className="font-bold text-[#14C8B0]">
                     {review.game.name}
                   </Text>
                 </Text>
-                <Text className="text-xs text-[#94A3B8]">{review.date}</Text>
+                <Text className="text-xs text-[#AEB9C4]">{review.date}</Text>
               </View>
               <View className="flex-row items-center">
                 <TouchableOpacity 
-                  className="p-2 mr-1 bg-[#3F3F46] rounded-lg"
+                  className="p-2 mr-1 bg-[#232C37] rounded-lg"
                   onPress={() => handleEditReview({ id: review.id, game: { id: review.game.id, title: review.game.name, coverUrl: review.game.coverUrl, rating: review.rating }, review: review.reviewText })}
                   activeOpacity={0.7}
                 >
-                  <PencilSimple size={18} color="#94A3B8" weight="bold" />
+                  <PencilSimple size={18} color="#AEB9C4" weight="bold" />
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  className="p-2 mr-2 bg-[#FF4757]/20 rounded-lg"
+                  className="p-2 mr-2 bg-[#EF4444]/20 rounded-lg"
                   onPress={() => handleDeleteReview(review)}
                   activeOpacity={0.7}
                 >
-                  <Trash size={18} color="#FF4757" weight="bold" />
+                  <Trash size={18} color="#EF4444" weight="bold" />
                 </TouchableOpacity>
                 <TouchableOpacity className="p-1">
                   <Heart
                     size={20}
-                    color={'#94A3B8'}
+                    color={'#AEB9C4'}
                     weight={'regular'}
                   />
                 </TouchableOpacity>
@@ -471,8 +473,8 @@ export default function ActivityScreen() {
               </TouchableOpacity>
               <View className="flex-1">
                 <View className="flex-row items-center mb-1">
-                  <Star size={16} color="#FFD700" weight="fill" />
-                  <Text className="ml-1 text-[#FFD700] font-semibold">
+                  <Star size={16} color="#FBBF24" weight="fill" />
+                  <Text className="ml-1 text-[#FBBF24] font-semibold">
                     {review.rating}
                   </Text>
                 </View>
@@ -483,11 +485,11 @@ export default function ActivityScreen() {
         ))}
         {reviews.length === 0 && (
           <View className="flex-1 justify-center items-center py-20">
-            <View className="w-20 h-20 rounded-full bg-[#18181B] justify-center items-center mb-4 border border-[#3F3F46]">
-              <GameController size={32} color="#94A3B8" weight="bold" />
+            <View className="w-20 h-20 rounded-full bg-[#12171E] justify-center items-center mb-4 border border-[#232C37]">
+              <GameController size={32} color="#AEB9C4" weight="bold" />
             </View>
             <Text className="text-white text-xl font-bold mb-2">No Reviews Yet</Text>
-            <Text className="text-[#94A3B8] text-center px-8">
+            <Text className="text-[#AEB9C4] text-center px-8">
               Start reviewing games to see your activity here!
             </Text>
           </View>
@@ -509,7 +511,7 @@ export default function ActivityScreen() {
           libraryGames.map((game) => (
             <View
               key={game.id}
-              className="flex-row items-center bg-[#18181B] rounded-2xl p-4 mb-4 border border-[#3F3F46]"
+              className="flex-row items-center bg-[#12171E] rounded-2xl p-4 mb-4 border border-[#232C37]"
             >
               <Image
                 source={{ uri: game.coverUrl }}
@@ -517,15 +519,15 @@ export default function ActivityScreen() {
               />
               <View className="flex-1">
                 <Text className="text-white font-semibold">{game.title}</Text>
-                {!!game.genre && <Text className="text-[#94A3B8]">{game.genre}</Text>}
-                <Text className="text-xs text-[#94A3B8]">
+                {!!game.genre && <Text className="text-[#AEB9C4]">{game.genre}</Text>}
+                <Text className="text-xs text-[#AEB9C4]">
                   Added {game.addedDate}
                 </Text>
               </View>
               <View className="flex-col items-end">
                 <TouchableOpacity
                   className={`px-3 py-2 rounded-lg mb-2 ${
-                    isGameReviewed(game.id) ? 'bg-[#FFD700]' : 'bg-[#9146FF]'
+                    isGameReviewed(game.id) ? 'bg-[#FBBF24]' : 'bg-[#14C8B0]'
                   }`}
                   onPress={() => handleReviewNow(game)}
                 >
@@ -538,21 +540,21 @@ export default function ActivityScreen() {
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  className="p-2 rounded-lg bg-[#18181B] border border-[#3F3F46]"
+                  className="p-2 rounded-lg bg-[#12171E] border border-[#232C37]"
                   onPress={() => handleRemoveFromLibrary(game.id)}
                 >
-                  <Trash size={16} color="#FF4757" weight="bold" />
+                  <Trash size={16} color="#EF4444" weight="bold" />
                 </TouchableOpacity>
               </View>
             </View>
           ))
         ) : (
           <View className="flex-1 justify-center items-center py-20">
-            <View className="w-20 h-20 rounded-full bg-[#18181B] justify-center items-center mb-4 border border-[#3F3F46]">
-              <ListBullets size={32} color="#94A3B8" weight="bold" />
+            <View className="w-20 h-20 rounded-full bg-[#12171E] justify-center items-center mb-4 border border-[#232C37]">
+              <ListBullets size={32} color="#AEB9C4" weight="bold" />
             </View>
             <Text className="text-white text-xl font-bold mb-2">No Games in Library</Text>
-            <Text className="text-[#94A3B8] text-center px-8 leading-5">
+            <Text className="text-[#AEB9C4] text-center px-8 leading-5">
               Add games to your library to review them later!
             </Text>
           </View>
@@ -568,30 +570,27 @@ export default function ActivityScreen() {
     >
       <View className="px-5 pb-8">
         <TouchableOpacity
-          className="mb-6"
+          className="mb-6 flex-row items-center rounded-2xl px-5 py-4"
+          style={{ backgroundColor: colors.teal, ...glow(colors.teal, 0.35, 12) }}
+          activeOpacity={0.9}
           onPress={() => setShowCreateListModal(true)}
         >
-          <LinearGradient
-            colors={['#9146FF', '#7C3AED']}
-            className="flex-row items-center rounded-2xl px-5 py-4"
-          >
-            <Plus size={24} color="#FFFFFF" weight="bold" />
-            <Text className="ml-3 text-white font-bold text-lg">
-              Create New List
-            </Text>
-          </LinearGradient>
+          <Plus size={24} color={colors.void} weight="bold" />
+          <Text className="ml-3 font-bold text-lg" style={{ color: colors.void }}>
+            Create New List
+          </Text>
         </TouchableOpacity>
 
         {customLists.length > 0 ? (
           customLists.map((list) => (
-            <View key={list.id} className="mb-6 bg-[#18181B] rounded-2xl p-4 border border-[#3F3F46]">
+            <View key={list.id} className="mb-6 bg-[#12171E] rounded-2xl p-4 border border-[#232C37]">
               <View className="flex-row items-center mb-2">
                 <View className="flex-1">
                   <Text className="text-white font-bold text-lg">
                     {list.name}
                   </Text>
-                  <Text className="text-[#94A3B8]">{list.description}</Text>
-                  <Text className="text-xs text-[#94A3B8]">
+                  <Text className="text-[#AEB9C4]">{list.description}</Text>
+                  <Text className="text-xs text-[#AEB9C4]">
                     {list.games.length} games
                   </Text>
                 </View>
@@ -600,13 +599,13 @@ export default function ActivityScreen() {
                     className="p-2 mr-2"
                     onPress={() => handleEditList(list)}
                   >
-                    <PencilSimple size={20} color="#94A3B8" weight="bold" />
+                    <PencilSimple size={20} color="#AEB9C4" weight="bold" />
                   </TouchableOpacity>
                   <TouchableOpacity
                     className="p-2"
                     onPress={() => handleDeleteList(list.id)}
                   >
-                    <Trash size={20} color="#FF4757" weight="bold" />
+                    <Trash size={20} color="#EF4444" weight="bold" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -631,11 +630,11 @@ export default function ActivityScreen() {
           ))
         ) : (
           <View className="flex-1 justify-center items-center py-20">
-            <View className="w-20 h-20 rounded-full bg-[#18181B] justify-center items-center mb-4 border border-[#3F3F46]">
-              <Plus size={32} color="#94A3B8" weight="bold" />
+            <View className="w-20 h-20 rounded-full bg-[#12171E] justify-center items-center mb-4 border border-[#232C37]">
+              <Plus size={32} color="#AEB9C4" weight="bold" />
             </View>
             <Text className="text-white text-xl font-bold mb-2">No Lists Yet</Text>
-            <Text className="text-[#94A3B8] text-center px-8 leading-5">
+            <Text className="text-[#AEB9C4] text-center px-8 leading-5">
               Create your first custom game list using the button above!
             </Text>
           </View>
@@ -644,69 +643,49 @@ export default function ActivityScreen() {
     </ScrollView>
   );
 
+  const TABS: { id: 'reviews' | 'library' | 'lists'; label: string }[] = [
+    { id: 'reviews', label: 'Reviews' },
+    { id: 'library', label: 'Library' },
+    { id: 'lists', label: 'Lists' },
+  ];
+
   return (
-    <LinearGradient
-      colors={['#0E0E10', '#18181B', '#1F1F23']}
-      className="flex-1"
-    >
+    <LinearGradient colors={gradients.screen} className="flex-1" start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+      <StatusBar style="light" />
       <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
         {/* Header */}
-        <View className="flex-row items-center justify-between px-5 py-4">
-          <View className="flex-1">
-            <Text className="font-bold text-xl text-white">Activity</Text>
-            <Text className="text-xs text-gray-400">
-              Reviews: {reviews.length} | Library: {libraryGames.length} | Lists: {customLists.length}
-            </Text>
+        <View className="flex-row items-center justify-between px-5 pt-3 pb-4">
+          <View className="flex-row items-center gap-3">
+            <View style={{ width: 42, height: 42, borderRadius: 14, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.teal, ...glow(colors.teal, 0.5, 12) }}>
+              <ListBullets size={22} color={colors.void} weight="fill" />
+            </View>
+            <View>
+              <Text className="font-bold text-[24px]" style={{ color: colors.text }}>Activity</Text>
+              <Text className="text-xs" style={{ color: colors.textMuted }}>
+                {reviews.length} reviews · {libraryGames.length} library · {customLists.length} lists
+              </Text>
+            </View>
           </View>
-          <TouchableOpacity className="w-10 h-10 rounded-full justify-center items-center">
-            <ListBullets size={24} color="#FFFFFF" weight="bold" />
-          </TouchableOpacity>
         </View>
 
         {/* Tab Navigation */}
-        <View className="flex-row px-5 mb-4">
-          <TouchableOpacity
-            className={`flex-1 py-3 rounded-xl mr-2 ${
-              activeTab === 'reviews' ? 'bg-[#9146FF]' : 'bg-[#18181B] border border-[#3F3F46]'
-            }`}
-            onPress={() => setActiveTab('reviews')}
-          >
-            <Text
-              className={`font-semibold text-center ${
-                activeTab === 'reviews' ? 'text-white' : 'text-white'
-              }`}
-            >
-              Reviews
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className={`flex-1 py-3 rounded-xl mx-1 ${
-              activeTab === 'library' ? 'bg-[#9146FF]' : 'bg-[#18181B] border border-[#3F3F46]'
-            }`}
-            onPress={() => setActiveTab('library')}
-          >
-            <Text
-              className={`font-semibold text-center ${
-                activeTab === 'library' ? 'text-white' : 'text-white'
-              }`}
-            >
-              Library
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className={`flex-1 py-3 rounded-xl ml-2 ${
-              activeTab === 'lists' ? 'bg-[#9146FF]' : 'bg-[#18181B] border border-[#3F3F46]'
-            }`}
-            onPress={() => setActiveTab('lists')}
-          >
-            <Text
-              className={`font-semibold text-center ${
-                activeTab === 'lists' ? 'text-white' : 'text-white'
-              }`}
-            >
-              Lists
-            </Text>
-          </TouchableOpacity>
+        <View className="flex-row px-5 mb-4 gap-2.5">
+          {TABS.map((tab) => {
+            const active = activeTab === tab.id;
+            return (
+              <TouchableOpacity key={tab.id} className="flex-1 rounded-2xl overflow-hidden" activeOpacity={0.85} onPress={() => setActiveTab(tab.id)}>
+                {active ? (
+                  <View className="py-3" style={{ backgroundColor: colors.teal, ...glow(colors.teal, 0.4, 10) }}>
+                    <Text className="font-bold text-center" style={{ color: colors.void }}>{tab.label}</Text>
+                  </View>
+                ) : (
+                  <View className="py-3" style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
+                    <Text className="font-semibold text-center" style={{ color: colors.textDim }}>{tab.label}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Tab Content */}
@@ -723,7 +702,7 @@ export default function ActivityScreen() {
           animationType="slide"
         >
           <View className="flex-1 bg-black/50 justify-end">
-            <View className="bg-[#18181B] rounded-t-3xl p-6 max-h-[80%] border-t border-[#3F3F46]">
+            <View className="bg-[#12171E] rounded-t-3xl p-6 max-h-[80%] border-t border-[#232C37]">
               <View className="flex-row items-center justify-between mb-6">
                 <Text className="font-bold text-xl text-white">
                   {editingList ? 'Edit List' : 'Create New List'}
@@ -744,17 +723,17 @@ export default function ActivityScreen() {
               </View>
 
               <TextInput
-                className="bg-[#0E0E10] rounded-xl px-4 py-3 mb-4 border border-[#3F3F46] text-white font-normal text-base"
+                className="bg-[#0A0E13] rounded-xl px-4 py-3 mb-4 border border-[#232C37] text-white font-normal text-base"
                 placeholder="List name (e.g., Action & Adventure)"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor="#AEB9C4"
                 value={newListName}
                 onChangeText={setNewListName}
               />
 
               <TextInput
-                className="bg-[#0F1419] rounded-xl px-4 py-3 mb-4 border border-[#374151] text-white font-normal text-base min-h-[80px]"
+                className="bg-[#0A0E13] rounded-xl px-4 py-3 mb-4 border border-[#232C37] text-white font-normal text-base min-h-[80px]"
                 placeholder="Description (optional)"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor="#AEB9C4"
                 value={newListDescription}
                 onChangeText={setNewListDescription}
                 multiline
@@ -763,12 +742,12 @@ export default function ActivityScreen() {
               />
 
               {/* Game Search */}
-              <View className="flex-row items-center bg-[#0E0E10] rounded-xl px-4 py-3 mb-4 border border-[#3F3F46]">
-                <MagnifyingGlass size={20} color="#94A3B8" weight="bold" />
+              <View className="flex-row items-center bg-[#0A0E13] rounded-xl px-4 py-3 mb-4 border border-[#232C37]">
+                <MagnifyingGlass size={20} color="#AEB9C4" weight="bold" />
                 <TextInput
                   className="flex-1 ml-3 text-white font-normal text-base"
                   placeholder="Search games to add..."
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor="#AEB9C4"
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                 />
@@ -783,7 +762,7 @@ export default function ActivityScreen() {
                   {searchResults.map((game) => (
                     <TouchableOpacity
                       key={game.id}
-                      className="flex-row items-center mb-2 bg-[#18181B] rounded-xl p-2 border border-[#3F3F46]"
+                      className="flex-row items-center mb-2 bg-[#12171E] rounded-xl p-2 border border-[#232C37]"
                       onPress={() => handleAddGameToList(game)}
                     >
                       <Image
@@ -794,11 +773,11 @@ export default function ActivityScreen() {
                         <Text className="text-white font-semibold">
                           {game.title}
                         </Text>
-                        <Text className="text-xs text-[#94A3B8]">
+                        <Text className="text-xs text-[#AEB9C4]">
                           {game.genre}
                         </Text>
                       </View>
-                      <Plus size={20} color="#9146FF" weight="bold" />
+                      <Plus size={20} color="#14C8B0" weight="bold" />
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -817,7 +796,7 @@ export default function ActivityScreen() {
                     {selectedGames.map((game) => (
                       <View
                         key={game.id}
-                        className="flex-row items-center mb-2 bg-[#18181B] rounded-xl p-2 border border-[#3F3F46]"
+                        className="flex-row items-center mb-2 bg-[#12171E] rounded-xl p-2 border border-[#232C37]"
                       >
                         <Image
                           source={{ uri: game.coverUrl }}
@@ -828,7 +807,7 @@ export default function ActivityScreen() {
                           onPress={() => handleRemoveGameFromList(game.id)}
                           className="p-2"
                         >
-                          <X size={16} color="#FF4757" weight="bold" />
+                          <X size={16} color="#EF4444" weight="bold" />
                         </TouchableOpacity>
                       </View>
                     ))}
@@ -836,16 +815,16 @@ export default function ActivityScreen() {
                 </View>
               )}
 
-              <TouchableOpacity className="mt-2" onPress={handleCreateList}>
-                <LinearGradient
-                  colors={['#9146FF', '#7C3AED']}
-                  className="flex-row items-center justify-center rounded-xl px-5 py-3"
-                >
-                  <Check size={20} color="#FFFFFF" weight="bold" />
-                  <Text className="ml-2 text-white font-bold text-base">
-                    {editingList ? 'Update List' : 'Create List'}
-                  </Text>
-                </LinearGradient>
+              <TouchableOpacity
+                className="mt-2 flex-row items-center justify-center rounded-xl px-5 py-3.5"
+                style={{ backgroundColor: colors.teal, ...glow(colors.teal, 0.3, 10) }}
+                activeOpacity={0.9}
+                onPress={handleCreateList}
+              >
+                <Check size={20} color={colors.void} weight="bold" />
+                <Text className="ml-2 font-bold text-base" style={{ color: colors.void }}>
+                  {editingList ? 'Update List' : 'Create List'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>

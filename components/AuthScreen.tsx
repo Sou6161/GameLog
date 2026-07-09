@@ -158,22 +158,20 @@ export function AuthScreen() {
             <Text className="mt-2 text-[#B6C6D6] font-medium">{loggedInUser ? `Welcome back, ${loggedInUser.name}` : 'Track • Discover • Share'}</Text>
           </View>
 
-      <LinearGradient
-        colors={["rgba(145,70,255,0.25)", "rgba(255,71,87,0.25)"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <View
         className="rounded-[18px] p-[1px] mx-0.5 mb-2"
+        style={{ backgroundColor: "rgba(20,200,176,0.3)" }}
       >
-      <View className="bg-[rgba(6,10,18,0.7)] rounded-2xl p-[18px] border border-[rgba(145,70,255,0.25)] shadow-2xl">
+      <View className="bg-[rgba(6,10,18,0.7)] rounded-2xl p-[18px] border border-[rgba(20,200,176,0.25)] shadow-2xl">
           <TextInput
-            className="bg-[rgba(2,6,14,0.85)] border border-[rgba(145,70,255,0.25)] rounded-xl py-[14px] px-[14px] mb-3 text-[#E6F1FF] font-normal"
+            className="bg-[rgba(2,6,14,0.85)] border border-[rgba(20,200,176,0.25)] rounded-xl py-[14px] px-[14px] mb-3 text-[#E6F1FF] font-normal"
             placeholder="Email"
             placeholderTextColor="#7aa1b8"
             value={email}
             onChangeText={(text) => setEmail(text)}
           />
           <TextInput
-            className="bg-[rgba(2,6,14,0.85)] border border-[rgba(145,70,255,0.25)] rounded-xl py-[14px] px-[14px] mb-3 text-[#E6F1FF] font-normal"
+            className="bg-[rgba(2,6,14,0.85)] border border-[rgba(20,200,176,0.25)] rounded-xl py-[14px] px-[14px] mb-3 text-[#E6F1FF] font-normal"
             placeholder="Password"
             placeholderTextColor="#7aa1b8"
             value={password}
@@ -182,7 +180,7 @@ export function AuthScreen() {
           />
           {!isLogin && (
             <TextInput
-              className="bg-[rgba(2,6,14,0.85)] border border-[rgba(145,70,255,0.25)] rounded-xl py-[14px] px-[14px] mb-3 text-[#E6F1FF] font-normal"
+              className="bg-[rgba(2,6,14,0.85)] border border-[rgba(20,200,176,0.25)] rounded-xl py-[14px] px-[14px] mb-3 text-[#E6F1FF] font-normal"
               placeholder="Name (for sign up)"
               placeholderTextColor="#7aa1b8"
               value={name}
@@ -190,22 +188,21 @@ export function AuthScreen() {
             />
           )}
 
-          <LinearGradient colors={isLogin ? ["#9146FF", "#7C3AED"] : ["#FF4757", "#E63946"]} start={{x:0,y:0}} end={{x:1,y:1}} className="rounded-[14px] overflow-hidden shadow-xl">
-            <TouchableOpacity
-              className="py-[14px] items-center"
-              onPress={() => (isLogin ? login(email, password) : register(email, password, name))}
-            >
-            <Text className="text-white font-bold text-sm tracking-wider">{isLogin ? 'Sign In' : 'Create Account'}</Text>
-            </TouchableOpacity>
-          </LinearGradient>
+          <TouchableOpacity
+            className="py-[14px] items-center rounded-[14px] overflow-hidden shadow-xl"
+            style={{ backgroundColor: isLogin ? "#14C8B0" : "#FF7A5C" }}
+            onPress={() => (isLogin ? login(email, password) : register(email, password, name))}
+          >
+            <Text className="font-bold text-sm tracking-wider" style={{ color: "#06090D" }}>{isLogin ? 'Sign In' : 'Create Account'}</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity className="mt-4 items-center" onPress={() => setIsLogin(!isLogin)}>
-            <Text className="text-[#9146FF] font-medium">
+            <Text className="text-[#14C8B0] font-medium">
               {isLogin ? "Don't have an account? Create an account" : 'Already have an account? Sign in here'}
             </Text>
           </TouchableOpacity>
           </View>
-          </LinearGradient>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

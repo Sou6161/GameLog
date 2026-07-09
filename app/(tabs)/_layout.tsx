@@ -1,14 +1,73 @@
 // @ts-nocheck
 import * as React from 'react';
+import { View, Platform } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Platform } from 'react-native';
 import { House, Compass, Plus, ListBullets, User } from 'phosphor-react-native';
+import { colors, glow } from '@/constants/theme';
+
+// Active tabs sit in a solid glowing pill; inactive icons are muted.
+function TabIcon({ Icon, focused }: { Icon: any; focused: boolean }) {
+  if (focused) {
+    return (
+      <View
+        style={{
+          width: 46,
+          height: 34,
+          borderRadius: 17,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: colors.teal,
+          ...glow(colors.teal, 0.7, 12),
+        }}
+      >
+        <Icon size={22} color={colors.void} weight="fill" />
+      </View>
+    );
+  }
+  return (
+    <View style={{ width: 46, height: 34, justifyContent: 'center', alignItems: 'center' }}>
+      <Icon size={22} color={colors.textMuted} weight="bold" />
+    </View>
+  );
+}
+
+// Raised center "+" action button (solid).
+function CenterButton({ focused }: { focused: boolean }) {
+  return (
+    <View
+      style={{
+        top: Platform.OS === 'web' ? -10 : -18,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: colors.bg,
+        padding: 4,
+      }}
+    >
+      <View
+        style={{
+          flex: 1,
+          alignSelf: 'stretch',
+          borderRadius: 26,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: focused ? colors.orange : colors.coral,
+          ...glow(colors.coral, 0.8, 16),
+        }}
+      >
+        <Plus size={28} color={colors.void} weight="bold" />
+      </View>
+    </View>
+  );
+}
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
-  const bottomInset = Platform.OS === 'web' ? 20 : Math.max(insets.bottom, 8);
-  const tabBarHeight = Platform.OS === 'web' ? 90 : 70 + bottomInset; // base height + safe area
+  const bottomInset = Platform.OS === 'web' ? 16 : Math.max(insets.bottom, 10);
+  const tabBarHeight = Platform.OS === 'web' ? 84 : 66 + bottomInset;
 
   return (
     <Tabs
@@ -16,22 +75,22 @@ export default function TabLayout() {
         headerShown: false,
         tabBarHideOnKeyboard: true,
         tabBarStyle: {
-          backgroundColor: '#18181B',
-          borderTopColor: '#3F3F46',
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
           borderTopWidth: 1,
           paddingBottom: bottomInset,
-          paddingTop: 8,
+          paddingTop: 10,
           height: tabBarHeight,
-          elevation: 8,
-          shadowColor: '#9146FF',
-          shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 8,
+          elevation: 24,
+          shadowColor: colors.teal,
+          shadowOffset: { width: 0, height: -6 },
+          shadowOpacity: 0.35,
+          shadowRadius: 16,
         },
-        tabBarActiveTintColor: '#9146FF',
-        tabBarInactiveTintColor: '#9CA3AF',
+        tabBarActiveTintColor: colors.teal,
+        tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: {
-          fontFamily: 'Inter_600SemiBold',
+          fontFamily: 'Inter_500Medium',
           fontSize: 11,
           marginTop: 4,
         },
@@ -41,65 +100,35 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ size, color, focused }: { size: number; color: string; focused: boolean }) => (
-            <House 
-              size={size} 
-              color={color} 
-              weight={focused ? "fill" : "bold"} 
-            />
-          ),
+          tabBarIcon: ({ focused }) => <TabIcon Icon={House} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="discover"
         options={{
           title: 'Discover',
-          tabBarIcon: ({ size, color, focused }: { size: number; color: string; focused: boolean }) => (
-            <Compass 
-              size={size} 
-              color={color} 
-              weight={focused ? "fill" : "bold"} 
-            />
-          ),
+          tabBarIcon: ({ focused }) => <TabIcon Icon={Compass} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="log"
         options={{
           title: '',
-          tabBarIcon: ({ size, color, focused }: { size: number; color: string; focused: boolean }) => (
-            <Plus 
-              size={size} 
-              color={color} 
-              weight={focused ? "fill" : "bold"} 
-            />
-          ),
+          tabBarIcon: ({ focused }) => <CenterButton focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="lists"
         options={{
-          title: 'Lists',
-          tabBarIcon: ({ size, color, focused }: { size: number; color: string; focused: boolean }) => (
-            <ListBullets 
-              size={size} 
-              color={color} 
-              weight={focused ? "fill" : "bold"} 
-            />
-          ),
+          title: 'Activity',
+          tabBarIcon: ({ focused }) => <TabIcon Icon={ListBullets} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ size, color, focused }: { size: number; color: string; focused: boolean }) => (
-            <User 
-              size={size} 
-              color={color} 
-              weight={focused ? "fill" : "bold"} 
-            />
-          ),
+          tabBarIcon: ({ focused }) => <TabIcon Icon={User} focused={focused} />,
         }}
       />
     </Tabs>

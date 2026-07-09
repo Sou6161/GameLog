@@ -96,16 +96,14 @@ export default function CommunityReviewCard({
               resizeMode="cover"
             />
           ) : (
-            <LinearGradient
-              colors={['#00D2FF', '#3A7BD5']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+            <View
               className="w-12 h-12 rounded-full items-center justify-center border-2 border-[#374151]"
+              style={{ backgroundColor: '#14C8B0' }}
             >
-              <Text className="text-white font-bold text-lg">
+              <Text className="font-bold text-lg" style={{ color: '#06090D' }}>
                 {review.username?.charAt(0)?.toUpperCase() || 'U'}
               </Text>
-            </LinearGradient>
+            </View>
           )}
           {review.verified && (
             <View className="absolute -bottom-1 -right-1 w-4 h-4 bg-blue-500 rounded-full items-center justify-center">

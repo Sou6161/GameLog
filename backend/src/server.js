@@ -5,6 +5,7 @@ const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const reviewRoutes = require('./routes/reviews');
 const gameRoutes = require('./routes/games');
+const twitchRoutes = require('./routes/twitch');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -26,6 +27,7 @@ app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/games', gameRoutes);
+app.use('/api/twitch', twitchRoutes);
 
 app.listen(PORT, () => {
   console.log(`GameLog backend running on port ${PORT}`);

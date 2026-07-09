@@ -2,7 +2,9 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MagnifyingGlass, X, Check, Star, Heart, Calendar, ArrowLeft, Plus, GameController } from 'phosphor-react-native';
+import { StatusBar } from 'expo-status-bar';
+import { MagnifyingGlass, X, Check, Star, Heart, Calendar, ArrowLeft, Plus, GameController, PencilSimple } from 'phosphor-react-native';
+import { colors, gradients, glow, alpha } from '@/constants/theme';
 import { useLocalSearchParams, router } from 'expo-router';
 import { igdbService } from '@/services/igdbService';
 import { useAchievements } from '@/hooks/useAchievements';
@@ -411,271 +413,250 @@ export default function LogScreen() {
   // Review form view
   if (showReviewForm && selectedGame) {
     return (
-      <SafeAreaView className="flex-1 bg-[#0E0E10]">
-        <ScrollView className="flex-1 px-4 py-6">
-          {/* Header */}
-          <View className="flex-row items-center mb-6">
-            <TouchableOpacity 
-              onPress={() => setShowReviewForm(false)}
-              className="mr-4"
-            >
-              <ArrowLeft size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            <Text className="text-2xl font-bold text-white">{isEditMode ? 'Edit Review' : 'Write Review'}</Text>
-          </View>
+      <LinearGradient colors={gradients.screen} className="flex-1" start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+        <StatusBar style="light" />
+        <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
+          <ScrollView className="flex-1 px-5 py-5" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+            {/* Header */}
+            <View className="flex-row items-center mb-6">
+              <TouchableOpacity
+                onPress={() => setShowReviewForm(false)}
+                className="w-10 h-10 rounded-full justify-center items-center mr-3"
+                style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+              >
+                <ArrowLeft size={20} color={colors.text} weight="bold" />
+              </TouchableOpacity>
+              <Text className="text-2xl font-bold" style={{ color: colors.text }}>{isEditMode ? 'Edit Review' : 'Write Review'}</Text>
+            </View>
 
-          {/* Game Info */}
-          <View className="bg-[#18181B] rounded-lg p-4 mb-6 border border-[#3F3F46]">
-            <View className="flex-row items-center">
-              {selectedGame.cover?.url ? (
-                <Image 
-                  source={{ uri: selectedGame.cover.url.replace('t_thumb', 't_cover_big') }}
-                  className="w-20 h-28 rounded mr-4"
-                />
-              ) : (
-                <View className="w-20 h-28 bg-[#3F3F46] rounded mr-4 items-center justify-center">
-                  <GameController size={24} color="#9CA3AF" />
-                </View>
-              )}
-              <View className="flex-1">
-                <Text className="text-white text-xl font-bold mb-1">{selectedGame.name}</Text>
-                {selectedGame.first_release_date && (
-                  <Text className="text-gray-400 mb-2">
-                    {new Date(selectedGame.first_release_date * 1000).getFullYear()}
-                  </Text>
+            {/* Game Info */}
+            <View className="rounded-[20px] p-4 mb-6" style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
+              <View className="flex-row items-center">
+                {selectedGame.cover?.url ? (
+                  <Image source={{ uri: selectedGame.cover.url.replace('t_thumb', 't_cover_big') }} className="w-20 h-28 rounded-xl mr-4" />
+                ) : (
+                  <View className="w-20 h-28 rounded-xl mr-4 items-center justify-center" style={{ backgroundColor: colors.elevated }}>
+                    <GameController size={24} color={colors.textMuted} />
+                  </View>
                 )}
-                <Text className="text-[#00B5AD] font-semibold">{currentDate}</Text>
+                <View className="flex-1">
+                  <Text className="text-xl font-bold mb-1" style={{ color: colors.text }}>{selectedGame.name}</Text>
+                  {selectedGame.first_release_date && (
+                    <Text className="mb-2" style={{ color: colors.textMuted }}>{new Date(selectedGame.first_release_date * 1000).getFullYear()}</Text>
+                  )}
+                  <View className="flex-row items-center self-start px-2.5 py-1 rounded-full" style={{ backgroundColor: alpha(colors.cyan, 0.14) }}>
+                    <Calendar size={12} color={colors.cyan} weight="fill" />
+                    <Text className="font-semibold text-xs ml-1.5" style={{ color: colors.cyan }}>{currentDate}</Text>
+                  </View>
+                </View>
               </View>
             </View>
-          </View>
 
-          {/* Existing Review Warning */}
-          {hasExistingReview && (
-            <View className="bg-[#FFD700]/20 border border-[#FFD700]/30 rounded-lg p-4 mb-6">
-              <View className="flex-row items-center mb-2">
-                <Text className="text-[#FFD700] font-semibold text-base mr-2">⚠️</Text>
-                <Text className="text-[#FFD700] font-semibold text-base">You've already reviewed this game</Text>
+            {/* Existing Review Warning */}
+            {hasExistingReview && (
+              <View className="rounded-[18px] p-4 mb-6" style={{ backgroundColor: alpha(colors.gold, 0.12), borderWidth: 1, borderColor: alpha(colors.gold, 0.35) }}>
+                <View className="flex-row items-center mb-1.5">
+                  <PencilSimple size={16} color={colors.gold} weight="fill" />
+                  <Text className="font-bold text-base ml-2" style={{ color: colors.gold }}>You've already reviewed this game</Text>
+                </View>
+                <Text className="text-sm" style={{ color: alpha(colors.gold, 0.85) }}>You can update your existing review below. Changes will replace your previous review.</Text>
               </View>
-              <Text className="text-[#FFD700] text-sm">
-                You can update your existing review below. Changes will replace your previous review.
-              </Text>
-            </View>
-          )}
+            )}
 
-          {/* Game Status */}
-          <View className="mb-6">
-            <Text className="text-white text-lg font-semibold mb-3">Game Status</Text>
-            <View className="flex-row flex-wrap">
-              {gameStatusOptions.map((option) => (
-                <TouchableOpacity
-                  key={option.id}
-                  onPress={() => setGameStatus(option.id)}
-                  className={`mr-3 mb-2 px-4 py-2 rounded-lg flex-row items-center ${
-                    gameStatus === option.id ? 'bg-[#9146FF]' : 'bg-[#3F3F46]'
-                  }`}
-                >
-                  <Text className="mr-2">{option.icon}</Text>
-                  <Text className="text-white font-medium">{option.label}</Text>
-                </TouchableOpacity>
-              ))}
+            {/* Game Status */}
+            <View className="mb-6">
+              <Text className="text-lg font-bold mb-3" style={{ color: colors.text }}>Game Status</Text>
+              <View className="flex-row flex-wrap gap-2.5">
+                {gameStatusOptions.map((option) => {
+                  const active = gameStatus === option.id;
+                  return (
+                    <TouchableOpacity key={option.id} onPress={() => setGameStatus(option.id)} activeOpacity={0.85} className="rounded-xl overflow-hidden">
+                      {active ? (
+                        <View className="px-4 py-2.5 flex-row items-center" style={{ backgroundColor: colors.teal }}>
+                          <Text className="mr-2">{option.icon}</Text>
+                          <Text className="font-bold" style={{ color: colors.void }}>{option.label}</Text>
+                        </View>
+                      ) : (
+                        <View className="px-4 py-2.5 flex-row items-center" style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
+                          <Text className="mr-2">{option.icon}</Text>
+                          <Text className="font-semibold" style={{ color: colors.textDim }}>{option.label}</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
-          </View>
 
-          {/* Rating */}
-          <View className="mb-6">
-            <Text className="text-white text-lg font-semibold mb-3">Rating</Text>
-            <View className="bg-[#18181B] rounded-lg p-4 border border-[#3F3F46]">
-              <View className="flex-row items-center justify-center mb-2">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => (
-                  <TouchableOpacity key={star} onPress={() => handleRatingPress(star)}>
-                    <Star 
-                      size={28} 
-                      color={star <= rating ? '#F59E0B' : '#374151'} 
-                      weight={star <= rating ? 'fill' : 'regular'}
+            {/* Rating */}
+            <View className="mb-6">
+              <Text className="text-lg font-bold mb-3" style={{ color: colors.text }}>Rating</Text>
+              <View className="rounded-[18px] p-4" style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
+                <View className="flex-row items-center justify-center mb-3">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => (
+                    <TouchableOpacity key={star} onPress={() => handleRatingPress(star)} className="px-0.5">
+                      <Star size={26} color={star <= rating ? colors.gold : alpha(colors.text, 0.18)} weight={star <= rating ? 'fill' : 'regular'} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <Text className="text-center font-bold text-lg" style={{ color: colors.gold }}>
+                  {rating > 0 ? `${rating}/10 - ${getRatingDescription(rating)}` : getRatingDescription(rating)}
+                </Text>
+              </View>
+            </View>
+
+            {/* Play Details */}
+            <View className="mb-6">
+              <Text className="text-lg font-bold mb-3" style={{ color: colors.text }}>Play Details</Text>
+              <View className="gap-3">
+                {[
+                  { label: 'Play Time', value: playTime, setter: setPlayTime, ph: 'e.g., 25 hours' },
+                  { label: 'Platform', value: platform, setter: setPlatform, ph: 'e.g., PC, PlayStation 5, Xbox' },
+                  { label: 'Difficulty', value: difficulty, setter: setDifficulty, ph: 'e.g., Normal, Hard, Easy' },
+                ].map((f) => (
+                  <View key={f.label}>
+                    <Text className="mb-1.5 text-sm font-medium" style={{ color: colors.textMuted }}>{f.label}</Text>
+                    <TextInput
+                      value={f.value}
+                      onChangeText={f.setter}
+                      placeholder={f.ph}
+                      placeholderTextColor={colors.textMuted}
+                      className="px-4 py-3 rounded-xl"
+                      style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, color: colors.text }}
                     />
-                  </TouchableOpacity>
+                  </View>
                 ))}
               </View>
-              <Text className="text-center text-[#FFD700] font-semibold text-lg">
-                {rating > 0 ? `${rating}/10 - ${getRatingDescription(rating)}` : getRatingDescription(rating)}
-              </Text>
             </View>
-          </View>
 
-          {/* Play Details */}
-          <View className="mb-6">
-            <Text className="text-white text-lg font-semibold mb-3">Play Details</Text>
-            <View className="space-y-3">
-              <View>
-                <Text className="text-gray-400 mb-1">Play Time</Text>
+            {/* Review Text */}
+            <View className="mb-6">
+              <Text className="text-lg font-bold mb-3" style={{ color: colors.text }}>Your Review</Text>
+              <View className="rounded-[18px] p-4" style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
                 <TextInput
-                  value={playTime}
-                  onChangeText={setPlayTime}
-                  placeholder="e.g., 25 hours"
-                  placeholderTextColor="#9CA3AF"
-                  className="bg-gray-800 text-white px-4 py-3 rounded-lg"
+                  value={reviewText}
+                  onChangeText={setReviewText}
+                  placeholder="Share your thoughts about this game..."
+                  placeholderTextColor={colors.textMuted}
+                  multiline
+                  numberOfLines={6}
+                  textAlignVertical="top"
+                  className="text-base leading-6"
+                  style={{ color: colors.text, minHeight: 120 }}
                 />
-              </View>
-              <View>
-                <Text className="text-gray-400 mb-1">Platform</Text>
-                <TextInput
-                  value={platform}
-                  onChangeText={setPlatform}
-                  placeholder="e.g., PC, PlayStation 5, Xbox"
-                  placeholderTextColor="#9CA3AF"
-                  className="bg-gray-800 text-white px-4 py-3 rounded-lg"
-                />
-              </View>
-              <View>
-                <Text className="text-gray-400 mb-1">Difficulty</Text>
-                <TextInput
-                  value={difficulty}
-                  onChangeText={setDifficulty}
-                  placeholder="e.g., Normal, Hard, Easy"
-                  placeholderTextColor="#9CA3AF"
-                  className="bg-gray-800 text-white px-4 py-3 rounded-lg"
-                />
+                <Text className="text-sm mt-2 text-right" style={{ color: colors.textMuted }}>{reviewText.length}/500 characters</Text>
               </View>
             </View>
-          </View>
 
-          {/* Review Text */}
-          <View className="mb-6">
-            <Text className="text-white text-lg font-semibold mb-3">Your Review</Text>
-            <View className="bg-[#18181B] rounded-lg p-4 border border-[#3F3F46]">
-              <TextInput
-                value={reviewText}
-                onChangeText={setReviewText}
-                placeholder="Share your thoughts about this game..."
-                placeholderTextColor="#9CA3AF"
-                multiline
-                numberOfLines={6}
-                textAlignVertical="top"
-                className="text-white text-base leading-6"
-              />
-              <Text className="text-gray-500 text-sm mt-2 text-right">
-                {reviewText.length}/500 characters
-              </Text>
+            {/* Tags */}
+            <View className="mb-6">
+              <Text className="text-lg font-bold mb-3" style={{ color: colors.text }}>Tags</Text>
+              <View className="flex-row flex-wrap gap-2">
+                {availableTags.map((tag) => {
+                  const active = tags.includes(tag);
+                  return (
+                    <TouchableOpacity
+                      key={tag}
+                      onPress={() => handleTagToggle(tag)}
+                      className="px-3 py-2 rounded-full"
+                      style={active
+                        ? { backgroundColor: alpha(colors.lime, 0.18), borderWidth: 1, borderColor: alpha(colors.lime, 0.5) }
+                        : { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+                    >
+                      <Text className="text-sm font-semibold" style={{ color: active ? colors.lime : colors.textDim }}>{tag}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
-          </View>
 
-          {/* Tags */}
-          <View className="mb-6">
-            <Text className="text-white text-lg font-semibold mb-3">Tags</Text>
-            <View className="flex-row flex-wrap">
-              {availableTags.map((tag) => (
-                <TouchableOpacity
-                  key={tag}
-                  onPress={() => handleTagToggle(tag)}
-                  className={`mr-2 mb-2 px-3 py-2 rounded-lg ${
-                    tags.includes(tag) ? 'bg-green-600' : 'bg-gray-700'
-                  }`}
-                >
-                  <Text className={`text-sm font-medium ${
-                    tags.includes(tag) ? 'text-white' : 'text-gray-300'
-                  }`}>{tag}</Text>
+            {/* Privacy Toggle */}
+            <View className="mb-6">
+              <View className="flex-row items-center justify-between rounded-[18px] p-4" style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
+                <View>
+                  <Text className="font-bold" style={{ color: colors.text }}>Public Review</Text>
+                  <Text className="text-sm" style={{ color: colors.textMuted }}>Share with the community</Text>
+                </View>
+                <TouchableOpacity onPress={() => setIsPublic(!isPublic)} activeOpacity={0.9} className="w-12 h-7 rounded-full justify-center" style={{ backgroundColor: isPublic ? colors.lime : colors.elevated }}>
+                  <View className="w-5 h-5 bg-white rounded-full" style={{ marginLeft: isPublic ? 26 : 4 }} />
                 </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Privacy Toggle */}
-          <View className="mb-6">
-            <View className="flex-row items-center justify-between bg-gray-800 rounded-lg p-4">
-              <View>
-                <Text className="text-white font-semibold">Public Review</Text>
-                <Text className="text-gray-400 text-sm">Share with the community</Text>
               </View>
-              <TouchableOpacity 
-                onPress={() => setIsPublic(!isPublic)}
-                className={`w-12 h-6 rounded-full ${isPublic ? 'bg-green-600' : 'bg-gray-600'}`}
-              >
-                <View className={`w-5 h-5 bg-white rounded-full mt-0.5 ${
-                  isPublic ? 'ml-6' : 'ml-0.5'
-                }`} />
-              </TouchableOpacity>
             </View>
-          </View>
 
-          {/* Submit Button */}
-          <TouchableOpacity 
-            onPress={handleSubmitReview}
-            className="bg-[#9146FF] rounded-lg p-4 mb-6"
-          >
-            <Text className="text-white text-center font-bold text-lg">
-              {hasExistingReview ? 'Update Review' : 'Post Review'}
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </SafeAreaView>
+            {/* Submit Button */}
+            <TouchableOpacity onPress={handleSubmitReview} activeOpacity={0.9} className="rounded-[18px] overflow-hidden mb-4 p-4" style={{ backgroundColor: colors.teal, ...glow(colors.teal, 0.4, 16) }}>
+              <Text className="text-center font-bold text-lg" style={{ color: colors.void }}>{hasExistingReview ? 'Update Review' : 'Post Review'}</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
+      </LinearGradient>
     );
   }
 
   // Main search and reviews view
   return (
-    <LinearGradient
-      colors={['#0E0E10', '#18181B', '#1F1F23']}
-      className="flex-1"
-    >
-      <SafeAreaView className="flex-1">
-        <ScrollView className="flex-1 px-4 py-6">
+    <LinearGradient colors={gradients.screen} className="flex-1" start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+      <StatusBar style="light" />
+      <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
+        <ScrollView className="flex-1 px-5 py-5" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 110 }}>
           {/* Header */}
-          <View className="mb-6">
-            <Text className="text-2xl font-bold text-white mb-2">Game Reviews</Text>
-            <Text className="text-gray-400">Share your gaming experiences</Text>
+          <View className="flex-row items-center gap-3 mb-6">
+            <View style={{ width: 42, height: 42, borderRadius: 14, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.coral, ...glow(colors.coral, 0.5, 12) }}>
+              <Star size={22} color={colors.void} weight="fill" />
+            </View>
+            <View>
+              <Text className="text-[26px] font-bold" style={{ color: colors.text }}>Game Reviews</Text>
+              <Text className="text-[13px]" style={{ color: colors.textMuted }}>Share your gaming experiences</Text>
+            </View>
           </View>
 
           {/* Search Bar */}
           <View className="mb-6">
-            <View className="relative">
+            <View
+              className="flex-row items-center rounded-2xl px-4 py-3.5"
+              style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+            >
               <TextInput
                 value={searchQuery}
                 onChangeText={handleSearchChange}
                 placeholder="Search for games to review..."
-                placeholderTextColor="#9CA3AF"
-                className="bg-[#18181B] text-white px-4 py-3 rounded-lg pr-10 border border-[#3F3F46]"
+                placeholderTextColor={colors.textMuted}
+                className="flex-1 text-base"
+                style={{ color: colors.text }}
               />
-              <View className="absolute right-3 top-3">
-                {isSearching ? (
-                  <ActivityIndicator size="small" color="#9146FF" />
-                ) : (
-                  <MagnifyingGlass size={20} color="#9CA3AF" />
-                )}
-              </View>
+              {isSearching ? (
+                <ActivityIndicator size="small" color={colors.tealBright} />
+              ) : (
+                <MagnifyingGlass size={20} color={colors.textMuted} weight="bold" />
+              )}
             </View>
 
             {/* Search Results */}
             {searchResults.length > 0 && (
-              <View className="mt-2 bg-[#18181B] rounded-lg max-h-60 border border-[#3F3F46]">
-                <ScrollView>
-                  {searchResults.map((game) => (
-                    <TouchableOpacity 
-                      key={game.id} 
-                      className="p-3 border-b border-[#3F3F46] last:border-b-0"
+              <View className="mt-2 rounded-2xl max-h-72 overflow-hidden" style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
+                <ScrollView keyboardShouldPersistTaps="handled">
+                  {searchResults.map((game, i) => (
+                    <TouchableOpacity
+                      key={game.id}
+                      className="p-3 flex-row items-center"
+                      style={{ borderBottomWidth: i === searchResults.length - 1 ? 0 : 1, borderBottomColor: colors.border }}
                       onPress={() => handleGameSelect(game)}
                     >
-                      <View className="flex-row items-center">
-                        {game.cover?.url ? (
-                          <Image 
-                            source={{ uri: game.cover.url.replace('t_thumb', 't_cover_small') }}
-                            className="w-10 h-14 rounded mr-3"
-                          />
-                        ) : (
-                          <View className="w-10 h-14 bg-[#3F3F46] rounded mr-3 items-center justify-center">
-                            <GameController size={20} color="#9CA3AF" />
-                          </View>
-                        )}
-                        <View className="flex-1">
-                          <Text className="text-white font-semibold" numberOfLines={1}>
-                            {game.name}
-                          </Text>
-                          {game.first_release_date && (
-                            <Text className="text-gray-400 text-sm">
-                              {new Date(game.first_release_date * 1000).getFullYear()}
-                            </Text>
-                          )}
+                      {game.cover?.url ? (
+                        <Image source={{ uri: game.cover.url.replace('t_thumb', 't_cover_small') }} className="w-10 h-14 rounded-lg mr-3" />
+                      ) : (
+                        <View className="w-10 h-14 rounded-lg mr-3 items-center justify-center" style={{ backgroundColor: colors.elevated }}>
+                          <GameController size={20} color={colors.textMuted} />
                         </View>
-                        <Plus size={20} color="#9146FF" />
+                      )}
+                      <View className="flex-1">
+                        <Text className="font-semibold" style={{ color: colors.text }} numberOfLines={1}>{game.name}</Text>
+                        {game.first_release_date && (
+                          <Text className="text-sm" style={{ color: colors.textMuted }}>{new Date(game.first_release_date * 1000).getFullYear()}</Text>
+                        )}
+                      </View>
+                      <View className="w-8 h-8 rounded-full justify-center items-center" style={{ backgroundColor: alpha(colors.teal, 0.16) }}>
+                        <Plus size={18} color={colors.tealBright} weight="bold" />
                       </View>
                     </TouchableOpacity>
                   ))}
@@ -687,67 +668,57 @@ export default function LogScreen() {
           {/* My Reviews Section */}
           <View className="mb-6">
             <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-xl font-bold text-white">My Reviews</Text>
-              <Text className="text-gray-400">{myReviews.length} reviews</Text>
+              <Text className="text-xl font-bold" style={{ color: colors.text }}>My Reviews</Text>
+              <View className="px-3 py-1 rounded-full" style={{ backgroundColor: alpha(colors.teal, 0.16) }}>
+                <Text className="font-bold text-sm" style={{ color: colors.tealBright }}>{myReviews.length}</Text>
+              </View>
             </View>
 
             {myReviews.length === 0 ? (
-              <View className="bg-gray-800 rounded-lg p-8 items-center">
-                <GameController size={48} color="#6B7280" />
-                <Text className="text-white text-lg font-semibold mt-4 mb-2">No reviews yet</Text>
-                <Text className="text-gray-400 text-center text-sm">
-                  Search for a game above to write your first review
-                </Text>
+              <View className="rounded-[20px] p-8 items-center" style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
+                <View className="w-16 h-16 rounded-full justify-center items-center mb-4" style={{ backgroundColor: alpha(colors.teal, 0.14) }}>
+                  <GameController size={30} color={colors.tealBright} weight="fill" />
+                </View>
+                <Text className="text-lg font-bold mb-1.5" style={{ color: colors.text }}>No reviews yet</Text>
+                <Text className="text-center text-sm" style={{ color: colors.textMuted }}>Search for a game above to write your first review</Text>
               </View>
             ) : (
-              <View className="space-y-4">
+              <View className="gap-4">
                 {myReviews.map((review) => (
-                  <View key={review.id} className="bg-gray-800 rounded-lg p-4">
-                    <View className="flex-row items-center mb-3">
+                  <View key={review.id} className="rounded-[20px] p-4" style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
+                    <View className="flex-row mb-3">
                       {review.game.cover?.url ? (
-                        <Image 
-                          source={{ uri: review.game.cover.url.replace('t_thumb', 't_cover_small') }}
-                          className="w-16 h-24 rounded mr-4"
-                        />
+                        <Image source={{ uri: review.game.cover.url.replace('t_thumb', 't_cover_small') }} className="w-16 h-24 rounded-xl mr-4" />
                       ) : (
-                        <View className="w-16 h-24 bg-gray-700 rounded mr-4 items-center justify-center">
-                          <GameController size={24} color="#9CA3AF" />
+                        <View className="w-16 h-24 rounded-xl mr-4 items-center justify-center" style={{ backgroundColor: colors.elevated }}>
+                          <GameController size={24} color={colors.textMuted} />
                         </View>
                       )}
                       <View className="flex-1">
-                        <Text className="text-white text-lg font-bold mb-1">{review.game.name}</Text>
-                        <Text className={`text-sm mb-1 ${getStatusColor(review.status)}`}>
-                          {getStatusIcon(review.status)} {getStatusLabel(review.status)}
-                        </Text>
-                        <Text className="text-gray-400 text-sm mb-2">{review.date}</Text>
+                        <Text className="text-lg font-bold mb-1" style={{ color: colors.text }}>{review.game.name}</Text>
+                        <Text className={`text-sm mb-1 ${getStatusColor(review.status)}`}>{getStatusIcon(review.status)} {getStatusLabel(review.status)}</Text>
+                        <Text className="text-sm mb-2" style={{ color: colors.textMuted }}>{review.date}</Text>
                         <View className="flex-row items-center">
                           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => (
-                            <Star 
-                              key={star} 
-                              size={14} 
-                              color={star <= review.rating ? '#F59E0B' : '#374151'} 
-                              weight={star <= review.rating ? 'fill' : 'regular'}
-                            />
+                            <Star key={star} size={13} color={star <= review.rating ? colors.gold : alpha(colors.text, 0.18)} weight={star <= review.rating ? 'fill' : 'regular'} />
                           ))}
-                          <Text className="text-yellow-400 ml-2 font-semibold">{review.rating}/10</Text>
+                          <Text className="ml-2 font-bold" style={{ color: colors.gold }}>{review.rating}/10</Text>
                         </View>
                       </View>
                     </View>
                     {review.reviewText && (
-                      <Text className="text-gray-300 text-sm leading-5 mb-3">
-                        {review.reviewText}
-                      </Text>
+                      <Text className="text-sm leading-5 mb-3" style={{ color: colors.textDim }}>{review.reviewText}</Text>
                     )}
                     {review.tags.length > 0 && (
-                      <View className="flex-row flex-wrap mb-2">
+                      <View className="flex-row flex-wrap gap-2 mb-2">
                         {review.tags.map((tag) => (
-                          <View key={tag} className="bg-green-600/20 px-2 py-1 rounded mr-2 mb-1">
-                            <Text className="text-green-400 text-xs">{tag}</Text>
+                          <View key={tag} className="px-2.5 py-1 rounded-full" style={{ backgroundColor: alpha(colors.lime, 0.14) }}>
+                            <Text className="text-xs font-semibold" style={{ color: colors.lime }}>{tag}</Text>
                           </View>
                         ))}
                       </View>
                     )}
-                    <Text className="text-gray-500 text-xs">
+                    <Text className="text-xs" style={{ color: colors.textMuted }}>
                       {review.platform && `Played on ${review.platform}`}
                       {review.playTime && ` • ${review.playTime}hrs`}
                       {review.difficulty && ` • ${review.difficulty} difficulty`}
@@ -757,11 +728,9 @@ export default function LogScreen() {
               </View>
             )}
           </View>
-
-
         </ScrollView>
       </SafeAreaView>
-      
+
       {/* Confirmation Modal */}
       <ConfirmationModal
         visible={confirmationState.visible}

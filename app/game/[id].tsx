@@ -46,8 +46,27 @@ import CommunityReviewCard from '@/components/CommunityReviewCard';
 import { useLiveStreams } from '@/hooks/useLiveStreams';
 import { LiveStreamCard } from '@/components/LiveStreamCard';
 import { twitchService } from '@/services/twitchService';
+import MediaPlayerModal, { PlayerMedia } from '@/components/MediaPlayerModal';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
+// Upgrade an IGDB image URL to a higher-resolution size variant.
+// IGDB urls look like: https://images.igdb.com/igdb/image/upload/t_screenshot_med/abc.jpg
+function toHiRes(url?: string, size: string = 't_1080p'): string | undefined {
+  if (!url) return undefined;
+  let out = url.startsWith('//') ? `https:${url}` : url;
+  return out.replace(/\/t_[a-z0-9_]+\//i, `/${size}/`);
+}
+
+// A label/value row that never clips: label and value each get half the width.
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View className="flex-row items-start justify-between" style={{ gap: 16 }}>
+      <Text className="text-gray-400 flex-1">{label}</Text>
+      <Text className="text-white font-medium text-right flex-1" numberOfLines={3}>{value}</Text>
+    </View>
+  );
+}
 
 function GameDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -59,6 +78,8 @@ function GameDetailScreen() {
   const [selectedVideo, setSelectedVideo] = useState<any>(null);
   const [isVideoModalVisible, setIsVideoModalVisible] = useState(false);
   const [isVideoLoading, setIsVideoLoading] = useState(false);
+  // In-app media player (YouTube videos + Twitch live streams)
+  const [player, setPlayer] = useState<PlayerMedia | null>(null);
   const [streamFilters, setStreamFilters] = useState({
     viewerCount: 'all', // all, low, medium, high
     language: 'all', // all, en, es, fr, de, etc.
@@ -300,14 +321,14 @@ function GameDetailScreen() {
   // Show error if no valid ID is provided
   if (!id || gameId === 0 || isNaN(gameId)) {
     return (
-      <View className="flex-1 justify-center items-center bg-[#0F0F1F] px-5">
+      <View className="flex-1 justify-center items-center bg-[#0A0E13] px-5">
         <Text className="text-white text-xl mb-4">Invalid Game ID</Text>
         <Text className="text-gray-400 text-center mb-6">
           Sorry, the game ID is missing or invalid.
         </Text>
         <TouchableOpacity
           onPress={() => router.push('/')}
-          className="bg-[#00D2FF] px-6 py-3 rounded-xl"
+          className="bg-[#38BDF8] px-6 py-3 rounded-xl"
         >
           <Text className="text-white font-semibold">Go to Home</Text>
         </TouchableOpacity>
@@ -317,8 +338,8 @@ function GameDetailScreen() {
 
   if (isLoading) {
     return (
-      <View className="flex-1 justify-center items-center bg-[#0F0F1F] px-6">
-        <ActivityIndicator size="large" color="#00D2FF" />
+      <View className="flex-1 justify-center items-center bg-[#0A0E13] px-6">
+        <ActivityIndicator size="large" color="#38BDF8" />
         <View className="mt-4 px-4">
           <Text className="text-white text-sm text-center leading-5">
             Loading game
@@ -333,14 +354,14 @@ function GameDetailScreen() {
 
   if (error || !gameDetail) {
     return (
-      <View className="flex-1 justify-center items-center bg-[#0F0F1F] px-5">
+      <View className="flex-1 justify-center items-center bg-[#0A0E13] px-5">
         <Text className="text-white text-xl mb-4">Game not found</Text>
         <Text className="text-gray-400 text-center mb-6">
           Sorry, we couldn't load the details for this game.
         </Text>
         <TouchableOpacity
           onPress={() => router.push('/')}
-          className="bg-[#00D2FF] px-6 py-3 rounded-xl"
+          className="bg-[#38BDF8] px-6 py-3 rounded-xl"
         >
           <Text className="text-white font-semibold">Go to Home</Text>
         </TouchableOpacity>
@@ -349,152 +370,123 @@ function GameDetailScreen() {
   }
 
   return (
-    <View className="flex-1 bg-[#0E0E10]">
+    <View className="flex-1 bg-[#0A0E13]">
       <StatusBar style="light" />
       
-      {/* Hero Section */}
-      <View className="h-[35%] relative">
-        <ImageBackground
-          source={{ uri: gameDetail.screenshots?.[selectedScreenshot]?.url || gameDetail.cover?.url }}
-          className="w-full h-full"
-          resizeMode="cover"
-        >
-          {/* Gradient overlays */}
-          <LinearGradient
-            colors={['rgba(0,0,0,0.55)', 'rgba(0,0,0,0.3)', 'transparent', 'rgba(14,14,16,0.9)', 'rgba(14,14,16,1)']}
-            className="absolute inset-0"
-            locations={[0, 0.2, 0.55, 0.85, 1]}
+      {/* Hero banner */}
+      <View>
+        <View className="relative" style={{ height: 290 }}>
+          <ImageBackground
+            source={{ uri: toHiRes(gameDetail.screenshots?.[selectedScreenshot]?.url, 't_1080p') || toHiRes(gameDetail.cover?.url, 't_720p') }}
+            className="w-full h-full"
+            resizeMode="cover"
           />
 
-          {/* Header */}
-          <SafeAreaView className="flex-1">
-            <View className="flex-row justify-between items-center px-5 pt-2">
-              <TouchableOpacity
-                onPress={handleGoBack}
-                className="w-10 h-10 rounded-full bg-black/50 justify-center items-center"
-              >
-                <BlurView intensity={20} className="w-full h-full rounded-full justify-center items-center">
+          {/* Back button */}
+          <SafeAreaView edges={['top']} className="absolute top-0 left-0 right-0">
+            <View className="px-5 pt-2">
+              <TouchableOpacity onPress={handleGoBack} className="w-10 h-10 rounded-full overflow-hidden" activeOpacity={0.85}>
+                <BlurView intensity={25} tint="dark" className="w-full h-full rounded-full justify-center items-center" style={{ backgroundColor: 'rgba(0,0,0,0.35)' }}>
                   <ArrowLeft size={20} color="#FFFFFF" weight="bold" />
                 </BlurView>
               </TouchableOpacity>
-
-              {/* <View className="flex-row gap-3">
-                <TouchableOpacity
-                  onPress={() => setIsBookmarked(!isBookmarked)}
-                  className="w-10 h-10 rounded-full bg-black/50 justify-center items-center"
-                >
-                  <BlurView intensity={20} className="w-full h-full rounded-full justify-center items-center">
-                    <Heart
-                      size={20}
-                      color={isBookmarked ? "#FF4757" : "#FFFFFF"}
-                      weight={isBookmarked ? "fill" : "bold"}
-                    />
-                  </BlurView>
-                </TouchableOpacity>
-                <TouchableOpacity className="w-10 h-10 rounded-full bg-black/50 justify-center items-center">
-                  <BlurView intensity={20} className="w-full h-full rounded-full justify-center items-center">
-                    <Share size={20} color="#FFFFFF" weight="bold" />
-                  </BlurView>
-                </TouchableOpacity>
-              </View> */}
-            </View>
-
-            {/* Game Info Overlay */}
-            <View className="flex-1 justify-end px-5 pb-7">
-              <View className="flex-row gap-4 items-end">
-                {/* Game Cover */}
-                <View>
-                  <Image
-                    source={{ uri: gameDetail.cover?.url }}
-                    className="w-20 h-28 rounded-2xl"
-                    resizeMode="cover"
-                  />
-                </View>
-
-                {/* Title and meta */}
-                <View className="flex-1 min-w-0">
-                  <Text className="text-2xl font-extrabold text-white mb-1" numberOfLines={2}>
-                    {gameDetail.name}
-                  </Text>
-                  <View className="flex-row items-center gap-2 min-w-0">
-                    <Star size={16} color="#FFD700" weight="fill" />
-                    <Text className="text-[#FFD700] font-semibold">
-                      {gameDetail.rating ? (gameDetail.rating / 10).toFixed(1) : 'N/A'}
-                    </Text>
-                    <Text className="text-gray-300 text-xs w-full" numberOfLines={1} ellipsizeMode="tail">({formatNumber(gameDetail.total_rating_count)})</Text>
-                  </View>
-                  <View className="flex-row flex-wrap gap-2 mt-2">
-                    {gameDetail.genres?.slice(0, 3).map((genre) => (
-                      <View key={genre.id} className="bg-white/10 border border-white/20 px-2 py-1 rounded-full">
-                        <Text className="text-white text-xs font-medium">{genre.name}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              </View>
             </View>
           </SafeAreaView>
-        </ImageBackground>
+        </View>
+
+        {/* Info row — below the banner on the solid page background (no overlap) */}
+        <View className="px-5 pt-4 flex-row gap-4">
+          {/* Cover */}
+          <View
+            className="rounded-2xl overflow-hidden"
+            style={{ borderWidth: 1, borderColor: '#232C37', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 8 }}
+          >
+            <Image
+              source={{ uri: toHiRes(gameDetail.cover?.url, 't_cover_big') }}
+              style={{ width: 100, height: 140 }}
+              resizeMode="cover"
+            />
+          </View>
+
+          {/* Title + meta */}
+          <View className="flex-1 justify-center">
+            <Text className="text-[21px] font-extrabold text-white mb-2 leading-6" numberOfLines={3}>
+              {gameDetail.name}
+            </Text>
+            <View className="flex-row items-center self-start px-2.5 py-1 rounded-full mb-2.5" style={{ backgroundColor: 'rgba(251,191,36,0.14)' }}>
+              <Star size={14} color="#FBBF24" weight="fill" />
+              <Text className="text-[#FBBF24] font-bold ml-1.5 text-sm">
+                {gameDetail.rating ? (gameDetail.rating / 10).toFixed(1) : 'N/A'}
+              </Text>
+              <Text className="text-gray-400 text-xs ml-1.5">({formatNumber(gameDetail.total_rating_count)})</Text>
+            </View>
+            <View className="flex-row flex-wrap gap-2">
+              {gameDetail.genres?.slice(0, 2).map((genre) => (
+                <View key={genre.id} className="px-2.5 py-1 rounded-full" style={{ backgroundColor: 'rgba(20,200,176,0.14)', borderWidth: 1, borderColor: 'rgba(20,200,176,0.35)' }}>
+                  <Text className="text-xs font-semibold" style={{ color: '#2DD4BF' }}>{genre.name}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </View>
       </View>
 
 
 
       {/* Tab Navigation */}
-      <View className="px-4 mb-3">
-        <View className="flex-row bg-[#18181B] rounded-2xl p-1 border border-[#3F3F46]">
-          {['overview', 'media', 'details', 'reviews', 'streams'].map((tab) => (
-            <TouchableOpacity
-              key={tab}
-              onPress={() => setSelectedTab(tab)}
-              className={`flex-1 py-2 rounded-xl ${
-                selectedTab === tab ? 'bg-[#9146FF]' : 'bg-transparent'
-              }`}
-            >
-              <Text
-                className={`text-center font-semibold capitalize text-sm ${
-                  selectedTab === tab ? 'text-white' : 'text-gray-400'
-                }`}
+      <View className="mt-4 mb-3">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
+          <View className="flex-row bg-[#12171E] rounded-2xl p-1 border border-[#232C37]">
+            {['overview', 'media', 'details', 'reviews', 'videos', 'streams'].map((tab) => (
+              <TouchableOpacity
+                key={tab}
+                onPress={() => setSelectedTab(tab)}
+                className={`px-4 py-2 rounded-xl ${selectedTab === tab ? 'bg-[#14C8B0]' : 'bg-transparent'}`}
               >
-                {tab === 'reviews' ? 'Community' : tab === 'streams' ? 'Live' : tab}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+                <Text
+                  className={`text-center font-bold capitalize text-sm ${selectedTab === tab ? 'text-[#06090D]' : 'text-gray-400'}`}
+                >
+                  {tab === 'reviews' ? 'Community' : tab === 'streams' ? 'Live' : tab}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
       </View>
 
       {/* Content */}
-      <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 140 }}>
+      <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
         {selectedTab === 'overview' && (
           <View className="pb-8">
             {/* Stats Row */}
-            <View className="flex-row justify-between mb-6 bg-[#18181B] p-4 rounded-2xl border border-[#3F3F46]">
+            <View className="flex-row justify-between mb-6 bg-[#12171E] p-4 rounded-2xl border border-[#232C37]">
               <View className="items-center">
-                <View className="w-10 h-10 bg-[#FF4757]/20 rounded-full justify-center items-center mb-2">
-                  <Fire size={20} color="#FF4757" weight="fill" />
+                <View className="w-10 h-10 bg-[#FF7A5C]/20 rounded-full justify-center items-center mb-2">
+                  <Fire size={20} color="#FF7A5C" weight="fill" />
                 </View>
                 <Text className="text-white font-bold">{formatNumber(gameDetail.hypes)}</Text>
                 <Text className="text-gray-400 text-xs w-full">Hype</Text>
               </View>
               
               <View className="items-center">
-                <View className="w-10 h-10 bg-[#9146FF]/20 rounded-full justify-center items-center mb-2">
-                  <Eye size={20} color="#9146FF" weight="fill" />
+                <View className="w-10 h-10 bg-[#14C8B0]/20 rounded-full justify-center items-center mb-2">
+                  <Eye size={20} color="#14C8B0" weight="fill" />
                 </View>
                 <Text className="text-white font-bold">{formatNumber(gameDetail.follows)}</Text>
                 <Text className="text-gray-400 text-xs w-full">Follows</Text>
               </View>
               
               <View className="items-center">
-                <View className="w-10 h-10 bg-[#FFD700]/20 rounded-full justify-center items-center mb-2">
-                  <Trophy size={20} color="#FFD700" weight="fill" />
+                <View className="w-10 h-10 bg-[#FBBF24]/20 rounded-full justify-center items-center mb-2">
+                  <Trophy size={20} color="#FBBF24" weight="fill" />
                 </View>
                 <Text className="text-white font-bold">{gameDetail.aggregated_rating ? Math.round(gameDetail.aggregated_rating) : '?'}</Text>
                 <Text className="text-gray-400 text-xs w-full">Score</Text>
               </View>
               
               <View className="items-center">
-                <View className="w-10 h-10 bg-[#00B5AD]/20 rounded-full justify-center items-center mb-2">
-                  <ThumbsUp size={20} color="#00B5AD" weight="fill" />
+                <View className="w-10 h-10 bg-[#14C8B0]/20 rounded-full justify-center items-center mb-2">
+                  <ThumbsUp size={20} color="#14C8B0" weight="fill" />
                 </View>
                 <Text className="text-white font-bold">{formatNumber(gameDetail.aggregated_rating_count)}</Text>
                 <Text className="text-gray-400 text-xs w-full">Reviews</Text>
@@ -519,7 +511,7 @@ function GameDetailScreen() {
             {/* Detailed Game Information */}
             <View className="mb-6">
               <Text className="text-white text-xl font-bold mb-3">Game Information</Text>
-              <View className="bg-[#18181B] rounded-2xl p-3 gap-2 border border-[#3F3F46]">
+              <View className="bg-[#12171E] rounded-2xl p-3 gap-2 border border-[#232C37]">
                 <View className="flex-col">
                   <Text className="text-gray-400 text-sm mb-1">Release Date</Text>
                   <Text className="text-white font-medium text-sm">
@@ -569,18 +561,18 @@ function GameDetailScreen() {
             {/* Rating Breakdown */}
             <View className="mb-6">
               <Text className="text-white text-xl font-bold mb-3">Ratings & Reviews</Text>
-              <View className="bg-[#18181B] rounded-2xl p-4 gap-5 border border-[#3F3F46]">
+              <View className="bg-[#12171E] rounded-2xl p-4 gap-5 border border-[#232C37]">
                 {gameDetail.rating && (
                   <View>
                     <View className="flex-row items-center justify-between mb-2">
                       <Text className="text-gray-400">User Rating</Text>
                       <View className="flex-row items-center gap-2">
-                        <Star size={16} color="#FFD700" weight="fill" />
+                        <Star size={16} color="#FBBF24" weight="fill" />
                         <Text className="text-white font-bold">{(gameDetail.rating / 10).toFixed(1)}/10</Text>
                       </View>
                     </View>
-                    <View className="w-full h-2 bg-[#0E0E10] rounded-full overflow-hidden">
-                      <View style={{ width: `${Math.min(100, (gameDetail.rating/10)*10*10)}%` }} className="h-full bg-[#FFD700]" />
+                    <View className="w-full h-2 bg-[#0A0E13] rounded-full overflow-hidden">
+                      <View style={{ width: `${Math.min(100, (gameDetail.rating/10)*10*10)}%` }} className="h-full bg-[#FBBF24]" />
                     </View>
                     <Text className="text-gray-400 text-xs mt-1" numberOfLines={1}>({formatNumber(gameDetail.rating_count || 0)} votes)</Text>
                   </View>
@@ -590,12 +582,12 @@ function GameDetailScreen() {
                     <View className="flex-row items-center justify-between mb-2">
                       <Text className="text-gray-400">Total Rating</Text>
                       <View className="flex-row items-center gap-2">
-                        <Star size={16} color="#9146FF" weight="fill" />
+                        <Star size={16} color="#14C8B0" weight="fill" />
                         <Text className="text-white font-bold">{(gameDetail.total_rating / 10).toFixed(1)}/10</Text>
                       </View>
                     </View>
-                    <View className="w-full h-2 bg-[#0F0F1F] rounded-full overflow-hidden">
-                      <View style={{ width: `${Math.min(100, (gameDetail.total_rating/10)*10*10)}%` }} className="h-full bg-[#9146FF]" />
+                    <View className="w-full h-2 bg-[#0A0E13] rounded-full overflow-hidden">
+                      <View style={{ width: `${Math.min(100, (gameDetail.total_rating/10)*10*10)}%` }} className="h-full bg-[#14C8B0]" />
                     </View>
                     <Text className="text-gray-400 text-xs mt-1" numberOfLines={1}>({formatNumber(gameDetail.total_rating_count || 0)} reviews)</Text>
                   </View>
@@ -605,12 +597,12 @@ function GameDetailScreen() {
                     <View className="flex-row items-center justify-between mb-2">
                       <Text className="text-gray-400">Critics Score</Text>
                       <View className="flex-row items-center gap-2">
-                        <Trophy size={16} color="#A78BFA" weight="fill" />
+                        <Trophy size={16} color="#2DD4BF" weight="fill" />
                         <Text className="text-white font-bold">{Math.round(gameDetail.aggregated_rating)}/100</Text>
                       </View>
                     </View>
-                    <View className="w-full h-2 bg-[#0F0F1F] rounded-full overflow-hidden">
-                      <View style={{ width: `${Math.min(100, Math.round(gameDetail.aggregated_rating))}%` }} className="h-full bg-[#A78BFA]" />
+                    <View className="w-full h-2 bg-[#0A0E13] rounded-full overflow-hidden">
+                      <View style={{ width: `${Math.min(100, Math.round(gameDetail.aggregated_rating))}%` }} className="h-full bg-[#2DD4BF]" />
                     </View>
                     <Text className="text-gray-400 text-xs mt-1" numberOfLines={1}>({formatNumber(gameDetail.aggregated_rating_count || 0)} critics)</Text>
                   </View>
@@ -627,8 +619,8 @@ function GameDetailScreen() {
                     <Text className="text-gray-400 mb-2">Genres</Text>
                     <View className="flex-row flex-wrap gap-2">
                       {gameDetail.genres.map((genre) => (
-                        <View key={genre.id} className="bg-[#00D2FF]/20 border border-[#00D2FF]/40 px-3 py-2 rounded-xl">
-                          <Text className="text-[#00D2FF] font-medium">{genre.name}</Text>
+                        <View key={genre.id} className="bg-[#38BDF8]/20 border border-[#38BDF8]/40 px-3 py-2 rounded-xl">
+                          <Text className="text-[#38BDF8] font-medium">{genre.name}</Text>
                         </View>
                       ))}
                     </View>
@@ -639,8 +631,8 @@ function GameDetailScreen() {
                     <Text className="text-gray-400 mb-2">Themes</Text>
                     <View className="flex-row flex-wrap gap-2">
                       {gameDetail.themes.map((theme) => (
-                        <View key={theme.id} className="bg-[#A78BFA]/20 border border-[#A78BFA]/40 px-3 py-2 rounded-xl">
-                          <Text className="text-[#A78BFA] font-medium">{theme.name}</Text>
+                        <View key={theme.id} className="bg-[#2DD4BF]/20 border border-[#2DD4BF]/40 px-3 py-2 rounded-xl">
+                          <Text className="text-[#2DD4BF] font-medium">{theme.name}</Text>
                         </View>
                       ))}
                     </View>
@@ -651,8 +643,8 @@ function GameDetailScreen() {
                     <Text className="text-gray-400 mb-2">Keywords</Text>
                     <View className="flex-row flex-wrap gap-2">
                       {gameDetail.keywords.slice(0, 6).map((keyword) => (
-                        <View key={keyword.id} className="bg-[#FF4757]/20 border border-[#FF4757]/40 px-3 py-2 rounded-xl">
-                          <Text className="text-[#FF4757] font-medium">{keyword.name}</Text>
+                        <View key={keyword.id} className="bg-[#FF7A5C]/20 border border-[#FF7A5C]/40 px-3 py-2 rounded-xl">
+                          <Text className="text-[#FF7A5C] font-medium">{keyword.name}</Text>
                         </View>
                       ))}
                     </View>
@@ -680,7 +672,7 @@ function GameDetailScreen() {
                       setGalleryStartIndex(index);
                       setIsGalleryVisible(true);
                     }}
-                    className={`relative ${index === selectedScreenshot ? 'border-2 border-[#00D2FF] rounded-xl' : ''}`}
+                    className={`relative ${index === selectedScreenshot ? 'border-2 border-[#38BDF8] rounded-xl' : ''}`}
                   >
                     <Image
                       source={{ uri: screenshot.url }}
@@ -688,7 +680,7 @@ function GameDetailScreen() {
                       resizeMode="cover"
                     />
                     {index === selectedScreenshot && (
-                      <View className="absolute inset-0 bg-[#00D2FF]/20 rounded-xl" />
+                      <View className="absolute inset-0 bg-[#38BDF8]/20 rounded-xl" />
                     )}
                     {/* Overlay to indicate it's clickable */}
                     <View className="absolute inset-0 justify-center items-center">
@@ -708,31 +700,15 @@ function GameDetailScreen() {
                 {gameDetail.videos?.map((video) => (
                   <TouchableOpacity
                     key={video.id}
-                    onPress={() => {
-                      if (Platform.OS === 'web') {
-                        // For web, open in modal
-                        setSelectedVideo(video);
-                        setIsVideoModalVisible(true);
-                        setIsVideoLoading(true);
-                      } else {
-                        // For mobile, open directly in YouTube app/browser
-                        const youtubeUrl = `https://www.youtube.com/watch?v=${video.video_id}`;
-                        Linking.openURL(youtubeUrl).catch(err => {
-                          console.error('Failed to open YouTube:', err);
-                          Alert.alert('Error', 'Unable to open YouTube. Please try again.');
-                        });
-                      }
-                    }}
-                    className="bg-[#1A1A2E] rounded-2xl p-4 flex-row items-center gap-3"
+                    onPress={() => video.video_id && setPlayer({ type: 'youtube', id: video.video_id, title: video.name })}
+                    className="bg-[#1A212A] rounded-2xl p-4 flex-row items-center gap-3"
                   >
-                    <View className="w-12 h-12 bg-[#FF4757] rounded-xl justify-center items-center">
+                    <View className="w-12 h-12 bg-[#FF7A5C] rounded-xl justify-center items-center">
                       <PlayCircle size={20} color="#FFFFFF" weight="fill" />
                     </View>
                     <View className="flex-1">
                       <Text className="text-white font-semibold">{video.name}</Text>
-                      <Text className="text-gray-400 text-sm">
-                        {Platform.OS === 'web' ? 'Tap to play' : 'Tap to open in YouTube'}
-                      </Text>
+                      <Text className="text-gray-400 text-sm">Tap to play</Text>
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -750,9 +726,9 @@ function GameDetailScreen() {
                 {gameDetail.platforms?.map((platform) => (
                   <View
                     key={platform.id}
-                    className="bg-[#1A1A2E] border border-[#00D2FF]/30 px-4 py-3 rounded-xl"
+                    className="bg-[#1A212A] border border-[#38BDF8]/30 px-4 py-3 rounded-xl"
                   >
-                    <Text className="text-[#00D2FF] font-medium">
+                    <Text className="text-[#38BDF8] font-medium">
                       {platform.name}
                     </Text>
                   </View>
@@ -764,14 +740,13 @@ function GameDetailScreen() {
             {gameDetail.release_dates && gameDetail.release_dates.length > 0 && (
               <View className="mb-6">
                 <Text className="text-white text-xl font-bold mb-3">Release Dates</Text>
-                <View className="bg-[#1A1A2E] rounded-2xl p-4 gap-3">
+                <View className="bg-[#1A212A] rounded-2xl p-4 gap-3">
                   {gameDetail.release_dates.slice(0, 5).map((release, index) => (
-                    <View key={index} className="flex-row justify-between items-center">
-                      <Text className="text-gray-400">{release.platform?.name || 'Unknown Platform'}</Text>
-                      <Text className="text-white font-medium">
-                        {release.date ? formatDate(release.date) : 'TBA'}
-                      </Text>
-                    </View>
+                    <InfoRow
+                      key={index}
+                      label={release.platform?.name || 'Unknown Platform'}
+                      value={release.date ? formatDate(release.date) : 'TBA'}
+                    />
                   ))}
                 </View>
               </View>
@@ -780,16 +755,13 @@ function GameDetailScreen() {
             {/* Game Development Details */}
             <View className="mb-6">
               <Text className="text-white text-xl font-bold mb-3">Development</Text>
-              <View className="bg-[#1A1A2E] rounded-2xl p-4 gap-3">
+              <View className="bg-[#1A212A] rounded-2xl p-4 gap-3">
                 {gameDetail.involved_companies?.map((company, index) => (
-                  <View key={company.id || index} className="flex-row justify-between items-start">
-                    <Text className="text-gray-400 flex-shrink-0 mr-3">
-                      {company.developer ? 'Developer' : company.publisher ? 'Publisher' : 'Company'}
-                    </Text>
-                    <Text className="text-white font-medium text-right flex-1" numberOfLines={2}>
-                      {company.company.name}
-                    </Text>
-                  </View>
+                  <InfoRow
+                    key={company.id || index}
+                    label={company.developer ? 'Developer' : company.publisher ? 'Publisher' : 'Company'}
+                    value={company.company.name}
+                  />
                 ))}
               </View>
             </View>
@@ -797,22 +769,12 @@ function GameDetailScreen() {
             {/* Game Perspectives & Modes */}
             <View className="mb-6">
               <Text className="text-white text-xl font-bold mb-3">Gameplay Details</Text>
-              <View className="bg-[#1A1A2E] rounded-2xl p-4 gap-3">
+              <View className="bg-[#1A212A] rounded-2xl p-4 gap-3">
                 {gameDetail.player_perspectives && gameDetail.player_perspectives.length > 0 && (
-                  <View className="flex-row justify-between items-start">
-                    <Text className="text-gray-400 flex-shrink-0 mr-3">Player Perspective</Text>
-                    <Text className="text-white font-medium text-right flex-1" numberOfLines={2}>
-                      {gameDetail.player_perspectives.map(p => p.name).join(', ')}
-                    </Text>
-                  </View>
+                  <InfoRow label="Player Perspective" value={gameDetail.player_perspectives.map(p => p.name).join(', ')} />
                 )}
                 {gameDetail.game_modes && gameDetail.game_modes.length > 0 && (
-                  <View className="flex-row justify-between items-start">
-                    <Text className="text-gray-400 flex-shrink-0 mr-3">Game Modes</Text>
-                    <Text className="text-white font-medium text-right flex-1" numberOfLines={2}>
-                      {gameDetail.game_modes.map(m => m.name).join(', ')}
-                    </Text>
-                  </View>
+                  <InfoRow label="Game Modes" value={gameDetail.game_modes.map(m => m.name).join(', ')} />
                 )}
               </View>
             </View>
@@ -820,61 +782,32 @@ function GameDetailScreen() {
             {/* Community Stats */}
             <View className="mb-6">
               <Text className="text-white text-xl font-bold mb-3">Community</Text>
-              <View className="bg-[#1A1A2E] rounded-2xl p-4 gap-3">
-                {gameDetail.follows && (
-                  <View className="flex-row justify-between items-center">
-                    <Text className="text-gray-400">Followers</Text>
-                    <Text className="text-white font-medium">{formatNumber(gameDetail.follows)}</Text>
-                  </View>
-                )}
-                {gameDetail.hypes && (
-                  <View className="flex-row justify-between items-center">
-                    <Text className="text-gray-400">Hype Level</Text>
-                    <Text className="text-white font-medium">{formatNumber(gameDetail.hypes)}</Text>
-                  </View>
-                )}
-                {gameDetail.rating_count && (
-                  <View className="flex-row justify-between items-center">
-                    <Text className="text-gray-400">User Ratings</Text>
-                    <Text className="text-white font-medium">{formatNumber(gameDetail.rating_count)}</Text>
-                  </View>
-                )}
-                {gameDetail.total_rating_count && (
-                  <View className="flex-row justify-between items-center">
-                    <Text className="text-gray-400">Total Reviews</Text>
-                    <Text className="text-white font-medium">{formatNumber(gameDetail.total_rating_count)}</Text>
-                  </View>
-                )}
+              <View className="bg-[#1A212A] rounded-2xl p-4 gap-3">
+                {!!gameDetail.follows && <InfoRow label="Followers" value={formatNumber(gameDetail.follows)} />}
+                {!!gameDetail.hypes && <InfoRow label="Hype Level" value={formatNumber(gameDetail.hypes)} />}
+                {!!gameDetail.rating_count && <InfoRow label="User Ratings" value={formatNumber(gameDetail.rating_count)} />}
+                {!!gameDetail.total_rating_count && <InfoRow label="Total Reviews" value={formatNumber(gameDetail.total_rating_count)} />}
               </View>
             </View>
 
             {/* Technical Information */}
             <View className="mb-6">
               <Text className="text-white text-xl font-bold mb-3">Technical Details</Text>
-              <View className="bg-[#1A1A2E] rounded-2xl p-4 gap-3">
-                <View className="flex-row justify-between items-center">
-                  <Text className="text-gray-400">Game ID</Text>
-                  <Text className="text-white font-medium">#{gameDetail.id}</Text>
-                </View>
-                <View className="flex-row justify-between items-center">
-                  <Text className="text-gray-400">Category</Text>
-                  <Text className="text-white font-medium">
-                    {gameDetail.category === 0 ? 'Main Game' : 
-                     gameDetail.category === 1 ? 'DLC' : 
-                     gameDetail.category === 2 ? 'Expansion' : 'Game'}
-                  </Text>
-                </View>
-                <View className="flex-row justify-between items-center">
-                  <Text className="text-gray-400">Status</Text>
-                  <Text className="text-white font-medium">
-                    {typeof gameDetail.status === 'number' && gameDetail.status === 0 ? 'Released' : 
-                     typeof gameDetail.status === 'number' && gameDetail.status === 2 ? 'Alpha' : 
-                     typeof gameDetail.status === 'number' && gameDetail.status === 3 ? 'Beta' : 
-                     typeof gameDetail.status === 'number' && gameDetail.status === 4 ? 'Early Access' : 
-                     typeof gameDetail.status === 'number' && gameDetail.status === 5 ? 'Offline' : 
-                     typeof gameDetail.status === 'number' && gameDetail.status === 6 ? 'Cancelled' : 'Unknown'}
-                  </Text>
-                </View>
+              <View className="bg-[#1A212A] rounded-2xl p-4 gap-3">
+                <InfoRow label="Game ID" value={`#${gameDetail.id}`} />
+                <InfoRow
+                  label="Category"
+                  value={gameDetail.category === 0 ? 'Main Game' : gameDetail.category === 1 ? 'DLC' : gameDetail.category === 2 ? 'Expansion' : 'Game'}
+                />
+                <InfoRow
+                  label="Status"
+                  value={typeof gameDetail.status === 'number' && gameDetail.status === 0 ? 'Released' :
+                    typeof gameDetail.status === 'number' && gameDetail.status === 2 ? 'Alpha' :
+                    typeof gameDetail.status === 'number' && gameDetail.status === 3 ? 'Beta' :
+                    typeof gameDetail.status === 'number' && gameDetail.status === 4 ? 'Early Access' :
+                    typeof gameDetail.status === 'number' && gameDetail.status === 5 ? 'Offline' :
+                    typeof gameDetail.status === 'number' && gameDetail.status === 6 ? 'Cancelled' : 'Unknown'}
+                />
               </View>
             </View>
           </View>
@@ -945,6 +878,53 @@ function GameDetailScreen() {
           </View>
         )}
 
+        {selectedTab === 'videos' && (
+          <View className="pb-8">
+            <View className="mb-4">
+              <Text className="text-white text-2xl font-bold mb-1">Videos</Text>
+              <Text className="text-gray-400 text-sm">Trailers and gameplay for {gameDetail.name}</Text>
+            </View>
+            {gameDetail.videos && gameDetail.videos.length > 0 ? (
+              <View className="gap-4">
+                {gameDetail.videos.map((video) => (
+                  <TouchableOpacity
+                    key={video.id}
+                    activeOpacity={0.85}
+                    onPress={() => video.video_id && setPlayer({ type: 'youtube', id: video.video_id, title: video.name })}
+                    className="rounded-2xl overflow-hidden"
+                    style={{ backgroundColor: '#12171E', borderWidth: 1, borderColor: '#232C37' }}
+                  >
+                    {/* Thumbnail */}
+                    <View className="relative" style={{ width: '100%', aspectRatio: 16 / 9 }}>
+                      <Image
+                        source={{ uri: `https://img.youtube.com/vi/${video.video_id}/hqdefault.jpg` }}
+                        style={{ width: '100%', height: '100%' }}
+                        resizeMode="cover"
+                      />
+                      <View className="absolute inset-0 items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.25)' }}>
+                        <View className="w-14 h-14 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(20,200,176,0.95)' }}>
+                          <PlayCircle size={30} color="#06090D" weight="fill" />
+                        </View>
+                      </View>
+                    </View>
+                    <View className="p-3">
+                      <Text className="text-white font-semibold" numberOfLines={2}>{video.name}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <View className="py-16 items-center">
+                <View className="w-16 h-16 rounded-full items-center justify-center mb-4" style={{ backgroundColor: 'rgba(20,200,176,0.14)' }}>
+                  <PlayCircle size={30} color="#2DD4BF" weight="fill" />
+                </View>
+                <Text className="text-white text-lg font-bold mb-1">No videos available</Text>
+                <Text className="text-gray-400 text-center px-8">This game doesn't have any trailers or gameplay videos yet</Text>
+              </View>
+            )}
+          </View>
+        )}
+
         {selectedTab === 'streams' && (
           <View className="pb-12 px-1">
             {/* Live Streams Header */}
@@ -955,7 +935,7 @@ function GameDetailScreen() {
               </Text>
 
               {/* Stream Filters */}
-              <View className="bg-[#18181B] rounded-xl p-4 border border-[#3F3F46]">
+              <View className="bg-[#12171E] rounded-xl p-4 border border-[#232C37]">
                 <Text className="text-white font-semibold mb-3">Filters</Text>
                 
                 {/* Viewer Count Filter */}
@@ -973,8 +953,8 @@ function GameDetailScreen() {
                         onPress={() => setStreamFilters(prev => ({ ...prev, viewerCount: option.key }))}
                         className={`px-3 py-2 rounded-lg ${
                           streamFilters.viewerCount === option.key
-                            ? 'bg-[#9146FF]'
-                            : 'bg-[#3F3F46]'
+                            ? 'bg-[#14C8B0]'
+                            : 'bg-[#232C37]'
                         }`}
                       >
                         <Text className={`text-xs font-medium ${
@@ -997,8 +977,8 @@ function GameDetailScreen() {
                       onPress={() => setStreamFilters(prev => ({ ...prev, language: 'all' }))}
                       className={`px-3 py-2 rounded-lg ${
                         streamFilters.language === 'all'
-                          ? 'bg-[#9146FF]'
-                          : 'bg-[#3F3F46]'
+                          ? 'bg-[#14C8B0]'
+                          : 'bg-[#232C37]'
                       }`}
                     >
                       <Text className={`text-xs font-medium ${
@@ -1015,8 +995,8 @@ function GameDetailScreen() {
                         onPress={() => setStreamFilters(prev => ({ ...prev, language: lang }))}
                         className={`px-3 py-2 rounded-lg ${
                           streamFilters.language === lang
-                            ? 'bg-[#00B5AD]'
-                            : 'bg-[#3F3F46]'
+                            ? 'bg-[#14C8B0]'
+                            : 'bg-[#232C37]'
                         }`}
                       >
                         <Text className={`text-xs font-medium ${
@@ -1046,8 +1026,8 @@ function GameDetailScreen() {
                         onPress={() => setStreamFilters(prev => ({ ...prev, duration: option.key }))}
                         className={`px-3 py-2 rounded-lg ${
                           streamFilters.duration === option.key
-                            ? 'bg-[#FF4757]'
-                            : 'bg-[#3F3F46]'
+                            ? 'bg-[#FF7A5C]'
+                            : 'bg-[#232C37]'
                         }`}
                       >
                         <Text className={`text-xs font-medium ${
@@ -1070,7 +1050,7 @@ function GameDetailScreen() {
                     duration: 'all',
                     quality: 'all',
                   })}
-                  className="bg-[#3F3F46] px-4 py-2 rounded-lg self-start"
+                  className="bg-[#232C37] px-4 py-2 rounded-lg self-start"
                 >
                   <Text className="text-gray-400 text-xs font-medium">Clear All Filters</Text>
                 </TouchableOpacity>
@@ -1080,7 +1060,7 @@ function GameDetailScreen() {
             {/* Live Streams List */}
             {streamsLoading ? (
               <View className="items-center py-8">
-                <ActivityIndicator size="large" color="#00D2FF" />
+                <ActivityIndicator size="large" color="#38BDF8" />
                 <Text className="text-gray-400 text-lg mt-4 w-full text-center">Loading live streams...</Text>
               </View>
             ) : streamsError ? (
@@ -1093,7 +1073,7 @@ function GameDetailScreen() {
                 </Text>
                 <TouchableOpacity
                   onPress={refetchStreams}
-                  className="bg-[#00D2FF] px-6 py-3 rounded-xl"
+                  className="bg-[#38BDF8] px-6 py-3 rounded-xl"
                 >
                   <Text className="text-white font-semibold">Try Again</Text>
                 </TouchableOpacity>
@@ -1121,13 +1101,14 @@ function GameDetailScreen() {
                             key={stream.id}
                             stream={stream}
                             streamer={stream.streamer}
+                            onPress={() => setPlayer({ type: 'twitch', channel: stream.user_login || stream.user_name.toLowerCase(), title: stream.title })}
                           />
                         ))}
                       </View>
 
                       {/* Custom Pagination Controls */}
                       {filteredPagination.totalPages > 1 && (
-                        <View className="mt-6 bg-[#18181B] rounded-xl p-4 border border-[#3F3F46]">
+                        <View className="mt-6 bg-[#12171E] rounded-xl p-4 border border-[#232C37]">
                           <View className="flex-row items-center justify-between mb-3">
                             <Text className="text-gray-400 text-sm">
                               Showing {((filteredPagination.currentPage - 1) * streamsPerPage) + 1}-{Math.min(filteredPagination.currentPage * streamsPerPage, filteredPagination.totalStreams)} of {filteredPagination.totalStreams} streams
@@ -1143,7 +1124,7 @@ function GameDetailScreen() {
                               disabled={!filteredPagination.hasPreviousPage}
                               className={`px-4 py-2 rounded-lg ${
                                 filteredPagination.hasPreviousPage 
-                                  ? 'bg-[#9146FF]' 
+                                  ? 'bg-[#14C8B0]' 
                                   : 'bg-gray-600'
                               }`}
                             >
@@ -1176,8 +1157,8 @@ function GameDetailScreen() {
                                     onPress={() => filteredPagination.goToPage(pageNum)}
                                     className={`w-8 h-8 rounded-lg items-center justify-center ${
                                       pageNum === filteredPagination.currentPage
-                                        ? 'bg-[#9146FF]'
-                                        : 'bg-[#3F3F46]'
+                                        ? 'bg-[#14C8B0]'
+                                        : 'bg-[#232C37]'
                                     }`}
                                   >
                                     <Text className={`text-sm font-medium ${
@@ -1197,7 +1178,7 @@ function GameDetailScreen() {
                               disabled={!filteredPagination.hasNextPage}
                               className={`px-4 py-2 rounded-lg ${
                                 filteredPagination.hasNextPage 
-                                  ? 'bg-[#9146FF]' 
+                                  ? 'bg-[#14C8B0]' 
                                   : 'bg-gray-600'
                               }`}
                             >
@@ -1218,7 +1199,7 @@ function GameDetailScreen() {
               </View>
             ) : (
               <View className="items-center py-8">
-                <View className="bg-[#2A2A3E] rounded-xl p-6 w-full max-w-sm">
+                <View className="bg-[#232C37] rounded-xl p-6 w-full max-w-sm">
                   <Text className="text-gray-300 text-lg text-center font-semibold mb-2">
                     No Live Streams Found
                   </Text>
@@ -1236,24 +1217,21 @@ function GameDetailScreen() {
       </ScrollView>
       
       {/* Bottom Action Bar */}
-      <View className="bg-[#18181B] px-4 py-3 border-t border-[#3F3F46]">
+      <View className="bg-[#12171E] px-4 py-3 border-t border-[#232C37]">
         <SafeAreaView edges={['bottom']}>
           <View className="flex-row gap-3">
             <TouchableOpacity
               onPress={handleAddToLibrary}
-              className="flex-1"
+              activeOpacity={0.9}
+              className="flex-1 py-3.5 rounded-xl flex-row items-center justify-center"
+              style={{ backgroundColor: isInLibrary ? '#FF7A5C' : '#14C8B0' }}
             >
-              <LinearGradient
-                colors={isInLibrary ? ['#FF4757', '#E63946'] : ['#9146FF', '#7C3AED']}
-                className="py-3 rounded-xl flex-row items-center justify-center"
-              >
-                <GameController size={20} color="#FFFFFF" weight="bold" />
-                <Text className="ml-2 text-white font-bold">
-                  {isInLibrary ? 'Remove from Library' : 'Add to Library'}
-                </Text>
-              </LinearGradient>
+              <GameController size={20} color="#06090D" weight="bold" />
+              <Text className="ml-2 font-bold" style={{ color: '#06090D' }}>
+                {isInLibrary ? 'Remove from Library' : 'Add to Library'}
+              </Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               onPress={() => {
                 if (gameDetail) {
@@ -1263,10 +1241,12 @@ function GameDetailScreen() {
                   });
                 }
               }}
-              className="bg-[#9146FF] py-3 px-6 rounded-xl flex-row items-center justify-center"
+              activeOpacity={0.9}
+              className="py-3.5 px-6 rounded-xl flex-row items-center justify-center"
+              style={{ backgroundColor: '#232C37', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' }}
             >
-              <Star size={20} color="#FFFFFF" weight="bold" />
-              <Text className="ml-2 text-white font-bold">{hasReviewed ? 'Edit Review' : 'Review'}</Text>
+              <Star size={20} color="#FBBF24" weight="fill" />
+              <Text className="ml-2 font-bold text-white">{hasReviewed ? 'Edit Review' : 'Review'}</Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>
@@ -1280,60 +1260,9 @@ function GameDetailScreen() {
         onClose={() => setIsGalleryVisible(false)}
       />
       
-      {/* Video Modal - Only for Web */}
-      {Platform.OS === 'web' && (
-        <Modal
-          visible={isVideoModalVisible}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setIsVideoModalVisible(false)}
-        >
-          <View className="flex-1 bg-black/90 justify-center items-center">
-            <View className="w-full h-[60%] bg-black rounded-t-3xl">
-              <View className="flex-row justify-between items-center p-4 border-b border-gray-700">
-                <Text className="text-white text-lg font-semibold" numberOfLines={1}>
-                  {selectedVideo?.name || 'Video'}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => setIsVideoModalVisible(false)}
-                  className="w-8 h-8 rounded-full bg-gray-700 justify-center items-center"
-                >
-                  <X size={20} color="#FFFFFF" weight="bold" />
-                </TouchableOpacity>
-              </View>
-              <View className="flex-1 p-4">
-                {!selectedVideo?.video_id ? (
-                  <View className="flex-1 justify-center items-center">
-                    <Text className="text-white text-lg font-semibold mb-4 text-center px-4">
-                      {selectedVideo?.name || 'Video'}
-                    </Text>
-                    <Text className="text-gray-400 text-center mb-6 px-4">
-                      No video available
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => setIsVideoModalVisible(false)}
-                      className="bg-[#9146FF] px-6 py-3 rounded-xl"
-                    >
-                      <Text className="text-white font-semibold">Close</Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    src={`https://www.youtube.com/embed/${selectedVideo.video_id}?autoplay=1&playsinline=1&modestbranding=1&rel=0`}
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                    style={{ borderRadius: 12 }}
-                  />
-                )}
-              </View>
-            </View>
-          </View>
-        </Modal>
-      )}
-      
+      {/* In-app media player (YouTube videos + Twitch live streams) */}
+      <MediaPlayerModal media={player} onClose={() => setPlayer(null)} />
+
       {/* Confirmation Modal */}
       <ConfirmationModal
         visible={confirmationState.visible}

@@ -1,21 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Switch, Alert, Share } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Switch, Share } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { useQueryClient } from '@tanstack/react-query';
 import { colors, gradients, alpha } from '@/constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { 
+import {
   ArrowLeft,
   User,
-  Shield,
-  Bell,
-  Palette,
-  Database,
   GameController,
   Trash,
   Download,
-  Upload,
   Eye,
   Lock,
   Question,
@@ -23,12 +19,6 @@ import {
   SignOut,
   Trophy,
   ArrowsClockwise,
-  Star,
-  Heart,
-  Moon,
-  Sun,
-  Vibrate,
-  SpeakerHigh
 } from 'phosphor-react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
@@ -38,84 +28,41 @@ import ConfirmationModal from '@/components/ConfirmationModal';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { logout, user } = useAuth();
-  const { 
-    userStats, 
-    achievements, 
-    resetAchievements, 
+  const queryClient = useQueryClient();
+  const { logout, user, updateSettings, deleteAccount } = useAuth();
+  const {
+    userStats,
+    achievements,
+    resetAchievements,
     getUnlockedCount,
-    getFavoriteGenres 
+    getFavoriteGenres,
   } = useAchievements();
-  
-  // Settings states with AsyncStorage persistence
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [achievementNotifications, setAchievementNotifications] = useState(true);
-  const [reviewReminders, setReviewReminders] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  
+
   // Confirmation modal
   const { confirmationState, showConfirmation, hideConfirmation } = useConfirmation();
-  const [vibrationEnabled, setVibrationEnabled] = useState(true);
-  const [darkMode, setDarkMode] = useState(true);
-  const [compactView, setCompactView] = useState(false);
-  const [showSpoilers, setShowSpoilers] = useState(false);
-  const [autoSync, setAutoSync] = useState(true);
-  const [showPlaytime, setShowPlaytime] = useState(true);
+
+  // Privacy settings — backed by the server (source of truth is `user`).
+  const [profilePrivate, setProfilePrivate] = useState(false);
   const [showReviews, setShowReviews] = useState(true);
   const [showActivity, setShowActivity] = useState(true);
-  const [profilePrivate, setProfilePrivate] = useState(false);
-  const [dataUsage, setDataUsage] = useState('wifi'); // 'wifi', 'cellular', 'both'
-  
-  // Statistics for display
-  const [totalAchievements, setTotalAchievements] = useState(0);
-  const [favoriteGenres, setFavoriteGenres] = useState<string[]>([]);
 
-  
-  // Load settings from AsyncStorage on mount
+  // Statistics for display
+  const [, setTotalAchievements] = useState(0);
+  const [, setFavoriteGenres] = useState<string[]>([]);
+
+  // Keep the local toggles in sync with the authenticated user.
   useEffect(() => {
-    loadSettings();
+    if (user) {
+      setProfilePrivate(!!user.profilePrivate);
+      setShowReviews(user.showReviews !== false);
+      setShowActivity(user.showActivity !== false);
+    }
+  }, [user?.profilePrivate, user?.showReviews, user?.showActivity]);
+
+  useEffect(() => {
     loadStats();
   }, []);
-  
-  const loadSettings = async () => {
-    try {
-      const settingsKeys = [
-        'notifications', 'achievementNotifications', 'reviewReminders', 
-        'soundEnabled', 'vibrationEnabled', 'darkMode', 'compactView',
-        'showSpoilers', 'autoSync', 'showPlaytime', 'showReviews', 
-        'showActivity', 'profilePrivate', 'dataUsage'
-      ];
-      
-      const settings = await AsyncStorage.multiGet(settingsKeys.map(key => `@settings_${key}`));
-      
-      settings.forEach(([key, value]) => {
-        if (value !== null) {
-          const settingName = key.replace('@settings_', '');
-          const parsedValue = settingName === 'dataUsage' ? value : JSON.parse(value);
-          
-          switch (settingName) {
-            case 'notifications': setNotificationsEnabled(parsedValue); break;
-            case 'achievementNotifications': setAchievementNotifications(parsedValue); break;
-            case 'reviewReminders': setReviewReminders(parsedValue); break;
-            case 'soundEnabled': setSoundEnabled(parsedValue); break;
-            case 'vibrationEnabled': setVibrationEnabled(parsedValue); break;
-            case 'darkMode': setDarkMode(parsedValue); break;
-            case 'compactView': setCompactView(parsedValue); break;
-            case 'showSpoilers': setShowSpoilers(parsedValue); break;
-            case 'autoSync': setAutoSync(parsedValue); break;
-            case 'showPlaytime': setShowPlaytime(parsedValue); break;
-            case 'showReviews': setShowReviews(parsedValue); break;
-            case 'showActivity': setShowActivity(parsedValue); break;
-            case 'profilePrivate': setProfilePrivate(parsedValue); break;
-            case 'dataUsage': setDataUsage(parsedValue); break;
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Error loading settings:', error);
-    }
-  };
-  
+
   const loadStats = async () => {
     try {
       const count = await getUnlockedCount();
@@ -126,22 +73,28 @@ export default function SettingsScreen() {
       console.error('Error loading stats:', error);
     }
   };
-  
-  const saveSetting = async (key: string, value: any) => {
-    try {
-      const storageValue = typeof value === 'string' ? value : JSON.stringify(value);
-      await AsyncStorage.setItem(`@settings_${key}`, storageValue);
-    } catch (error) {
-      console.error('Error saving setting:', error);
-    }
-  };
-  
-  const createSettingHandler = (key: string, setter: (value: any) => void) => {
-    return (value: any) => {
+
+  // Optimistically flip a privacy switch and persist it to the backend; revert
+  // on failure so the UI never lies about what's actually saved.
+  const makePrivacyHandler =
+    (key: 'profilePrivate' | 'showReviews' | 'showActivity', setter: (v: boolean) => void) =>
+    async (value: boolean) => {
       setter(value);
-      saveSetting(key, value);
+      try {
+        await updateSettings({ [key]: value });
+      } catch (error) {
+        console.error('Failed to save privacy setting:', error);
+        setter(!value);
+        showConfirmation(
+          'Update Failed',
+          'Could not save your privacy setting. Check your connection and try again.',
+          () => {},
+          'warning',
+          'OK',
+          ''
+        );
+      }
     };
-  };
 
   const handleLogout = () => {
     showConfirmation(
@@ -157,18 +110,22 @@ export default function SettingsScreen() {
   const handleDeleteAccount = () => {
     showConfirmation(
       'Delete Account',
-      'This will permanently delete your account, all reviews, achievements, and data. This action cannot be undone.',
-      () => {
-        // In a real app, this would call an API
-        showConfirmation(
-          'Account Deleted',
-          'Your account and all data have been permanently deleted.',
-          () => {},
-          'success',
-          'OK',
-          ''
-        );
-        logout();
+      'This will permanently delete your account, all reviews, and votes. This action cannot be undone.',
+      async () => {
+        try {
+          await deleteAccount();
+          // deleteAccount clears the session; the auth guard redirects to login.
+        } catch (error) {
+          console.error('Delete account error:', error);
+          showConfirmation(
+            'Delete Failed',
+            'Could not delete your account. Please check your connection and try again.',
+            () => {},
+            'warning',
+            'OK',
+            ''
+          );
+        }
       },
       'danger',
       'Delete Account',
@@ -178,35 +135,24 @@ export default function SettingsScreen() {
 
   const handleExportData = async () => {
     try {
-      // Get all user data
       const keys = await AsyncStorage.getAllKeys();
       const data = await AsyncStorage.multiGet(keys);
       const exportData = {
         exportDate: new Date().toISOString(),
         userStats,
-        achievements: achievements,
+        achievements,
         settings: Object.fromEntries(data.filter(([key]) => key.startsWith('@settings_'))),
-        appVersion: '1.0.0'
+        appVersion: '1.0.0',
       };
-      
-      // Share the data
+
       await Share.share({
         message: `GameLog Data Export
 
 Exported on: ${new Date().toLocaleDateString()}
 
 Data: ${JSON.stringify(exportData, null, 2)}`,
-        title: 'GameLog Data Export'
+        title: 'GameLog Data Export',
       });
-      
-      showConfirmation(
-        'Export Complete',
-        'Your data has been exported successfully!',
-        () => {},
-        'success',
-        'OK',
-        ''
-      );
     } catch (error) {
       showConfirmation(
         'Export Failed',
@@ -219,30 +165,25 @@ Data: ${JSON.stringify(exportData, null, 2)}`,
     }
   };
 
-  const handleClearCache = async () => {
+  const handleClearCache = () => {
     showConfirmation(
       'Clear Cache',
-      'This will clear temporary files and may improve app performance. Your data will not be affected.',
+      'This clears cached game data so the app refetches fresh content. Your account and reviews are not affected.',
       async () => {
         try {
-          // Clear cache (in a real app, you'd clear specific cache keys)
+          // Drop React Query's cached network responses (game lists, search,
+          // community reviews, profiles) so everything refetches fresh.
+          queryClient.clear();
           showConfirmation(
             'Cache Cleared',
-            'App cache has been cleared successfully!',
+            'Cached game data has been cleared. Content will refresh as you browse.',
             () => {},
             'success',
             'OK',
             ''
           );
         } catch (error) {
-          showConfirmation(
-            'Error',
-            'Failed to clear cache.',
-            () => {},
-            'warning',
-            'OK',
-            ''
-          );
+          showConfirmation('Error', 'Failed to clear cache.', () => {}, 'warning', 'OK', '');
         }
       },
       'info',
@@ -250,7 +191,7 @@ Data: ${JSON.stringify(exportData, null, 2)}`,
       'Cancel'
     );
   };
-  
+
   const handleResetAchievements = () => {
     showConfirmation(
       'Reset Achievements',
@@ -272,31 +213,17 @@ Data: ${JSON.stringify(exportData, null, 2)}`,
       'Cancel'
     );
   };
-  
-  const handleNotificationSettings = () => {
-    showConfirmation(
-      'Notification Preferences',
-      'Choose what types of notifications you want to receive.',
-      () => {
-        // This would open a more detailed notification settings screen
-        setNotificationsEnabled(true);
-      },
-      'info',
-      'Configure',
-      'Cancel'
-    );
-  };
 
-  const renderSettingItem = ({ 
-    icon: Icon, 
-    title, 
-    subtitle, 
-    onPress, 
-    showSwitch = false, 
-    switchValue = false, 
+  const renderSettingItem = ({
+    icon: Icon,
+    title,
+    subtitle,
+    onPress,
+    showSwitch = false,
+    switchValue = false,
     onSwitchChange = null,
     showArrow = true,
-    destructive = false 
+    destructive = false,
   }: {
     icon: any;
     title: string;
@@ -382,45 +309,9 @@ Data: ${JSON.stringify(exportData, null, 2)}`,
           <Text className="font-bold text-xl" style={{ color: colors.text }}>Settings</Text>
           <View className="w-10" />
         </View>
-        
-        <ScrollView 
-          className="flex-1"
-          showsVerticalScrollIndicator={false}
-        >
-          <View className="px-5 pb-8">
-            {/* Notifications */}
-            {renderSection({
-              title: 'Notifications',
-              children: (
-                <>
-                  {renderSettingItem({
-                    icon: Bell,
-                    title: 'Push Notifications',
-                    subtitle: notificationsEnabled ? 'Enabled' : 'Disabled',
-                    showSwitch: true,
-                    switchValue: notificationsEnabled,
-                    onSwitchChange: createSettingHandler('notifications', setNotificationsEnabled)
-                  })}
-                  {renderSettingItem({
-                    icon: Trophy,
-                    title: 'Achievement Alerts',
-                    subtitle: achievementNotifications ? 'Get notified when you unlock achievements' : 'Achievement notifications disabled',
-                    showSwitch: true,
-                    switchValue: achievementNotifications && notificationsEnabled,
-                    onSwitchChange: createSettingHandler('achievementNotifications', setAchievementNotifications)
-                  })}
-                  {renderSettingItem({
-                    icon: Star,
-                    title: 'Review Reminders',
-                    subtitle: reviewReminders ? 'Remind me to review games' : 'No review reminders',
-                    showSwitch: true,
-                    switchValue: reviewReminders && notificationsEnabled,
-                    onSwitchChange: createSettingHandler('reviewReminders', setReviewReminders)
-                  })}
-                </>
-              )
-            })}
 
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+          <View className="px-5 pb-8">
             {/* Privacy */}
             {renderSection({
               title: 'Privacy',
@@ -432,26 +323,26 @@ Data: ${JSON.stringify(exportData, null, 2)}`,
                     subtitle: profilePrivate ? 'Your profile is hidden from others' : 'Your profile is public',
                     showSwitch: true,
                     switchValue: profilePrivate,
-                    onSwitchChange: createSettingHandler('profilePrivate', setProfilePrivate)
+                    onSwitchChange: makePrivacyHandler('profilePrivate', setProfilePrivate),
                   })}
                   {renderSettingItem({
                     icon: Eye,
                     title: 'Show Reviews Publicly',
-                    subtitle: showReviews ? 'Others can see your reviews' : 'Reviews are private',
+                    subtitle: showReviews && !profilePrivate ? 'Others can see your reviews' : 'Reviews are hidden from others',
                     showSwitch: true,
                     switchValue: showReviews && !profilePrivate,
-                    onSwitchChange: createSettingHandler('showReviews', setShowReviews)
+                    onSwitchChange: makePrivacyHandler('showReviews', setShowReviews),
                   })}
                   {renderSettingItem({
                     icon: GameController,
                     title: 'Show Gaming Activity',
-                    subtitle: showActivity ? 'Others can see your gaming activity' : 'Activity is private',
+                    subtitle: showActivity && !profilePrivate ? 'Others can see your gaming activity' : 'Activity is hidden from others',
                     showSwitch: true,
                     switchValue: showActivity && !profilePrivate,
-                    onSwitchChange: createSettingHandler('showActivity', setShowActivity)
+                    onSwitchChange: makePrivacyHandler('showActivity', setShowActivity),
                   })}
                 </>
-              )
+              ),
             })}
 
             {/* Data & Storage */}
@@ -463,16 +354,16 @@ Data: ${JSON.stringify(exportData, null, 2)}`,
                     icon: Download,
                     title: 'Export My Data',
                     subtitle: 'Download backup of all your game data',
-                    onPress: handleExportData
+                    onPress: handleExportData,
                   })}
                   {renderSettingItem({
                     icon: ArrowsClockwise,
                     title: 'Clear App Cache',
                     subtitle: 'Free up storage space (keeps your data)',
-                    onPress: handleClearCache
+                    onPress: handleClearCache,
                   })}
                 </>
-              )
+              ),
             })}
 
             {/* Gaming */}
@@ -485,10 +376,10 @@ Data: ${JSON.stringify(exportData, null, 2)}`,
                     title: 'Reset All Achievements',
                     subtitle: 'Clear all unlocked achievements and progress',
                     onPress: handleResetAchievements,
-                    destructive: true
+                    destructive: true,
                   })}
                 </>
-              )
+              ),
             })}
 
             {/* Support */}
@@ -500,34 +391,35 @@ Data: ${JSON.stringify(exportData, null, 2)}`,
                     icon: Question,
                     title: 'Help & FAQ',
                     subtitle: 'Get help with using GameLog',
-                    onPress: () => showConfirmation(
-                      'GameLog Help', 
-                      'Frequently Asked Questions:\n\n• How do I add games to my library?\nTap any game and use "Add to Library" button\n\n• How do achievements work?\nThey unlock automatically as you use the app\n\n• How to write reviews?\nUse the Log tab to search and review games\n\n• How to create lists?\nGo to Lists tab and tap "Create New List"',
-                      () => {},
-                      'info',
-                      'OK',
-                      ''
-                    )
+                    onPress: () =>
+                      showConfirmation(
+                        'GameLog Help',
+                        'Frequently Asked Questions:\n\n• How do I add games to my library?\nTap any game and use "Add to Library" button\n\n• How do achievements work?\nThey unlock automatically as you use the app\n\n• How to write reviews?\nUse the Log tab to search and review games\n\n• How to create lists?\nGo to Lists tab and tap "Create New List"',
+                        () => {},
+                        'info',
+                        'OK',
+                        ''
+                      ),
                   })}
                   {renderSettingItem({
                     icon: Info,
                     title: 'About GameLog',
                     subtitle: 'App version and information',
-                    onPress: () => showConfirmation(
-                      'About GameLog', 
-                      'GameLog v1.0.0\nBuild: 2024.12.01\n\nYour personal game tracking companion.\n\nTrack games, write reviews, unlock achievements, and organize your gaming library.\n\nDeveloped with ❤️ for gamers by gamers.',
-                      () => {},
-                      'info',
-                      'OK',
-                      ''
-                    )
+                    onPress: () =>
+                      showConfirmation(
+                        'About GameLog',
+                        'GameLog v1.0.0\nBuild: 2024.12.01\n\nYour personal game tracking companion.\n\nTrack games, write reviews, unlock achievements, and organize your gaming library.\n\nDeveloped with ❤️ for gamers by gamers.',
+                        () => {},
+                        'info',
+                        'OK',
+                        ''
+                      ),
                   })}
                 </>
-              )
+              ),
             })}
 
             {/* Account */}
-            {/* Account & Security */}
             {renderSection({
               title: 'Account',
               children: (
@@ -536,29 +428,29 @@ Data: ${JSON.stringify(exportData, null, 2)}`,
                     icon: User,
                     title: 'View Profile',
                     subtitle: user?.username ? `Signed in as ${user.username}` : 'View and edit your profile',
-                    onPress: () => router.push('/(tabs)/profile')
+                    onPress: () => router.push('/(tabs)/profile'),
                   })}
                   {renderSettingItem({
                     icon: SignOut,
                     title: 'Sign Out',
                     subtitle: 'Sign out of your GameLog account',
                     onPress: handleLogout,
-                    destructive: true
+                    destructive: true,
                   })}
                   {renderSettingItem({
                     icon: Trash,
                     title: 'Delete Account',
                     subtitle: 'Permanently delete account and all data',
                     onPress: handleDeleteAccount,
-                    destructive: true
+                    destructive: true,
                   })}
                 </>
-              )
+              ),
             })}
           </View>
         </ScrollView>
       </SafeAreaView>
-      
+
       {/* Confirmation Modal */}
       <ConfirmationModal
         visible={confirmationState.visible}
@@ -573,4 +465,3 @@ Data: ${JSON.stringify(exportData, null, 2)}`,
     </LinearGradient>
   );
 }
-

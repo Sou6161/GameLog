@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { colors, gradients, glow, alpha } from '@/constants/theme';
+import { formatReviewDate } from '@/lib/format';
 import {
   Plus,
   ListBullets,
@@ -26,9 +27,12 @@ import {
   Trash,
   PencilSimple,
   MagnifyingGlass,
+  CaretRight,
 } from 'phosphor-react-native';
 import { router } from 'expo-router';
 import { useGameStore } from '@/store/gameStore';
+import { useListStore } from '@/store/listStore';
+import { igdbService } from '@/services/igdbService';
 import { useReviewStore } from '@/store/reviewStore';
 import { useConfirmation } from '@/hooks/useConfirmation';
 import ConfirmationModal from '@/components/ConfirmationModal';
@@ -36,80 +40,6 @@ import { useAchievements } from '@/hooks/useAchievements';
 import { useAuth } from '@/hooks/useAuth';
 
 
-
-// Mock games for search
-const mockGamesForSearch = [
-  {
-    id: '1',
-    title: 'Cyberpunk 2077',
-    coverUrl:
-      'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
-    genre: 'RPG',
-  },
-  {
-    id: '2',
-    title: 'Elden Ring',
-    coverUrl:
-      'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=600&fit=crop',
-    genre: 'Action RPG',
-  },
-  {
-    id: '3',
-    title: 'God of War Ragnarök',
-    coverUrl:
-      'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=600&fit=crop',
-    genre: 'Action Adventure',
-  },
-  {
-    id: '4',
-    title: 'The Witcher 3',
-    coverUrl:
-      'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
-    genre: 'RPG',
-  },
-  {
-    id: '5',
-    title: "Baldur's Gate 3",
-    coverUrl:
-      'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=600&fit=crop',
-    genre: 'RPG',
-  },
-  {
-    id: '6',
-    title: 'Spider-Man 2',
-    coverUrl:
-      'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=600&fit=crop',
-    genre: 'Action',
-  },
-  {
-    id: '7',
-    title: 'Alan Wake 2',
-    coverUrl:
-      'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
-    genre: 'Horror',
-  },
-  {
-    id: '8',
-    title: 'Call of Duty: Modern Warfare III',
-    coverUrl:
-      'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
-    genre: 'FPS',
-  },
-  {
-    id: '9',
-    title: 'Doom Eternal',
-    coverUrl:
-      'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=600&fit=crop',
-    genre: 'FPS',
-  },
-  {
-    id: '10',
-    title: 'Final Fantasy VII Rebirth',
-    coverUrl:
-      'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop',
-    genre: 'RPG',
-  },
-];
 
 export default function ActivityScreen() {
   const [activeTab, setActiveTab] = useState('reviews');
@@ -126,10 +56,26 @@ export default function ActivityScreen() {
     trackReviewDeleted,
   } = useAchievements();
   
-  // Initialize empty state - no mock data
-  const [customLists, setCustomLists] = useState<any[]>([]);
+  // Lists are persisted on the server (they used to be component state and were
+  // lost on every reload).
+  const customLists = useListStore((s) => s.lists);
+  const fetchLists = useListStore((s) => s.fetchLists);
+  const createListOnServer = useListStore((s) => s.createList);
+  const updateListOnServer = useListStore((s) => s.updateList);
+  const deleteListOnServer = useListStore((s) => s.deleteList);
+  const [isSearching, setIsSearching] = useState(false);
   const { user } = useAuth();
-  const libraryGames = useGameStore((s) => s.libraryGames);
+  const allLibraryGames = useGameStore((s) => s.libraryGames);
+  // Steam-imported games are kept separate — they live in their own screen
+  // (/steam/library), so this library only shows what the user added manually.
+  const libraryGames = React.useMemo(
+    () => allLibraryGames.filter((g) => g.source !== 'steam'),
+    [allLibraryGames]
+  );
+  const steamGameCount = React.useMemo(
+    () => allLibraryGames.filter((g) => g.source === 'steam').length,
+    [allLibraryGames]
+  );
   const reviewedGameIds = useGameStore((s) => s.reviewedGameIds);
   const reviews = useReviewStore((s) => s.reviews) as any[];
   const removeFromLibrary = useGameStore((s) => s.removeFromLibrary);
@@ -141,10 +87,11 @@ export default function ActivityScreen() {
   // Confirmation modal
   const { confirmationState, showConfirmation, hideConfirmation } = useConfirmation();
   
-  // Fetch user reviews when component mounts
+  // Fetch user reviews + lists when component mounts
   useEffect(() => {
     if (user) {
       fetchUserReviews(user.id);
+      fetchLists();
     }
   }, [user]);
   
@@ -157,22 +104,43 @@ export default function ActivityScreen() {
 
   // Reviewed games state (from Redux reviewed ids)
 
-  // Debounce search
+  // Debounced REAL game search (IGDB) — this used to filter a hardcoded array.
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchQuery.trim().length >= 2) {
-        const results = mockGamesForSearch.filter(
-          (game) =>
-            game.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            game.genre.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-        setSearchResults(results);
-      } else {
-        setSearchResults([]);
-      }
-    }, 300);
+    const q = searchQuery.trim();
+    if (q.length < 2) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
 
-    return () => clearTimeout(timer);
+    let cancelled = false;
+    setIsSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const games = await igdbService.searchGames(q);
+        if (cancelled) return;
+        setSearchResults(
+          games.map((g: any) => ({
+            id: String(g.id),
+            title: g.name,
+            coverUrl: g.cover?.url ? g.cover.url.replace('t_thumb', 't_cover_small') : '',
+            genre: g.genres?.[0]?.name || '',
+          }))
+        );
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Game search failed:', error);
+          setSearchResults([]);
+        }
+      } finally {
+        if (!cancelled) setIsSearching(false);
+      }
+    }, 400);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [searchQuery]);
 
   const handleCreateList = async () => {
@@ -188,46 +156,36 @@ export default function ActivityScreen() {
       return;
     }
 
-    if (editingList) {
-      const updatedLists = customLists.map((list) =>
-        list.id === editingList.id
-          ? {
-              ...list,
-              name: newListName,
-              description: newListDescription,
-              games: selectedGames,
-            }
-          : list
-      );
-      setCustomLists(updatedLists);
+    try {
+      if (editingList) {
+        await updateListOnServer(editingList.id, {
+          name: newListName,
+          description: newListDescription,
+          games: selectedGames,
+        });
+        showConfirmation('Success', 'List updated successfully!', () => {}, 'success', 'OK', '');
+      } else {
+        // The server creates the list and awards its XP (keyed by the list id,
+        // so re-saving can never farm more).
+        await createListOnServer({
+          name: newListName,
+          description: newListDescription,
+          games: selectedGames,
+        });
+        await trackListCreated();
+        showConfirmation('Success', 'List created successfully!', () => {}, 'success', 'OK', '');
+      }
+    } catch (error) {
+      console.error('Failed to save list:', error);
       showConfirmation(
-        'Success',
-        'List updated successfully!',
+        'Error',
+        'Could not save your list. Please check your connection and try again.',
         () => {},
-        'success',
+        'warning',
         'OK',
         ''
       );
-    } else {
-      const newList = {
-        id: Date.now().toString(),
-        name: newListName,
-        description: newListDescription,
-        games: selectedGames,
-      };
-      setCustomLists([...customLists, newList]);
-      
-      // Track achievement for creating a new list
-      await trackListCreated();
-      
-      showConfirmation(
-        'Success',
-        'List created successfully!',
-        () => {},
-        'success',
-        'OK',
-        ''
-      );
+      return;
     }
 
     setNewListName('');
@@ -252,8 +210,19 @@ export default function ActivityScreen() {
       'Delete List',
       'Are you sure you want to delete this list?',
       async () => {
-        setCustomLists(customLists.filter((list) => list.id !== listId));
-        
+        try {
+          await deleteListOnServer(listId);
+        } catch {
+          showConfirmation(
+            'Error',
+            'Could not delete this list. Please try again.',
+            () => {},
+            'warning',
+            'OK',
+            ''
+          );
+          return;
+        }
         // Track achievement for deleting a list
         await trackListDeleted();
       },
@@ -276,7 +245,7 @@ export default function ActivityScreen() {
   const handleReviewNow = (game: any) => {
     router.push({
       pathname: '/log',
-      params: { game: JSON.stringify(game) },
+      params: { game: JSON.stringify(game), ts: Date.now().toString() },
     });
   };
 
@@ -285,11 +254,23 @@ export default function ActivityScreen() {
       'Remove from Library',
       'Are you sure you want to remove this game from your library?',
       async () => {
-        removeFromLibrary(gameId);
-        
+        try {
+          await removeFromLibrary(gameId);
+        } catch {
+          showConfirmation(
+            'Error',
+            'Could not remove this game. Please try again.',
+            () => {},
+            'warning',
+            'OK',
+            ''
+          );
+          return;
+        }
+
         // Track achievement for removing a game
         await trackGameRemoved();
-        
+
         showConfirmation(
           'Success',
           'Game removed from library!',
@@ -348,11 +329,12 @@ export default function ActivityScreen() {
     // Navigate to log screen with pre-filled data for editing
     router.push({
       pathname: '/log',
-      params: { 
+      params: {
         game: JSON.stringify(activity.game),
         editMode: 'true',
         reviewId: activity.id,
-        existingReview: activity.review
+        existingReview: activity.review,
+        ts: Date.now().toString(),
       },
     });
   };
@@ -436,7 +418,7 @@ export default function ActivityScreen() {
                     {review.game.name}
                   </Text>
                 </Text>
-                <Text className="text-xs text-[#AEB9C4]">{review.date}</Text>
+                <Text className="text-xs text-[#AEB9C4]">{formatReviewDate(review.date)}</Text>
               </View>
               <View className="flex-row items-center">
                 <TouchableOpacity 
@@ -462,23 +444,28 @@ export default function ActivityScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-            <View className="flex-row items-center">
-              <TouchableOpacity 
-                onPress={() => router.push(`/game/${review.game.id}`)}
-              >
-                <Image
-                  source={{ uri: review.game.coverUrl }}
-                  className="w-16 h-24 rounded-xl mr-3"
-                />
+            <View className="flex-row">
+              <TouchableOpacity onPress={() => router.push(`/game/${review.game.id}`)}>
+                {review.game.coverUrl ? (
+                  <Image source={{ uri: review.game.coverUrl }} className="w-16 h-24 rounded-xl mr-3" />
+                ) : (
+                  <View className="w-16 h-24 rounded-xl mr-3 items-center justify-center" style={{ backgroundColor: '#232C37' }}>
+                    <GameController size={24} color="#6E7B88" />
+                  </View>
+                )}
               </TouchableOpacity>
               <View className="flex-1">
-                <View className="flex-row items-center mb-1">
+                <Text className="text-white font-bold text-base mb-1" numberOfLines={1}>{review.game.name}</Text>
+                <View className="flex-row items-center mb-1.5">
                   <Star size={16} color="#FBBF24" weight="fill" />
-                  <Text className="ml-1 text-[#FBBF24] font-semibold">
-                    {review.rating}
-                  </Text>
+                  <Text className="ml-1 text-[#FBBF24] font-semibold">{review.rating}/10</Text>
                 </View>
-                <Text className="text-white leading-5">{review.reviewText}</Text>
+                {!!review.reviewText && <Text className="text-[#AEB9C4] leading-5" numberOfLines={3}>{review.reviewText}</Text>}
+                {(review.platform || review.playTime) && (
+                  <Text className="text-xs mt-1.5" style={{ color: '#6E7B88' }}>
+                    {review.platform ? `${review.platform}` : ''}{review.platform && review.playTime ? ' · ' : ''}{review.playTime ? `${review.playTime}h` : ''}
+                  </Text>
+                )}
               </View>
             </View>
           </View>
@@ -504,6 +491,27 @@ export default function ActivityScreen() {
       contentContainerStyle={{ paddingBottom: Platform.OS === 'web' ? 120 : 100 }}
     >
       <View className="px-5 pb-8">
+        {/* Steam games are a separate library — link across to them. */}
+        {steamGameCount > 0 && (
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => router.push('/steam/library' as any)}
+            className="flex-row items-center rounded-2xl p-4 mb-5"
+            style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: alpha(colors.blue, 0.5) }}
+          >
+            <View className="w-11 h-11 rounded-xl items-center justify-center mr-3" style={{ backgroundColor: alpha(colors.blue, 0.18) }}>
+              <GameController size={21} color={colors.blue} weight="fill" />
+            </View>
+            <View className="flex-1">
+              <Text className="font-bold text-base" style={{ color: colors.text }}>Steam Library</Text>
+              <Text className="text-xs mt-0.5" style={{ color: colors.textMuted }}>
+                {steamGameCount} games imported from Steam
+              </Text>
+            </View>
+            <CaretRight size={18} color={colors.textMuted} weight="bold" />
+          </TouchableOpacity>
+        )}
+
         <Text className="text-white font-bold text-lg mb-4">
           Games to Review Later
         </Text>
@@ -520,9 +528,12 @@ export default function ActivityScreen() {
               <View className="flex-1">
                 <Text className="text-white font-semibold">{game.title}</Text>
                 {!!game.genre && <Text className="text-[#AEB9C4]">{game.genre}</Text>}
-                <Text className="text-xs text-[#AEB9C4]">
-                  Added {game.addedDate}
-                </Text>
+
+                {!!game.addedDate && (
+                  <Text className="text-xs text-[#AEB9C4] mt-1">
+                    Added {formatReviewDate(game.addedDate)}
+                  </Text>
+                )}
               </View>
               <View className="flex-col items-end">
                 <TouchableOpacity

@@ -5,7 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { MagnifyingGlass, X, Check, Star, Heart, Calendar, ArrowLeft, Plus, GameController, PencilSimple } from 'phosphor-react-native';
 import { colors, gradients, glow, alpha } from '@/constants/theme';
-import { useLocalSearchParams, router } from 'expo-router';
+import { formatReviewDate } from '@/lib/format';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { igdbService } from '@/services/igdbService';
 import { useAchievements } from '@/hooks/useAchievements';
 import { useGameStore } from '@/store/gameStore';
@@ -47,6 +48,7 @@ export default function LogScreen() {
   const updateReview = useReviewStore((s) => s.updateReview);
   const hasUserReviewedGame = useReviewStore((s) => s.hasUserReviewedGame);
   const getUserReviewForGame = useReviewStore((s) => s.getUserReviewForGame);
+  const fetchUserReviews = useReviewStore((s) => s.fetchUserReviews);
   const reduxReviews = useReviewStore((s) => s.reviews);
   
   // Achievement tracking
@@ -77,44 +79,77 @@ export default function LogScreen() {
   const [hasExistingReview, setHasExistingReview] = useState(false);
   const [existingReview, setExistingReview] = useState<GameReview | null>(null);
   
-  // Reviews Storage (Zustand)
-  const [myReviews, setMyReviews] = useState<GameReview[]>(reduxReviews as any);
+  // "My Reviews" reads the live store directly so it's always current.
+  const myReviews = reduxReviews as any as GameReview[];
   const [isEditMode, setIsEditMode] = useState(false);
-  const [incomingGameId, setIncomingGameId] = useState<number | null>(null);
-  // Initialize edit mode if params specify an existing review
-  useEffect(() => {
-    const gameIdParam = (params.gameId as string) || (params.game as string);
-    const editParam = params.editMode as string;
-    if (gameIdParam) {
-      const parsedId = parseInt(gameIdParam, 10);
-      if (!isNaN(parsedId)) {
-        setIncomingGameId(parsedId);
-      }
-    }
-    setIsEditMode(editParam === 'true');
-  }, [params]);
+  // Tracks which navigation "nonce" we've already acted on, so opening the tab
+  // directly (or switching back to it) never re-opens a stale review form.
+  const consumedNonceRef = useRef<string | null>(null);
 
-  // If edit mode and we have a review for that game, prefill
-  useEffect(() => {
-    if (!incomingGameId) return;
-    const existing = (reduxReviews as any).find((r: any) => r.game.id === incomingGameId);
-    if (existing) {
-      setSelectedGame({
-        id: existing.game.id,
-        name: existing.game.name,
-        cover: existing.game.coverUrl ? { url: existing.game.coverUrl } : undefined,
-      } as any);
-      setShowReviewForm(true);
-      setGameStatus(existing.status);
-      setRating(existing.rating);
-      setReviewText(existing.reviewText);
-      setPlayTime(existing.playTime);
-      setDifficulty(existing.difficulty);
-      setPlatform(existing.platform);
-      setTags(existing.tags);
-      setIsPublic(existing.isPublic);
+  // Reset back to the search / My Reviews screen.
+  const resetReviewFlow = useCallback(() => {
+    setShowReviewForm(false);
+    setSelectedGame(null);
+    setSearchQuery('');
+    setSearchResults([]);
+    setIsSearching(false);
+    setRating(0);
+    setReviewText('');
+    setPlayTime('');
+    setDifficulty('');
+    setPlatform('');
+    setTags([]);
+    setGameStatus('completed');
+    setIsPublic(true);
+    setHasExistingReview(false);
+    setExistingReview(null);
+    setIsEditMode(false);
+  }, []);
+
+  // Fetch a game by id and open the review form for it.
+  const openReviewForGame = useCallback(async (id: number) => {
+    try {
+      const game = await igdbService.getGameDetails(id);
+      if (game) {
+        setSelectedGame(game as any);
+        setShowReviewForm(true);
+      }
+    } catch (error) {
+      console.error('Failed to load game for review:', error);
     }
-  }, [incomingGameId, isEditMode, reduxReviews]);
+  }, []);
+
+  // Decide what to show whenever the tab gains focus:
+  //  - fresh navigation from a game detail (unique `ts` nonce) -> open review form
+  //  - opened directly / switched back -> show the search + My Reviews screen
+  useFocusEffect(
+    useCallback(() => {
+      const nonce = (params.ts as string) || '';
+      const isFresh = !!nonce && nonce !== consumedNonceRef.current;
+
+      let gameId: number | null = null;
+      if (params.gameId) {
+        const parsed = parseInt(params.gameId as string, 10);
+        if (!isNaN(parsed)) gameId = parsed;
+      } else if (params.game) {
+        try {
+          const g = JSON.parse(params.game as string);
+          if (g?.id) gameId = Number(g.id);
+        } catch {}
+      }
+
+      if (isFresh && gameId) {
+        consumedNonceRef.current = nonce;
+        setIsEditMode((params.editMode as string) === 'true');
+        openReviewForGame(gameId);
+      } else {
+        resetReviewFlow();
+        // Refresh the current user's reviews so "My Reviews" is always populated,
+        // even if another screen overwrote the shared reviews list.
+        if (user?.id) fetchUserReviews(user.id);
+      }
+    }, [params.ts, user?.id])
+  );
 
   // Check if user has already reviewed the selected game
   useEffect(() => {
@@ -324,38 +359,33 @@ export default function LogScreen() {
       if (hasExistingReview && existingReview) {
         // Update existing review
         await updateReview(existingReview.id, reviewData);
-        
-        showConfirmation(
-          'Success',
-          'Review updated successfully!',
-          () => {},
-          'success',
-          'OK',
-          ''
-        );
       } else {
         // Create new review
         await createReview(reviewData);
-        
+
         // Track achievement for writing a review with genres
         const genres = selectedGame.genres?.map(g => g.name) || [];
         await trackReview(rating, genres);
-        
+
         // Mark as reviewed globally so game detail shows Edit Review
         markReviewed(String(selectedGame.id));
-        
-        showConfirmation(
-          'Success',
-          'Review posted successfully!',
-          () => {},
-          'success',
-          'OK',
-          ''
-        );
       }
-      
-      // Navigate back to game detail for this game to allow immediate edit if needed
-      router.push(`/game/${selectedGame.id}`);
+
+      // Leave the form and land on the "My Reviews" list right away, then refresh
+      // it. We reset BEFORE showing the success modal because the modal is only
+      // rendered on the main view (not inside the review-form branch), so it must
+      // appear over My Reviews — otherwise the change would happen invisibly.
+      const wasEditing = hasExistingReview && existingReview;
+      resetReviewFlow();
+      if (user.id) fetchUserReviews(user.id);
+      showConfirmation(
+        'Success',
+        wasEditing ? 'Review updated successfully!' : 'Review posted successfully!',
+        () => {},
+        'success',
+        'OK',
+        ''
+      );
     } catch (error) {
       console.error('Error submitting review:', error);
       showConfirmation(
@@ -402,12 +432,12 @@ export default function LogScreen() {
 
   const getStatusColor = (status: string) => {
     const colorMap: { [key: string]: string } = {
-      'completed': 'text-green-400',
-      'playing': 'text-blue-400',
-      'dropped': 'text-red-400',
-      'plan': 'text-yellow-400'
+      'completed': '#34D399',
+      'playing': '#38BDF8',
+      'dropped': '#EF4444',
+      'plan': '#FBBF24',
     };
-    return colorMap[status] || 'text-green-400';
+    return colorMap[status] || '#34D399';
   };
 
   // Review form view
@@ -687,8 +717,8 @@ export default function LogScreen() {
                 {myReviews.map((review) => (
                   <View key={review.id} className="rounded-[20px] p-4" style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
                     <View className="flex-row mb-3">
-                      {review.game.cover?.url ? (
-                        <Image source={{ uri: review.game.cover.url.replace('t_thumb', 't_cover_small') }} className="w-16 h-24 rounded-xl mr-4" />
+                      {((review.game as any).coverUrl || review.game.cover?.url) ? (
+                        <Image source={{ uri: (review.game as any).coverUrl || review.game.cover?.url }} className="w-16 h-24 rounded-xl mr-4" />
                       ) : (
                         <View className="w-16 h-24 rounded-xl mr-4 items-center justify-center" style={{ backgroundColor: colors.elevated }}>
                           <GameController size={24} color={colors.textMuted} />
@@ -696,8 +726,8 @@ export default function LogScreen() {
                       )}
                       <View className="flex-1">
                         <Text className="text-lg font-bold mb-1" style={{ color: colors.text }}>{review.game.name}</Text>
-                        <Text className={`text-sm mb-1 ${getStatusColor(review.status)}`}>{getStatusIcon(review.status)} {getStatusLabel(review.status)}</Text>
-                        <Text className="text-sm mb-2" style={{ color: colors.textMuted }}>{review.date}</Text>
+                        <Text className="text-sm mb-1" style={{ color: getStatusColor(review.status) }}>{getStatusIcon(review.status)} {getStatusLabel(review.status)}</Text>
+                        <Text className="text-sm mb-2" style={{ color: colors.textMuted }}>{formatReviewDate(review.date)}</Text>
                         <View className="flex-row items-center">
                           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => (
                             <Star key={star} size={13} color={star <= review.rating ? colors.gold : alpha(colors.text, 0.18)} weight={star <= review.rating ? 'fill' : 'regular'} />

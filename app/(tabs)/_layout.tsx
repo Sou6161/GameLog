@@ -5,6 +5,7 @@ import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { House, Compass, Plus, ListBullets, User } from 'phosphor-react-native';
 import { colors, glow } from '@/constants/theme';
+import { useGameStore } from '@/store/gameStore';
 
 // Active tabs sit in a solid glowing pill; inactive icons are muted.
 function TabIcon({ Icon, focused }: { Icon: any; focused: boolean }) {
@@ -12,22 +13,22 @@ function TabIcon({ Icon, focused }: { Icon: any; focused: boolean }) {
     return (
       <View
         style={{
-          width: 46,
-          height: 34,
-          borderRadius: 17,
+          width: 36,
+          height: 36,
+          borderRadius: 18,
           justifyContent: 'center',
           alignItems: 'center',
           backgroundColor: colors.teal,
           ...glow(colors.teal, 0.7, 12),
         }}
       >
-        <Icon size={22} color={colors.void} weight="fill" />
+        <Icon size={21} color={colors.void} weight="fill" />
       </View>
     );
   }
   return (
-    <View style={{ width: 46, height: 34, justifyContent: 'center', alignItems: 'center' }}>
-      <Icon size={22} color={colors.textMuted} weight="bold" />
+    <View style={{ width: 36, height: 36, justifyContent: 'center', alignItems: 'center' }}>
+      <Icon size={21} color={colors.textMuted} weight="bold" />
     </View>
   );
 }
@@ -66,11 +67,18 @@ function CenterButton({ focused }: { focused: boolean }) {
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const fetchLibrary = useGameStore((s) => s.fetchLibrary);
+
+  // The library lives on the server now; load it once the user is in the app.
+  React.useEffect(() => {
+    fetchLibrary();
+  }, []);
   const bottomInset = Platform.OS === 'web' ? 16 : Math.max(insets.bottom, 10);
   const tabBarHeight = Platform.OS === 'web' ? 84 : 66 + bottomInset;
 
   return (
     <Tabs
+      sceneContainerStyle={{ backgroundColor: colors.bg }}
       screenOptions={{
         headerShown: false,
         tabBarHideOnKeyboard: true,
@@ -90,7 +98,8 @@ export default function TabLayout() {
         tabBarActiveTintColor: colors.teal,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: {
-          fontFamily: 'Inter_500Medium',
+          fontFamily: 'Inter_700Bold',
+          fontWeight: '700',
           fontSize: 11,
           marginTop: 4,
         },

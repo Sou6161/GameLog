@@ -91,6 +91,16 @@ export function useMostAnticipatedGames() {
   });
 }
 
+export function useHiddenGems() {
+  return useQuery({
+    queryKey: ['hiddenGems'],
+    queryFn: () => igdbService.getHiddenGems(10),
+    staleTime: 30 * 60 * 1000,
+    retry: 2,
+    refetchOnWindowFocus: false,
+  });
+}
+
 export function useGamesByGenre(genreId: number) {
   return useQuery({
     queryKey: ['gamesByGenre', genreId],

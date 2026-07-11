@@ -1,53 +1,7 @@
 const express = require('express');
-const axios = require('axios');
+const { igdb, withCover, BASE_FIELDS } = require('../lib/igdb');
 
 const router = express.Router();
-
-const CLIENT_ID = process.env.IGDB_CLIENT_ID;
-const CLIENT_SECRET = process.env.IGDB_CLIENT_SECRET;
-
-let accessToken = null;
-let tokenExpiry = 0;
-
-async function getAccessToken() {
-  if (accessToken && Date.now() < tokenExpiry) {
-    return accessToken;
-  }
-  const response = await axios.post('https://id.twitch.tv/oauth2/token', null, {
-    params: {
-      client_id: CLIENT_ID,
-      client_secret: CLIENT_SECRET,
-      grant_type: 'client_credentials',
-    },
-  });
-  accessToken = response.data.access_token;
-  tokenExpiry = Date.now() + (response.data.expires_in - 60) * 1000;
-  return accessToken;
-}
-
-async function igdb(query) {
-  const token = await getAccessToken();
-  const response = await axios.post('https://api.igdb.com/v4/games', query, {
-    headers: {
-      Accept: 'application/json',
-      'Client-ID': CLIENT_ID,
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  return response.data;
-}
-
-function withCover(game) {
-  return {
-    ...game,
-    cover: game.cover
-      ? { ...game.cover, url: `https:${game.cover.url.replace('t_thumb', 't_cover_big')}` }
-      : undefined,
-  };
-}
-
-const BASE_FIELDS =
-  'fields name, cover.url, first_release_date, rating, rating_count, platforms.name, genres.name, summary;';
 
 // Helper to build a simple "list" handler for a where/sort clause.
 function listHandler(buildQuery) {
@@ -81,9 +35,9 @@ router.post('/search', async (req, res) => {
 });
 
 router.get('/featured', listHandler((limit) => `
-  ${BASE_FIELDS}
-  where rating > 75 & cover != null;
-  sort rating desc;
+  fields name, cover.url, first_release_date, rating, rating_count, total_rating, total_rating_count, platforms.name, genres.name, summary;
+  where total_rating > 85 & total_rating_count > 80 & rating_count > 80 & cover != null;
+  sort total_rating desc;
   limit ${limit};
 `));
 
@@ -99,9 +53,9 @@ router.get('/trending', listHandler((limit) => {
 }));
 
 router.get('/popular', listHandler((limit) => `
-  ${BASE_FIELDS}
-  where rating > 80 & cover != null;
-  sort rating desc;
+  fields name, cover.url, first_release_date, rating, rating_count, total_rating_count, platforms.name, genres.name, summary;
+  where rating != null & rating > 70 & rating_count > 40 & cover != null;
+  sort rating_count desc;
   limit ${limit};
 `));
 
@@ -151,6 +105,14 @@ router.get('/anticipated', listHandler((limit) => {
     limit ${limit};
   `;
 }));
+
+// Hidden Gems: highly-rated but under-the-radar (modest vote counts).
+router.get('/gems', listHandler((limit) => `
+  ${BASE_FIELDS}
+  where rating > 85 & rating_count >= 20 & rating_count <= 200 & version_parent = null & cover != null;
+  sort rating desc;
+  limit ${limit};
+`));
 
 router.get('/racing', listHandler((limit) => `
   ${BASE_FIELDS} where genres = 9 & cover != null; sort rating desc; limit ${limit};

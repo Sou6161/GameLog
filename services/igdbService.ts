@@ -340,15 +340,16 @@ class IGDBService {
       return await this.getFeaturedGamesViaProxy(limit);
     }
     
+    // Featured = critically acclaimed (by aggregate/total rating with enough votes).
     const query = `
-      fields name, cover.url, first_release_date, rating, rating_count, platforms.name, genres.name, summary;
-      where rating > 75 & cover != null;
-      sort rating desc;
+      fields name, cover.url, first_release_date, rating, rating_count, total_rating, total_rating_count, platforms.name, genres.name, summary;
+      where total_rating > 85 & total_rating_count > 80 & rating_count > 80 & cover != null;
+      sort total_rating desc;
       limit ${limit};
     `;
-    
+
     const games = await this.makeRequest<IGDBGame[]>('games', query);
-    
+
     // Process the data to match our format
     return games.map(game => ({
       ...game,
@@ -394,15 +395,17 @@ class IGDBService {
       return await this.getPopularGamesViaProxy(limit);
     }
     
+    // Popular = the games the most people have rated (engagement/popularity),
+    // which surfaces different titles than "highest scored".
     const query = `
-      fields name, cover.url, first_release_date, rating, rating_count, platforms.name, genres.name, summary;
-      where rating > 80 & cover != null;
-      sort rating desc;
+      fields name, cover.url, first_release_date, rating, rating_count, total_rating_count, platforms.name, genres.name, summary;
+      where rating != null & rating > 70 & rating_count > 40 & cover != null;
+      sort rating_count desc;
       limit ${limit};
     `;
-    
+
     const games = await this.makeRequest<IGDBGame[]>('games', query);
-    
+
     return games.map(game => ({
       ...game,
       cover: game.cover ? {
@@ -481,6 +484,35 @@ class IGDBService {
     
     const games = await this.makeRequest<IGDBGame[]>('games', query);
     
+    return games.map(game => ({
+      ...game,
+      cover: game.cover ? {
+        ...game.cover,
+        url: `https:${game.cover.url.replace('t_thumb', 't_cover_big')}`
+      } : undefined
+    }));
+  }
+
+  // Get hidden gems (highly rated but under-the-radar)
+  private async getHiddenGemsViaProxy(limit: number = 10): Promise<IGDBGame[]> {
+    const response = await axios.get(`${PROXY_BASE}/api/games/gems?limit=${limit}`);
+    return response.data;
+  }
+
+  async getHiddenGems(limit: number = 10): Promise<IGDBGame[]> {
+    if (Platform.OS === 'web') {
+      return await this.getHiddenGemsViaProxy(limit);
+    }
+
+    const query = `
+      fields name, cover.url, first_release_date, rating, rating_count, platforms.name, genres.name, summary;
+      where rating > 85 & rating_count >= 20 & rating_count <= 200 & version_parent = null & cover != null;
+      sort rating desc;
+      limit ${limit};
+    `;
+
+    const games = await this.makeRequest<IGDBGame[]>('games', query);
+
     return games.map(game => ({
       ...game,
       cover: game.cover ? {

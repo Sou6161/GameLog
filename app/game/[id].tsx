@@ -41,8 +41,8 @@ import { useGameStore } from '@/store/gameStore';
 import { useReviewStore } from '@/store/reviewStore';
 import { useConfirmation } from '@/hooks/useConfirmation';
 import ConfirmationModal from '@/components/ConfirmationModal';
-import { useCommunityReviews } from '@/hooks/useCommunityReviews';
 import CommunityReviewCard from '@/components/CommunityReviewCard';
+import { ReviewService } from '@/services/reviewService';
 import { useLiveStreams } from '@/hooks/useLiveStreams';
 import { LiveStreamCard } from '@/components/LiveStreamCard';
 import { twitchService } from '@/services/twitchService';
@@ -109,25 +109,35 @@ function GameDetailScreen() {
   // Safely parse the game ID with error handling
   const gameId = id ? parseInt(id, 10) : 0;
   
-  // Community reviews
-  const { reviews: communityReviews, loading: communityLoading } = useCommunityReviews(String(gameId));
-  
-  
-  // Fetch community reviews from the backend when game loads
+  // Community reviews (real, from the backend)
+  const reviewsLoading = useReviewStore((s) => s.loading);
+  const [reviewSort, setReviewSort] = useState<'date' | 'rating'>('date');
+  // Optimistic overrides for helpful votes: reviewId -> { helpful, helpfulByMe }
+  const [helpfulOverrides, setHelpfulOverrides] = useState<Record<string, { helpful: number; helpfulByMe: boolean }>>({});
+
+  // Fetch this game's public community reviews (re-fetch when sort changes).
   useEffect(() => {
     if (gameId) {
-      // Test connection first
-      import('@/services/reviewService').then(({ ReviewService }) => {
-        ReviewService.testConnection().then((success) => {
-          if (success) {
-            fetchGameReviews(String(gameId));
-          } else {
-            console.log('Backend connection failed, skipping review fetch');
-          }
-        });
-      });
+      setHelpfulOverrides({});
+      fetchGameReviews(String(gameId), reviewSort);
     }
-  }, [gameId]);
+  }, [gameId, reviewSort]);
+
+  // Toggle a helpful vote with an optimistic UI update.
+  const handleHelpful = async (reviewId: string, current: { helpful: number; helpfulByMe: boolean }) => {
+    const optimistic = {
+      helpful: current.helpful + (current.helpfulByMe ? -1 : 1),
+      helpfulByMe: !current.helpfulByMe,
+    };
+    setHelpfulOverrides((prev) => ({ ...prev, [reviewId]: optimistic }));
+    try {
+      const result = await ReviewService.voteHelpful(reviewId);
+      setHelpfulOverrides((prev) => ({ ...prev, [reviewId]: result }));
+    } catch (error) {
+      // Revert on failure.
+      setHelpfulOverrides((prev) => ({ ...prev, [reviewId]: current }));
+    }
+  };
   
   // Don't fetch if gameId is invalid
   const { data: gameDetail, isLoading, error } = useGameDetails(gameId);
@@ -146,13 +156,24 @@ function GameDetailScreen() {
   const handleAddToLibrary = async () => {
     if (!gameDetail) return;
     if (!isInLibrary) {
-      addToLibrary({
-        id: String(gameDetail.id),
-        title: gameDetail.name,
-        coverUrl: gameDetail.cover?.url,
-        genre: gameDetail.genres?.[0]?.name,
-        addedDate: new Date().toLocaleDateString(),
-      });
+      try {
+        await addToLibrary({
+          id: String(gameDetail.id),
+          title: gameDetail.name,
+          coverUrl: gameDetail.cover?.url,
+          genre: gameDetail.genres?.[0]?.name,
+        });
+      } catch {
+        showConfirmation(
+          'Error',
+          'Could not add this game to your library. Please try again.',
+          () => {},
+          'warning',
+          'OK',
+          ''
+        );
+        return;
+      }
       const genres = gameDetail?.genres?.map(g => g.name) || [];
       await trackGameAdded(genres);
       showConfirmation(
@@ -168,7 +189,19 @@ function GameDetailScreen() {
         'Remove from Library',
         'Are you sure you want to remove this game from your library?',
         async () => {
-          removeFromLibrary(String(gameDetail.id));
+          try {
+            await removeFromLibrary(String(gameDetail.id));
+          } catch {
+            showConfirmation(
+              'Error',
+              'Could not remove this game. Please try again.',
+              () => {},
+              'warning',
+              'OK',
+              ''
+            );
+            return;
+          }
           const genres = gameDetail?.genres?.map(g => g.name) || [];
           await trackGameRemoved(genres);
           showConfirmation(
@@ -338,16 +371,14 @@ function GameDetailScreen() {
 
   if (isLoading) {
     return (
-      <View className="flex-1 justify-center items-center bg-[#0A0E13] px-6">
-        <ActivityIndicator size="large" color="#38BDF8" />
-        <View className="mt-4 px-4">
-          <Text className="text-white text-sm text-center leading-5">
-            Loading game
-          </Text>
-          <Text className="text-white text-sm text-center leading-5">
-            details...
-          </Text>
+      <View className="flex-1 justify-center items-center bg-[#0A0E13]">
+        <View
+          className="w-[70px] h-[70px] rounded-full items-center justify-center mb-4"
+          style={{ backgroundColor: 'rgba(20,200,176,0.14)', borderWidth: 1, borderColor: 'rgba(20,200,176,0.3)' }}
+        >
+          <ActivityIndicator size="large" color="#14C8B0" />
         </View>
+        <Text className="text-base font-semibold" style={{ color: '#F2F6F8' }}>Loading game…</Text>
       </View>
     );
   }
@@ -437,7 +468,7 @@ function GameDetailScreen() {
       <View className="mt-4 mb-3">
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
           <View className="flex-row bg-[#12171E] rounded-2xl p-1 border border-[#232C37]">
-            {['overview', 'media', 'details', 'reviews', 'videos', 'streams'].map((tab) => (
+            {['overview', 'media', 'details', 'reviews', 'streams'].map((tab) => (
               <TouchableOpacity
                 key={tab}
                 onPress={() => setSelectedTab(tab)}
@@ -694,26 +725,39 @@ function GameDetailScreen() {
             </View>
 
             {/* Videos */}
-            <View className="mb-6">
-              <Text className="text-white text-xl font-bold mb-3">Videos</Text>
-              <View className="gap-3">
-                {gameDetail.videos?.map((video) => (
-                  <TouchableOpacity
-                    key={video.id}
-                    onPress={() => video.video_id && setPlayer({ type: 'youtube', id: video.video_id, title: video.name })}
-                    className="bg-[#1A212A] rounded-2xl p-4 flex-row items-center gap-3"
-                  >
-                    <View className="w-12 h-12 bg-[#FF7A5C] rounded-xl justify-center items-center">
-                      <PlayCircle size={20} color="#FFFFFF" weight="fill" />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-white font-semibold">{video.name}</Text>
-                      <Text className="text-gray-400 text-sm">Tap to play</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
+            {gameDetail.videos && gameDetail.videos.length > 0 && (
+              <View className="mb-6">
+                <Text className="text-white text-xl font-bold mb-3">Videos</Text>
+                <View className="gap-4">
+                  {gameDetail.videos.map((video) => (
+                    <TouchableOpacity
+                      key={video.id}
+                      activeOpacity={0.85}
+                      onPress={() => video.video_id && setPlayer({ type: 'youtube', id: video.video_id, title: video.name })}
+                      className="rounded-2xl overflow-hidden"
+                      style={{ backgroundColor: '#12171E', borderWidth: 1, borderColor: '#232C37' }}
+                    >
+                      {/* Thumbnail */}
+                      <View className="relative" style={{ width: '100%', aspectRatio: 16 / 9 }}>
+                        <Image
+                          source={{ uri: `https://img.youtube.com/vi/${video.video_id}/hqdefault.jpg` }}
+                          style={{ width: '100%', height: '100%' }}
+                          resizeMode="cover"
+                        />
+                        <View className="absolute inset-0 items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.25)' }}>
+                          <View className="w-14 h-14 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(20,200,176,0.95)' }}>
+                            <PlayCircle size={30} color="#06090D" weight="fill" />
+                          </View>
+                        </View>
+                      </View>
+                      <View className="p-3">
+                        <Text className="text-white font-semibold" numberOfLines={2}>{video.name}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
-            </View>
+            )}
           </View>
         )}
 
@@ -816,110 +860,75 @@ function GameDetailScreen() {
         {selectedTab === 'reviews' && (
           <View className="pb-12 px-1">
             {/* Community Reviews Header */}
-            <View className="mb-6">
-              <Text className="text-white text-2xl font-bold mb-2">Community Reviews</Text>
-              <Text className="text-gray-400 text-base">
-                See what other players think about this game
-              </Text>
+            <View className="mb-4">
+              <Text className="text-white text-2xl font-bold mb-1">Community Reviews</Text>
+              <Text className="text-gray-400 text-base">See what other players think about this game</Text>
             </View>
 
-            {/* Reviews List */}
-            {communityLoading ? (
-              <View className="items-center py-8">
-                <Text className="text-gray-400 text-lg">Loading community reviews...</Text>
-              </View>
-            ) : backendReviews.length > 0 ? (
-              <View className="space-y-4 w-full">
-                {backendReviews.map((review) => (
-                  <CommunityReviewCard
-                    key={review.id}
-                    review={{
-                      id: review.id,
-                      gameId: review.game.id.toString(),
-                      gameName: review.game.name,
-                      userId: review.userId,
-                      username: review.username,
-                      userAvatar: review.userAvatar,
-                      rating: review.rating,
-                      reviewText: review.reviewText,
-                      playTime: review.playTime,
-                      difficulty: review.difficulty,
-                      platform: review.platform,
-                      tags: (() => {
-                        if (typeof review.tags === 'string' && review.tags) {
-                          return (review.tags as string).split(',').filter((tag: string) => tag.trim());
-                        }
-                        if (Array.isArray(review.tags)) {
-                          return review.tags;
-                        }
-                        return [];
-                      })(),
-                      isPublic: review.isPublic,
-                      date: review.date,
-                      helpful: 0, // Not using helpful anymore
-                      verified: review.verified,
-                    }}
-                    onUserPress={(userId) => {
-                      // Navigate to user profile (could be implemented later)
-                      console.log('Navigate to user profile:', userId);
-                    }}
-                    gameName={review.game.name}
-                    showGameName={false}
-                  />
-                ))}
-              </View>
-            ) : (
-              <View className="items-center py-8">
-                <Text className="text-gray-400 text-lg text-center w-full">
-                  No community reviews yet.{'\n'}Be the first to share your thoughts!
-                </Text>
+            {/* Sort toggle */}
+            {backendReviews.length > 0 && (
+              <View className="flex-row gap-2 mb-4">
+                {([['date', 'Newest'], ['rating', 'Top Rated']] as const).map(([value, label]) => {
+                  const active = reviewSort === value;
+                  return (
+                    <TouchableOpacity
+                      key={value}
+                      onPress={() => setReviewSort(value)}
+                      className="px-4 py-2 rounded-full"
+                      style={active
+                        ? { backgroundColor: '#14C8B0' }
+                        : { backgroundColor: '#12171E', borderWidth: 1, borderColor: '#232C37' }}
+                    >
+                      <Text className="font-semibold text-sm" style={{ color: active ? '#06090D' : '#AEB9C4' }}>{label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             )}
-          </View>
-        )}
 
-        {selectedTab === 'videos' && (
-          <View className="pb-8">
-            <View className="mb-4">
-              <Text className="text-white text-2xl font-bold mb-1">Videos</Text>
-              <Text className="text-gray-400 text-sm">Trailers and gameplay for {gameDetail.name}</Text>
-            </View>
-            {gameDetail.videos && gameDetail.videos.length > 0 ? (
-              <View className="gap-4">
-                {gameDetail.videos.map((video) => (
-                  <TouchableOpacity
-                    key={video.id}
-                    activeOpacity={0.85}
-                    onPress={() => video.video_id && setPlayer({ type: 'youtube', id: video.video_id, title: video.name })}
-                    className="rounded-2xl overflow-hidden"
-                    style={{ backgroundColor: '#12171E', borderWidth: 1, borderColor: '#232C37' }}
-                  >
-                    {/* Thumbnail */}
-                    <View className="relative" style={{ width: '100%', aspectRatio: 16 / 9 }}>
-                      <Image
-                        source={{ uri: `https://img.youtube.com/vi/${video.video_id}/hqdefault.jpg` }}
-                        style={{ width: '100%', height: '100%' }}
-                        resizeMode="cover"
-                      />
-                      <View className="absolute inset-0 items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.25)' }}>
-                        <View className="w-14 h-14 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(20,200,176,0.95)' }}>
-                          <PlayCircle size={30} color="#06090D" weight="fill" />
-                        </View>
-                      </View>
-                    </View>
-                    <View className="p-3">
-                      <Text className="text-white font-semibold" numberOfLines={2}>{video.name}</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
+            {/* Reviews List */}
+            {reviewsLoading ? (
+              <View className="items-center py-10">
+                <ActivityIndicator size="large" color="#14C8B0" />
+              </View>
+            ) : backendReviews.length > 0 ? (
+              <View className="w-full">
+                {backendReviews.map((review) => {
+                  const tags = typeof review.tags === 'string'
+                    ? (review.tags as string).split(',').filter((t: string) => t.trim())
+                    : Array.isArray(review.tags) ? review.tags : [];
+                  const helpfulState = helpfulOverrides[review.id] ?? {
+                    helpful: (review as any).helpful ?? 0,
+                    helpfulByMe: (review as any).helpfulByMe ?? false,
+                  };
+                  return (
+                    <CommunityReviewCard
+                      key={review.id}
+                      review={{
+                        id: review.id,
+                        userId: review.userId,
+                        username: review.username,
+                        userAvatar: review.userAvatar,
+                        rating: review.rating,
+                        reviewText: review.reviewText,
+                        playTime: review.playTime,
+                        difficulty: review.difficulty,
+                        platform: review.platform,
+                        tags,
+                        date: review.date,
+                        verified: review.verified,
+                        helpful: helpfulState.helpful,
+                        helpfulByMe: helpfulState.helpfulByMe,
+                      }}
+                      onUserPress={(userId) => router.push({ pathname: '/user/[id]' as any, params: { id: userId } })}
+                      onHelpful={(id) => handleHelpful(id, helpfulState)}
+                    />
+                  );
+                })}
               </View>
             ) : (
-              <View className="py-16 items-center">
-                <View className="w-16 h-16 rounded-full items-center justify-center mb-4" style={{ backgroundColor: 'rgba(20,200,176,0.14)' }}>
-                  <PlayCircle size={30} color="#2DD4BF" weight="fill" />
-                </View>
-                <Text className="text-white text-lg font-bold mb-1">No videos available</Text>
-                <Text className="text-gray-400 text-center px-8">This game doesn't have any trailers or gameplay videos yet</Text>
+              <View className="items-center py-10 px-6">
+                <Text className="text-gray-400 text-base text-center">No community reviews yet.{'\n'}Be the first to share your thoughts!</Text>
               </View>
             )}
           </View>
@@ -1237,7 +1246,7 @@ function GameDetailScreen() {
                 if (gameDetail) {
                   router.push({
                     pathname: '/log',
-                    params: { gameId: gameDetail.id.toString(), editMode: hasReviewed ? 'true' : 'false' }
+                    params: { gameId: gameDetail.id.toString(), editMode: hasReviewed ? 'true' : 'false', ts: Date.now().toString() }
                   });
                 }
               }}

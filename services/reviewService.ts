@@ -8,6 +8,8 @@ export interface Review {
   userAvatar?: string;
   gameId: string;
   gameName: string;
+  gameCover?: string;
+  status?: string;
   rating: number;
   reviewText: string;
   playTime?: string;
@@ -17,6 +19,16 @@ export interface Review {
   isPublic: boolean;
   date: string;
   verified: boolean;
+  helpful?: number;
+  helpfulByMe?: boolean;
+}
+
+export interface PublicUser {
+  id: string;
+  username: string;
+  avatarUrl: string;
+  createdAt?: string;
+  private?: boolean;
 }
 
 export class ReviewService {
@@ -31,6 +43,8 @@ export class ReviewService {
           userAvatar: reviewData.userAvatar || '',
           gameId: reviewData.gameId,
           gameName: reviewData.gameName,
+          gameCover: reviewData.gameCover || '',
+          status: reviewData.status || 'completed',
           rating: reviewData.rating,
           reviewText: reviewData.reviewText,
           playTime: reviewData.playTime || '',
@@ -50,10 +64,11 @@ export class ReviewService {
   }
 
   // Get all public reviews for a specific game (community reviews)
-  static async getGameReviews(gameId: string): Promise<Review[]> {
+  static async getGameReviews(gameId: string, sort: 'date' | 'rating' | 'helpful' = 'date'): Promise<Review[]> {
     try {
       const res = await apiRequest<{ reviews: Review[] }>(
-        `/api/reviews?gameId=${encodeURIComponent(gameId)}&isPublic=true`
+        `/api/reviews?gameId=${encodeURIComponent(gameId)}&isPublic=true&sort=${sort}`,
+        { auth: true } // optional auth so helpfulByMe is populated when signed in
       );
       return res.reviews;
     } catch (error) {
@@ -62,11 +77,45 @@ export class ReviewService {
     }
   }
 
+  // Toggle a "helpful" vote on a review; returns the new count + my state.
+  static async voteHelpful(reviewId: string): Promise<{ helpful: number; helpfulByMe: boolean }> {
+    return apiRequest<{ helpful: number; helpfulByMe: boolean }>(
+      `/api/reviews/${encodeURIComponent(reviewId)}/helpful`,
+      { method: 'POST', auth: true }
+    );
+  }
+
+  // Public profile basics for a reviewer.
+  static async getPublicUser(userId: string): Promise<PublicUser | null> {
+    try {
+      const res = await apiRequest<{ user: PublicUser }>(`/api/users/${encodeURIComponent(userId)}`);
+      return res.user;
+    } catch (error) {
+      console.error('Error fetching public user:', error);
+      return null;
+    }
+  }
+
+  // A user's PUBLIC reviews (for their public profile).
+  static async getUserPublicReviews(userId: string): Promise<Review[]> {
+    try {
+      const res = await apiRequest<{ reviews: Review[] }>(
+        `/api/reviews?userId=${encodeURIComponent(userId)}&isPublic=true&sort=date`,
+        { auth: true } // so viewing your OWN profile isn't blocked by the privacy filter
+      );
+      return res.reviews;
+    } catch (error) {
+      console.error('Error fetching user public reviews:', error);
+      return [];
+    }
+  }
+
   // Get all reviews by a specific user
   static async getUserReviews(userId: string): Promise<Review[]> {
     try {
       const res = await apiRequest<{ reviews: Review[] }>(
-        `/api/reviews?userId=${encodeURIComponent(userId)}`
+        `/api/reviews?userId=${encodeURIComponent(userId)}`,
+        { auth: true } // send token so the server recognizes these as MY reviews (privacy filter)
       );
       return res.reviews;
     } catch (error) {

@@ -197,7 +197,7 @@ export default function DiscoverScreen() {
                   {loadingFeatured ? (
                     <ActivityIndicator size="large" color={accents.featured.color} className="py-10" />
                   ) : (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5" contentContainerStyle={{ paddingHorizontal: 20 }}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5" contentContainerStyle={{ paddingHorizontal: 20, gap: 16 }}>
                       {featuredGames.map((game) => <GameCard key={game.id} game={game} />)}
                     </ScrollView>
                   )}
@@ -208,7 +208,7 @@ export default function DiscoverScreen() {
                   {loadingTrending ? (
                     <ActivityIndicator size="large" color={accents.trending.color} className="py-10" />
                   ) : (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5" contentContainerStyle={{ paddingHorizontal: 20 }}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5" contentContainerStyle={{ paddingHorizontal: 20, gap: 16 }}>
                       {trendingGames.map((game) => <GameCard key={game.id} game={game} />)}
                     </ScrollView>
                   )}
@@ -219,7 +219,7 @@ export default function DiscoverScreen() {
                   {loadingNewReleases ? (
                     <ActivityIndicator size="large" color={accents.anticipated.color} className="py-10" />
                   ) : (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5" contentContainerStyle={{ paddingHorizontal: 20 }}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5" contentContainerStyle={{ paddingHorizontal: 20, gap: 16 }}>
                       {newReleases.map((game) => <GameCard key={game.id} game={game} />)}
                     </ScrollView>
                   )}

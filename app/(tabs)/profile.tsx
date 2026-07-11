@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Platform,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -28,9 +29,14 @@ import {
   Camera,
   X,
 } from 'phosphor-react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
+import { useGameStore } from '@/store/gameStore';
+import { useReviewStore } from '@/store/reviewStore';
+import { useListStore } from '@/store/listStore';
 import { useAchievements } from '@/hooks/useAchievements';
+import SteamConnectionCard from '@/components/SteamConnectionCard';
+import { XpService, XpState } from '@/services/xpService';
 import { useConfirmation } from '@/hooks/useConfirmation';
 import ConfirmationModal from '@/components/ConfirmationModal';
 
@@ -80,11 +86,12 @@ const avatarOptions = [
 ];
 
 export default function ProfileScreen() {
-  const { user, isLoading, isAuthenticated } = useAuth();
+  const { user, isLoading, isAuthenticated, updateAvatar, saveAvatarUrl } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('overview');
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState(defaultAvatar);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   
   // Confirmation modal
   const { confirmationState, showConfirmation, hideConfirmation } = useConfirmation();
@@ -116,6 +123,31 @@ export default function ProfileScreen() {
     favoriteGenres: [],
   });
   
+  // Server-owned XP / level / rank.
+  const [xpState, setXpState] = useState<XpState | null>(null);
+
+  // --- Real, server-backed stats (no local counters, no placeholders) ---
+  const libraryGames = useGameStore((s) => s.libraryGames);
+  const myReviews = useReviewStore((s) => s.reviews);
+  const fetchUserReviews = useReviewStore((s) => s.fetchUserReviews);
+
+  const gamesCount = libraryGames.length;
+  const reviewsCount = myReviews.length;
+  const listsCount = useListStore((s) => s.lists.length);
+  const fetchLists = useListStore((s) => s.fetchLists);
+
+  // Total playtime is real Steam hours, not a hardcoded "0h".
+  const totalPlaytime = React.useMemo(() => {
+    const minutes = libraryGames.reduce((sum, g) => sum + (g.steamPlaytimeMinutes || 0), 0);
+    if (minutes <= 0) return '0h';
+    return `${Math.round(minutes / 60).toLocaleString()}h`;
+  }, [libraryGames]);
+
+  // Real join date from the account, not "today".
+  const joinDate = user?.createdAt
+    ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+    : '—';
+
   // Real activity data - would come from user's actual activity
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   
@@ -131,6 +163,26 @@ export default function ProfileScreen() {
   useEffect(() => {
     loadAchievementData();
   }, [achievementsList, achievementStats]);
+
+  // Refresh XP whenever the profile comes into focus, so a Steam sync or a new
+  // review is reflected as soon as the user lands back here.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      XpService.getXp().then((s) => {
+        if (!cancelled && s) setXpState(s);
+      });
+      // Pull the real review count for this user (another screen may have left
+      // the shared review store holding a *game's* reviews instead of mine).
+      if (user?.id) {
+        fetchUserReviews(user.id);
+        fetchLists();
+      }
+      return () => {
+        cancelled = true;
+      };
+    }, [user?.id])
+  );
   
   // Load bio independently to avoid conflicts
   useEffect(() => {
@@ -165,19 +217,16 @@ export default function ProfileScreen() {
   
   const loadAchievementData = async () => {
     if (achievementStats) {
-      // Update user stats from achievement system while preserving bio
-      setUserStats(prev => {
-        const currentBio = prev.bio; // Preserve the current bio
-        return {
-          ...prev,
-          bio: currentBio, // Keep the bio
-          gamesPlayed: achievementStats.gameCount,
-          reviewsWritten: achievementStats.reviewCount,
-          listsCreated: achievementStats.listCount,
-          currentStreak: achievementStats.currentStreak,
-          longestStreak: achievementStats.longestStreak,
-        };
-      });
+      // Games/reviews/playtime/join-date are derived from REAL server data below.
+      // achievementStats are device-local AsyncStorage counters that drift from
+      // reality (they even survived onto a fresh account), so they're no longer
+      // trusted for anything the server actually knows.
+      setUserStats(prev => ({
+        ...prev,
+        listsCreated: achievementStats.listCount,
+        currentStreak: achievementStats.currentStreak,
+        longestStreak: achievementStats.longestStreak,
+      }));
     }
     
     // Load recent achievements
@@ -198,14 +247,59 @@ export default function ProfileScreen() {
     }));
   };
 
-  const handleAvatarSelect = (avatar: string) => {
+  // Show the signed-in user's saved avatar.
+  useEffect(() => {
+    if (user?.avatar) setSelectedAvatar(user.avatar);
+  }, [user?.avatar]);
+
+  // Pick a preset avatar and persist it.
+  const handleAvatarSelect = async (avatar: string) => {
     setSelectedAvatar(avatar);
     setShowAvatarModal(false);
+    try {
+      await saveAvatarUrl(avatar);
+    } catch (error) {
+      console.error('Failed to save avatar:', error);
+      showConfirmation('Error', 'Could not save your avatar. Please try again.', () => {}, 'warning', 'OK', '');
+    }
   };
 
-  const handleUploadPhoto = () => {
-    // This would integrate with image picker
-    setShowAvatarModal(false);
+  // Pick a photo from the gallery, upload it, and persist the URL.
+  const handleUploadPhoto = async () => {
+    try {
+      // Load the native picker lazily so a missing module never blocks app start.
+      const ImagePicker = await import('expo-image-picker');
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        setShowAvatarModal(false);
+        showConfirmation('Permission needed', 'Please allow photo access to upload a picture.', () => {}, 'warning', 'OK', '');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+        base64: true,
+      });
+      if (result.canceled || !result.assets?.length) return;
+
+      const asset = result.assets[0];
+      if (!asset.base64) {
+        showConfirmation('Error', 'Could not read the selected image.', () => {}, 'warning', 'OK', '');
+        return;
+      }
+      setShowAvatarModal(false);
+      setUploadingAvatar(true);
+      const dataUri = `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`;
+      const url = await updateAvatar(dataUri);
+      setSelectedAvatar(url);
+    } catch (error) {
+      console.error('Avatar upload failed:', error);
+      showConfirmation('Upload failed', 'Could not upload your photo. Please try again.', () => {}, 'warning', 'OK', '');
+    } finally {
+      setUploadingAvatar(false);
+    }
   };
 
   // Bio editing functions
@@ -241,8 +335,65 @@ export default function ProfileScreen() {
 
 
 
+  // Gamer Level comes from the server, where XP is EARNED and stored per event.
+  // It was previously recomputed from current stats, which meant deleting a
+  // review or removing a game could make you LOSE XP and drop a level.
+  const xp = xpState?.xp ?? 0;
+  const level = xpState?.level ?? 1;
+  const rank = xpState?.rank ?? 'Rookie';
+  const XP_PER_LEVEL = xpState?.xpPerLevel ?? 500;
+  const xpInLevel = xpState?.xpInLevel ?? 0;
+  const levelProgress = Math.max(0.03, xpInLevel / XP_PER_LEVEL);
+
   const renderOverview = () => (
     <View className="mt-2">
+      {/* Connections (Steam import) */}
+      <SteamConnectionCard />
+
+      {/* Gamer Level */}
+      <View className="mb-8 rounded-2xl p-5" style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
+        <View className="flex-row items-center mb-4">
+          <View
+            className="w-16 h-16 rounded-2xl items-center justify-center mr-4"
+            style={{ backgroundColor: colors.teal, ...glow(colors.teal, 0.4, 12) }}
+          >
+            <Text className="text-[10px] font-bold" style={{ color: alpha(colors.void, 0.7) }}>LVL</Text>
+            <Text className="text-2xl font-bold -mt-1" style={{ color: colors.void }}>{level}</Text>
+          </View>
+          <View className="flex-1">
+            <Text className="font-bold text-lg" style={{ color: colors.text }}>Gamer Level</Text>
+            <View className="self-start px-2.5 py-1 rounded-full mt-1" style={{ backgroundColor: alpha(colors.teal, 0.16) }}>
+              <Text className="text-xs font-bold" style={{ color: colors.tealBright }}>{rank}</Text>
+            </View>
+          </View>
+          {/* flexShrink:0 keeps the flex-1 column beside this from squeezing it —
+              Android then clips the label ("total XP" -> "total"). */}
+          {/* An explicit minWidth guarantees room for the label. Relying on the
+              shrink-wrapped width alone let Android clip "Total XP" -> "Total". */}
+          <View className="items-end ml-2" style={{ flexShrink: 0, minWidth: 72 }}>
+            <Text
+              className="font-bold text-base"
+              style={{ color: colors.gold, alignSelf: 'stretch', textAlign: 'right' }}
+            >
+              {xp.toLocaleString()}
+            </Text>
+            <Text
+              className="text-xs"
+              style={{ color: colors.textMuted, alignSelf: 'stretch', textAlign: 'right' }}
+            >
+              Total XP
+            </Text>
+          </View>
+        </View>
+        {/* XP progress to next level */}
+        <View className="h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: colors.elevated }}>
+          <View style={{ height: '100%', width: `${levelProgress * 100}%`, backgroundColor: colors.teal, borderRadius: 999 }} />
+        </View>
+        <Text className="text-xs mt-1.5" style={{ color: colors.textMuted }}>
+          {xpInLevel} / {XP_PER_LEVEL} XP to Level {level + 1}
+        </Text>
+      </View>
+
       {/* Gaming Stats Grid */}
       <View className="mb-8">
         <Text className="font-bold text-xl text-white mb-4">
@@ -253,28 +404,28 @@ export default function ProfileScreen() {
           <View className="w-[48%] mb-4 rounded-2xl p-4 items-center h-32" style={{ backgroundColor: colors.red }}>
             <Fire size={28} color={colors.void} weight="fill" />
             <Text className="font-bold text-2xl mt-2" style={{ color: colors.void }}>{userStats.currentStreak}</Text>
-            <Text className="text-sm font-semibold" style={{ color: alpha(colors.void, 0.75) }}>Day Streak</Text>
+            <Text className="text-sm font-semibold" style={{ color: alpha(colors.void, 0.75), alignSelf: 'stretch', textAlign: 'center' }}>Day Streak</Text>
           </View>
 
           {/* Total Playtime */}
           <View className="w-[48%] mb-4 rounded-2xl p-4 items-center h-32" style={{ backgroundColor: colors.teal }}>
             <Clock size={28} color={colors.void} weight="fill" />
-            <Text className="font-bold text-xl mt-2" style={{ color: colors.void }}>{userStats.totalPlaytime}</Text>
-            <Text className="text-sm font-semibold" style={{ color: alpha(colors.void, 0.75) }}>Total Time</Text>
+            <Text className="font-bold text-xl mt-2" style={{ color: colors.void }}>{totalPlaytime}</Text>
+            <Text className="text-sm font-semibold" style={{ color: alpha(colors.void, 0.75), alignSelf: 'stretch', textAlign: 'center' }}>Total Time</Text>
           </View>
 
           {/* Achievements */}
           <View className="w-[48%] mb-4 rounded-2xl p-4 items-center h-32" style={{ backgroundColor: colors.gold }}>
             <Trophy size={28} color={colors.void} weight="fill" />
             <Text className="font-bold text-2xl mt-2" style={{ color: colors.void }}>{userStats.achievements}</Text>
-            <Text className="text-sm font-semibold" style={{ color: alpha(colors.void, 0.75) }}>Achievements</Text>
+            <Text className="text-sm font-semibold" style={{ color: alpha(colors.void, 0.75), alignSelf: 'stretch', textAlign: 'center' }}>Achievements</Text>
           </View>
 
           {/* Join Date */}
           <View className="w-[48%] mb-4 rounded-2xl p-4 items-center h-32" style={{ backgroundColor: colors.cyan }}>
             <Calendar size={28} color={colors.void} weight="fill" />
-            <Text className="font-bold text-lg mt-2" style={{ color: colors.void }}>{userStats.joinDate}</Text>
-            <Text className="text-sm font-semibold" style={{ color: alpha(colors.void, 0.75) }}>Member Since</Text>
+            <Text className="font-bold text-lg mt-2" style={{ color: colors.void }}>{joinDate}</Text>
+            <Text className="text-sm font-semibold" style={{ color: alpha(colors.void, 0.75), alignSelf: 'stretch', textAlign: 'center' }}>Member Since</Text>
           </View>
         </View>
       </View>
@@ -429,7 +580,7 @@ export default function ProfileScreen() {
               <Calendar size={20} color="#14C8B0" weight="fill" />
               <Text className="text-[#AEB9C4] ml-3 font-medium">Member Since</Text>
             </View>
-            <Text className="font-bold text-white text-lg">{userStats.joinDate}</Text>
+            <Text className="font-bold text-white text-lg">{joinDate}</Text>
           </View>
           
           <View className="h-px bg-[#232C37]" />
@@ -439,7 +590,7 @@ export default function ProfileScreen() {
               <GameController size={20} color="#14C8B0" weight="fill" />
               <Text className="text-[#AEB9C4] ml-3 font-medium">Games Played</Text>
             </View>
-            <Text className="font-bold text-white text-lg">{userStats.gamesPlayed}</Text>
+            <Text className="font-bold text-white text-lg">{gamesCount}</Text>
           </View>
           
           <View className="h-px bg-[#232C37]" />
@@ -449,7 +600,7 @@ export default function ProfileScreen() {
               <Clock size={20} color="#14C8B0" weight="fill" />
               <Text className="text-[#AEB9C4] ml-3 font-medium">Total Playtime</Text>
             </View>
-            <Text className="font-bold text-white text-lg">{userStats.totalPlaytime}</Text>
+            <Text className="font-bold text-white text-lg">{totalPlaytime}</Text>
           </View>
           
           <View className="h-px bg-[#232C37]" />
@@ -459,7 +610,7 @@ export default function ProfileScreen() {
               <Star size={20} color="#14C8B0" weight="fill" />
               <Text className="text-[#AEB9C4] ml-3 font-medium">Reviews Written</Text>
             </View>
-            <Text className="font-bold text-white text-lg">{userStats.reviewsWritten}</Text>
+            <Text className="font-bold text-white text-lg">{reviewsCount}</Text>
           </View>
         </View>
       </View>
@@ -567,6 +718,11 @@ export default function ProfileScreen() {
                 >
                   <View className="w-[108px] h-[108px] rounded-full overflow-hidden" style={{ borderWidth: 3, borderColor: colors.bg }}>
                     <Image source={{ uri: selectedAvatar }} className="w-full h-full rounded-full" />
+                    {uploadingAvatar && (
+                      <View className="absolute inset-0 rounded-full justify-center items-center" style={{ backgroundColor: 'rgba(6,9,13,0.6)' }}>
+                        <ActivityIndicator color={colors.teal} />
+                      </View>
+                    )}
                   </View>
                 </View>
                 <View
@@ -577,10 +733,16 @@ export default function ProfileScreen() {
                 </View>
               </TouchableOpacity>
 
-              <Text className="font-bold text-3xl mb-3" style={{ color: colors.text }}>
+              <Text className="font-bold text-3xl mb-2" style={{ color: colors.text }}>
                 {userName}
               </Text>
-              
+
+              {/* Rank + level chip */}
+              <View className="flex-row items-center px-3 py-1.5 rounded-full mb-3" style={{ backgroundColor: alpha(colors.teal, 0.14), borderWidth: 1, borderColor: alpha(colors.teal, 0.3) }}>
+                <Trophy size={13} color={colors.tealBright} weight="fill" />
+                <Text className="font-bold text-xs ml-1.5" style={{ color: colors.tealBright }}>{rank} · Level {level}</Text>
+              </View>
+
               {/* Bio Section - Beautiful Design */}
               <View className="mb-6">
                 <View className="bg-[#12171E] rounded-2xl p-5 border border-[#232C37] min-w-full shadow-lg">
@@ -607,15 +769,15 @@ export default function ProfileScreen() {
               {/* Quick Stats */}
               <View className="flex-row space-x-6 mt-2">
                 <View className="items-center">
-                  <Text className="font-bold text-2xl text-white">{userStats.gamesPlayed}</Text>
+                  <Text className="font-bold text-2xl text-white">{gamesCount}</Text>
                   <Text className="text-[#AEB9C4] text-sm mt-1">Games</Text>
                 </View>
                 <View className="items-center">
-                  <Text className="font-bold text-2xl text-white">{userStats.reviewsWritten}</Text>
+                  <Text className="font-bold text-2xl text-white">{reviewsCount}</Text>
                   <Text className="text-[#AEB9C4] text-sm mt-1">Reviews</Text>
                 </View>
                 <View className="items-center">
-                  <Text className="font-bold text-2xl text-white">{userStats.listsCreated}</Text>
+                  <Text className="font-bold text-2xl text-white">{listsCount}</Text>
                   <Text className="text-[#AEB9C4] text-sm mt-1">Lists</Text>
                 </View>
               </View>

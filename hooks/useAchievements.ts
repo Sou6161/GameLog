@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Alert } from 'react-native';
 import {
   achievementService,
   Achievement,
   UserStats,
 } from '@/services/achievementService';
+import { useAchievementUiStore } from '@/store/achievementUiStore';
+import { XpService } from '@/services/xpService';
 
 export function useAchievements() {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
@@ -32,13 +33,11 @@ export function useAchievements() {
     }
   };
 
-  // Show achievement unlock notification
+  // Show achievement unlock notification via the themed modal (queued globally),
+  // and bank the XP for it on the server (idempotent — keyed by achievement id).
   const showAchievementNotification = (achievement: Achievement) => {
-    Alert.alert(
-      '🏆 Achievement Unlocked!',
-      `${achievement.title}\n${achievement.description}`,
-      [{ text: 'Awesome!', style: 'default' }]
-    );
+    useAchievementUiStore.getState().enqueue([achievement]);
+    XpService.awardAchievement(achievement.id);
   };
 
   // Track review and check for unlocked achievements

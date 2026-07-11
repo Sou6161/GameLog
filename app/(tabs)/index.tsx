@@ -15,7 +15,8 @@ import { StatusBar } from 'expo-status-bar';
 import { GameCard } from '@/components/GameCard';
 import AppContent from '@/components/AppContent';
 import { useAuth } from '@/hooks/useAuth';
-import { useFeaturedGames, useTrendingGames, usePopularGames, useTopRatedGames, useUpcomingGames, useIndieGames, useRecentlyReleasedGames, useMostAnticipatedGames } from '@/hooks/useGames';
+import { useFeaturedGames, useTrendingGames, usePopularGames, useTopRatedGames, useUpcomingGames, useIndieGames, useRecentlyReleasedGames, useMostAnticipatedGames, useHiddenGems } from '@/hooks/useGames';
+import SteamConnectBanner from '@/components/SteamConnectBanner';
 import { IGDBGame } from '@/services/igdbService';
 import { colors, gradients, accents, glow, alpha } from '@/constants/theme';
 import {
@@ -29,6 +30,7 @@ import {
   Trophy,
   Clock,
   Rocket,
+  Diamond,
   CaretRight,
 } from 'phosphor-react-native';
 
@@ -54,8 +56,6 @@ function FeaturedGameCard({ game }: { game: IGDBGame }) {
           source={{ uri: game.cover?.url || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop' }}
           className="w-full h-full absolute"
         />
-        {/* Solid legibility scrim */}
-        <View className="absolute bottom-0 left-0 right-0 h-[62%]" style={{ backgroundColor: colors.void, opacity: 0.62 }} />
 
         {/* Top badges */}
         <View className="flex-row justify-between items-start p-4">
@@ -73,7 +73,11 @@ function FeaturedGameCard({ game }: { game: IGDBGame }) {
 
         {/* Bottom content */}
         <View className="absolute bottom-0 left-0 right-0 p-5">
-          <Text className="font-bold text-[26px] leading-[30px] mb-3" style={{ color: colors.text }} numberOfLines={2}>
+          <Text
+            className="font-bold text-[26px] leading-[30px] mb-3"
+            style={{ color: '#FFFFFF', textShadowColor: 'rgba(0,0,0,0.9)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 10 }}
+            numberOfLines={2}
+          >
             {game.name}
           </Text>
 
@@ -144,7 +148,7 @@ function GameRow({
   data,
   loading,
   error,
-  onPress,
+  category,
 }: {
   title: string;
   icon: any;
@@ -152,11 +156,12 @@ function GameRow({
   data?: IGDBGame[];
   loading: boolean;
   error: unknown;
-  onPress?: () => void;
+  category: string;
 }) {
+  const seeAll = () => router.push({ pathname: '/games/[category]', params: { category } });
   return (
     <View className="mb-8">
-      <SectionHeader title={title} icon={icon} color={color} onPress={onPress} />
+      <SectionHeader title={title} icon={icon} color={color} onPress={seeAll} />
       {loading ? (
         <View className="h-[220px] justify-center items-center">
           <ActivityIndicator size="large" color={color} />
@@ -167,7 +172,7 @@ function GameRow({
           <Text className="text-sm mt-1.5" style={{ color: colors.textMuted }}>Check your connection and try again</Text>
         </View>
       ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5" contentContainerStyle={{ paddingHorizontal: 20 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5" contentContainerStyle={{ paddingHorizontal: 20, gap: 16 }}>
           {data?.map((game: IGDBGame) => <GameCard key={game.id} game={game} />)}
         </ScrollView>
       )}
@@ -203,6 +208,7 @@ function HomeContent() {
   const indie = useIndieGames();
   const recent = useRecentlyReleasedGames();
   const anticipated = useMostAnticipatedGames();
+  const gems = useHiddenGems();
 
   const name = user?.username || 'Gamer';
 
@@ -210,7 +216,7 @@ function HomeContent() {
     <LinearGradient colors={gradients.screen} className="flex-1" start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
       <StatusBar style="light" />
       <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: Platform.OS === 'web' ? 120 : 110 }}>
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 16 }}>
           <View className="p-5">
             {/* Welcome */}
             <View className="mb-8 mt-1">
@@ -223,9 +229,12 @@ function HomeContent() {
               </Text>
             </View>
 
+            {/* Steam import (one-time, dismissible) */}
+            <SteamConnectBanner />
+
             {/* Featured */}
             <View className="mb-8">
-              <SectionHeader title="Featured Games" icon={Heart} color={accents.featured.color} />
+              <SectionHeader title="Featured Games" icon={Heart} color={accents.featured.color} onPress={() => router.push({ pathname: '/games/[category]', params: { category: 'featured' } })} />
               {featured.isLoading ? (
                 <View className="h-[370px] justify-center items-center">
                   <ActivityIndicator size="large" color={accents.featured.color} />
@@ -242,16 +251,17 @@ function HomeContent() {
               )}
             </View>
 
-            <GameRow title="Trending Now" icon={Fire} color={accents.trending.color} data={trending.data} loading={trending.isLoading} error={trending.error} onPress={() => router.push('/discover')} />
-            <GameRow title="Popular This Week" icon={Lightning} color={accents.popular.color} data={popular.data} loading={popular.isLoading} error={popular.error} />
-            <GameRow title="Top Rated Games" icon={Trophy} color={accents.top.color} data={topRated.data} loading={topRated.isLoading} error={topRated.error} />
-            <GameRow title="Upcoming Games" icon={GameController} color={accents.upcoming.color} data={upcoming.data} loading={upcoming.isLoading} error={upcoming.error} />
-            <GameRow title="Indie Games" icon={Sparkle} color={accents.indie.color} data={indie.data} loading={indie.isLoading} error={indie.error} />
-            <GameRow title="Recently Released" icon={Clock} color={accents.recent.color} data={recent.data} loading={recent.isLoading} error={recent.error} />
-            <GameRow title="Most Anticipated" icon={Rocket} color={accents.anticipated.color} data={anticipated.data} loading={anticipated.isLoading} error={anticipated.error} />
+            <GameRow title="Trending Now" icon={Fire} color={accents.trending.color} data={trending.data} loading={trending.isLoading} error={trending.error} category="trending" />
+            <GameRow title="Popular This Week" icon={Lightning} color={accents.popular.color} data={popular.data} loading={popular.isLoading} error={popular.error} category="popular" />
+            <GameRow title="Top Rated Games" icon={Trophy} color={accents.top.color} data={topRated.data} loading={topRated.isLoading} error={topRated.error} category="top-rated" />
+            <GameRow title="Upcoming Games" icon={GameController} color={accents.upcoming.color} data={upcoming.data} loading={upcoming.isLoading} error={upcoming.error} category="upcoming" />
+            <GameRow title="Indie Games" icon={Sparkle} color={accents.indie.color} data={indie.data} loading={indie.isLoading} error={indie.error} category="indie" />
+            <GameRow title="Hidden Gems" icon={Diamond} color={colors.lime} data={gems.data} loading={gems.isLoading} error={gems.error} category="gems" />
+            <GameRow title="Recently Released" icon={Clock} color={accents.recent.color} data={recent.data} loading={recent.isLoading} error={recent.error} category="recent" />
+            <GameRow title="Most Anticipated" icon={Rocket} color={accents.anticipated.color} data={anticipated.data} loading={anticipated.isLoading} error={anticipated.error} category="anticipated" />
 
             {/* Quick actions */}
-            <View className="flex-row gap-3 mt-2 mb-6">
+            <View className="flex-row gap-3 mt-2 mb-1">
               <QuickAction icon={Play} label="Log Game" sub="Track your progress" color={colors.coral} />
               <QuickAction icon={Star} label="Rate Game" sub="Share your review" color={colors.teal} />
               <QuickAction icon={Heart} label="Wishlist" sub="Save for later" color={colors.gold} />

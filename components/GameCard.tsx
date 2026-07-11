@@ -7,9 +7,13 @@ import { colors, glow, alpha } from '@/constants/theme';
 
 interface GameCardProps {
   game: IGDBGame;
+  width?: number;
 }
 
-export function GameCard({ game }: GameCardProps) {
+// Poster aspect ratio (IGDB cover_big is 264x374 ≈ 0.706).
+const ASPECT = 208 / 148;
+
+export function GameCard({ game, width = 148 }: GameCardProps) {
   const handlePress = () => {
     if (!game || !game.id) {
       console.warn('GameCard: Invalid game data or missing ID', game);
@@ -18,14 +22,16 @@ export function GameCard({ game }: GameCardProps) {
     router.push({ pathname: '/game/[id]', params: { id: game.id.toString() } });
   };
 
+  const imgHeight = Math.round(width * ASPECT);
   const rating = game.rating ? (game.rating / 10).toFixed(1) : null;
   const genre = game.genres && game.genres.length > 0 ? game.genres[0].name : null;
 
   return (
-    <TouchableOpacity className="w-[148px] mr-4" activeOpacity={0.85} onPress={handlePress}>
+    <TouchableOpacity style={{ width }} activeOpacity={0.85} onPress={handlePress}>
       <View
         className="rounded-[20px] overflow-hidden mb-3"
         style={{
+          width,
           borderWidth: 1,
           borderColor: colors.borderStrong,
           backgroundColor: colors.surface,
@@ -34,10 +40,8 @@ export function GameCard({ game }: GameCardProps) {
       >
         <Image
           source={{ uri: game.cover?.url || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop' }}
-          className="w-[148px] h-[208px]"
+          style={{ width, height: imgHeight }}
         />
-        {/* Solid legibility scrim */}
-        <View className="absolute bottom-0 left-0 right-0 h-[42%]" style={{ backgroundColor: colors.void, opacity: 0.5 }} />
 
         {/* Rating pill */}
         {rating && (

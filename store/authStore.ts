@@ -5,7 +5,11 @@ export interface User {
   username: string;
   email: string;
   avatar?: string;
+  createdAt?: string;
   steamId?: string;
+  profilePrivate?: boolean;
+  showReviews?: boolean;
+  showActivity?: boolean;
 }
 
 interface AuthState {

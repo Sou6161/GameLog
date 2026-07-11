@@ -1,4 +1,4 @@
-import { apiRequest, setToken, getToken } from '@/lib/api';
+import { apiRequest, setToken, getToken, ApiError } from '@/lib/api';
 
 export interface LoginCredentials {
   email: string;
@@ -17,6 +17,9 @@ interface BackendUser {
   email: string;
   username: string;
   avatarUrl?: string;
+  profilePrivate?: boolean;
+  showReviews?: boolean;
+  showActivity?: boolean;
   createdAt?: string;
 }
 
@@ -34,6 +37,10 @@ export interface AppUser {
   username: string;
   email: string;
   avatar?: string;
+  createdAt?: string;
+  profilePrivate?: boolean;
+  showReviews?: boolean;
+  showActivity?: boolean;
 }
 
 function toAppUser(user: BackendUser): AppUser {
@@ -44,6 +51,10 @@ function toAppUser(user: BackendUser): AppUser {
     username: user.username,
     email: user.email,
     avatar: user.avatarUrl || undefined,
+    createdAt: user.createdAt,
+    profilePrivate: user.profilePrivate ?? false,
+    showReviews: user.showReviews ?? true,
+    showActivity: user.showActivity ?? true,
   };
 }
 
@@ -90,17 +101,24 @@ class AuthService {
     }
   }
 
-  // Get current user (returns null if not authenticated)
+  // Get current user.
+  //  - returns null when there is no token or the token is rejected (401)
+  //  - THROWS on transient failures (network/5xx) so callers can keep the
+  //    existing session instead of logging the user out on a blip.
   async getCurrentUser(): Promise<AppUser | null> {
+    const token = await getToken();
+    if (!token) return null;
     try {
-      const token = await getToken();
-      if (!token) return null;
       const res = await apiRequest<{ user: BackendUser }>('/api/auth/me', { auth: true });
       return toAppUser(res.user);
     } catch (error) {
-      // Token invalid/expired — clear it so the app treats the user as logged out.
-      await setToken(null);
-      return null;
+      if (error instanceof ApiError && error.status === 401) {
+        // Genuinely unauthenticated — clear the stale token.
+        await setToken(null);
+        return null;
+      }
+      // Transient error (server unreachable, 5xx, timeout): don't touch the token.
+      throw error;
     }
   }
 
@@ -108,6 +126,43 @@ class AuthService {
   async isAuthenticated(): Promise<boolean> {
     const user = await this.getCurrentUser();
     return !!user;
+  }
+
+  // Upload an image (data URI) to media storage; returns the hosted URL.
+  async uploadImage(dataUri: string, kind: 'avatar' | 'image' | 'video' | 'doc' = 'image'): Promise<string> {
+    const res = await apiRequest<{ url: string }>('/api/uploads', {
+      method: 'POST',
+      auth: true,
+      body: { image: dataUri, kind },
+    });
+    return res.url;
+  }
+
+  // Update the current user's profile (avatar, username, privacy) and return
+  // the fresh user.
+  async updateProfile(patch: {
+    avatarUrl?: string;
+    username?: string;
+    profilePrivate?: boolean;
+    showReviews?: boolean;
+    showActivity?: boolean;
+  }): Promise<AppUser> {
+    const res = await apiRequest<{ user: BackendUser }>('/api/auth/me', {
+      method: 'PATCH',
+      auth: true,
+      body: patch,
+    });
+    return toAppUser(res.user);
+  }
+
+  // Permanently delete the current account (and all its data) on the backend,
+  // then clear the local token.
+  async deleteAccount(): Promise<void> {
+    try {
+      await apiRequest('/api/users/me', { method: 'DELETE', auth: true });
+    } finally {
+      await setToken(null);
+    }
   }
 }
 

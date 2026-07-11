@@ -21,6 +21,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { AuthScreen } from '@/components/AuthScreen';
 import SplashScreen from '@/components/SplashScreen';
 import { useSplashScreen } from '@/hooks/useSplashScreen';
+import AchievementUnlockedModal from '@/components/AchievementUnlockedModal';
 
 
 const queryClient = new QueryClient();
@@ -43,7 +44,17 @@ function AuthGate() {
     return <AuthScreen />;
   }
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        // Smooth iOS-style slide for push/pop on all platforms + edge-swipe back.
+        animation: 'slide_from_right',
+        animationDuration: 260,
+        gestureEnabled: true,
+        // Dark scene background so there's no white flash during transitions.
+        contentStyle: { backgroundColor: '#0A0E13' },
+      }}
+    >
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="+not-found" />
     </Stack>
@@ -52,6 +63,29 @@ function AuthGate() {
 
 export default function RootLayout() {
   useFrameworkReady();
+
+  // Keep the whole app in portrait; only the fullscreen video player unlocks to
+  // landscape (see MediaPlayerModal). Guarded so it no-ops if the native module
+  // isn't in the build yet.
+  useEffect(() => {
+    (async () => {
+      try {
+        const ScreenOrientation = await import('expo-screen-orientation');
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+      } catch {}
+    })();
+  }, []);
+
+  // Paint the native root/window background dark so screen transitions never
+  // flash white. Guarded so a missing module can't block startup.
+  useEffect(() => {
+    (async () => {
+      try {
+        const SystemUI = await import('expo-system-ui');
+        await SystemUI.setBackgroundColorAsync('#0A0E13');
+      } catch {}
+    })();
+  }, []);
 
   const [fontsLoaded, fontError] = useFonts({
     'Orbitron_400Regular': Orbitron_400Regular,
@@ -73,6 +107,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
         <AuthGate />
+        <AchievementUnlockedModal />
         <StatusBar style="light" />
       </SafeAreaProvider>
     </QueryClientProvider>

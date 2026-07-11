@@ -12,6 +12,9 @@ function publicUser(row) {
     email: row.email,
     username: row.username,
     avatarUrl: row.avatar_url || '',
+    profilePrivate: row.profile_private ?? false,
+    showReviews: row.show_reviews ?? true,
+    showActivity: row.show_activity ?? true,
     createdAt: row.created_at,
   };
 }
@@ -90,6 +93,48 @@ router.get('/me', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('Me error:', err);
     return res.status(500).json({ error: 'Failed to fetch current user' });
+  }
+});
+
+// PATCH /api/auth/me — update the current user's profile (avatar, username).
+router.patch('/me', requireAuth, async (req, res) => {
+  try {
+    const b = req.body || {};
+    const sets = [];
+    const params = [];
+    if (b.avatarUrl !== undefined) {
+      params.push(String(b.avatarUrl));
+      sets.push(`avatar_url = $${params.length}`);
+    }
+    if (b.username !== undefined && String(b.username).trim()) {
+      params.push(String(b.username).trim());
+      sets.push(`username = $${params.length}`);
+    }
+    // Privacy settings.
+    for (const [key, column] of [
+      ['profilePrivate', 'profile_private'],
+      ['showReviews', 'show_reviews'],
+      ['showActivity', 'show_activity'],
+    ]) {
+      if (b[key] !== undefined) {
+        params.push(!!b[key]);
+        sets.push(`${column} = $${params.length}`);
+      }
+    }
+    if (sets.length === 0) {
+      const { rows } = await query('SELECT * FROM users WHERE id = $1', [req.user.id]);
+      return res.json({ user: publicUser(rows[0]) });
+    }
+    sets.push('updated_at = now()');
+    params.push(req.user.id);
+    const { rows } = await query(
+      `UPDATE users SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`,
+      params
+    );
+    return res.json({ user: publicUser(rows[0]) });
+  } catch (err) {
+    console.error('Update profile error:', err);
+    return res.status(500).json({ error: 'Failed to update profile' });
   }
 });
 

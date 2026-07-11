@@ -5,10 +5,13 @@ export default {
     name: "GameLog",
     slug: "gamelog",
     version: "1.0.0",
-    orientation: "portrait",
+    // "default" lets us control orientation at runtime (locked to portrait
+    // globally, forced to landscape only during fullscreen video playback).
+    orientation: "default",
     icon: "./assets/images/Gamelog App logo.png",
     scheme: "myapp",
     userInterfaceStyle: "automatic",
+    backgroundColor: "#0A0E13",
     newArchEnabled: true,
     ios: {
       supportsTablet: true

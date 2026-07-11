@@ -24,6 +24,8 @@ export interface ReviewItem {
   isPublic: boolean;
   date: string;
   verified: boolean;
+  helpful?: number;
+  helpfulByMe?: boolean;
 }
 
 // Convert backend Review to ReviewItem
@@ -35,8 +37,9 @@ export const convertReviewToItem = (backendReview: Review): ReviewItem => ({
   game: {
     id: parseInt(backendReview.gameId),
     name: backendReview.gameName,
+    coverUrl: backendReview.gameCover || undefined,
   },
-  status: 'completed', // Default status
+  status: backendReview.status || 'completed',
   rating: backendReview.rating,
   reviewText: backendReview.reviewText,
   playTime: backendReview.playTime || '',
@@ -46,6 +49,8 @@ export const convertReviewToItem = (backendReview: Review): ReviewItem => ({
   isPublic: backendReview.isPublic,
   date: backendReview.date,
   verified: backendReview.verified,
+  helpful: backendReview.helpful ?? 0,
+  helpfulByMe: backendReview.helpfulByMe ?? false,
 });
 
 // Convert ReviewItem to backend Review format
@@ -55,6 +60,8 @@ export const convertItemToReview = (reviewItem: ReviewItem): Omit<Review, '$id'>
   userAvatar: reviewItem.userAvatar || '',
   gameId: reviewItem.game.id.toString(),
   gameName: reviewItem.game.name,
+  gameCover: reviewItem.game.coverUrl || '',
+  status: reviewItem.status || 'completed',
   rating: reviewItem.rating,
   reviewText: reviewItem.reviewText,
   playTime: reviewItem.playTime,
@@ -81,7 +88,7 @@ interface ReviewState {
 
   // Async operations (backed by ReviewService)
   fetchUserReviews: (userId: string) => Promise<void>;
-  fetchGameReviews: (gameId: string) => Promise<void>;
+  fetchGameReviews: (gameId: string, sort?: 'date' | 'rating' | 'helpful') => Promise<void>;
   createReview: (reviewData: Omit<ReviewItem, 'id'>) => Promise<ReviewItem>;
   updateReview: (reviewId: string, updateData: Partial<ReviewItem>) => Promise<ReviewItem>;
   deleteReview: (reviewId: string) => Promise<void>;
@@ -129,10 +136,10 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
     }
   },
 
-  fetchGameReviews: async (gameId) => {
+  fetchGameReviews: async (gameId, sort = 'date') => {
     set({ loading: true });
     try {
-      const backendReviews = await ReviewService.getGameReviews(gameId);
+      const backendReviews = await ReviewService.getGameReviews(gameId, sort);
       set({ reviews: backendReviews.map(convertReviewToItem) });
     } catch (error) {
       console.error('Error fetching game reviews:', error);

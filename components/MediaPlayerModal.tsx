@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Modal, Platform, ActivityIndicator, Dimensions, Linking, StatusBar } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { X, ArrowsOut, ArrowsIn, YoutubeLogo } from 'phosphor-react-native';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import { WebView } from 'react-native-webview';
@@ -19,41 +20,103 @@ interface Props {
 const TWITCH_PARENT = 'gamelog.app';
 
 function twitchHtml(channel: string) {
-  return `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"></head>
-    <body style="margin:0;background:#000;overflow:hidden">
+  // The iframe must fill the WebView. A percentage height only resolves against
+  // a parent that HAS a height, so html/body need an explicit 100% — otherwise
+  // the player collapses to its intrinsic size and floats in a black box.
+  return `<!DOCTYPE html><html><head>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <style>
+      html, body {
+        margin: 0; padding: 0;
+        width: 100%; height: 100%;
+        background: #000; overflow: hidden;
+      }
+      iframe {
+        position: absolute; top: 0; left: 0;
+        width: 100%; height: 100%;
+        border: 0; display: block;
+      }
+    </style></head>
+    <body>
       <iframe
-        src="https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&parent=${TWITCH_PARENT}&autoplay=true&muted=false"
-        height="100%" width="100%" frameborder="0" scrolling="no" allowfullscreen="true">
+        src="https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&parent=${TWITCH_PARENT}&autoplay=true&muted=false&playsinline=true"
+        allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+        allowfullscreen scrolling="no">
       </iframe>
     </body></html>`;
+}
+
+// Runtime orientation control (guarded so it no-ops if the native module isn't
+// in the current build yet — the app still works, fullscreen just won't rotate).
+async function lockLandscape() {
+  try {
+    const SO = await import('expo-screen-orientation');
+    await SO.lockAsync(SO.OrientationLock.LANDSCAPE);
+  } catch {}
+}
+async function lockPortrait() {
+  try {
+    const SO = await import('expo-screen-orientation');
+    await SO.lockAsync(SO.OrientationLock.PORTRAIT_UP);
+  } catch {}
 }
 
 export default function MediaPlayerModal({ media, onClose }: Props) {
   const [loading, setLoading] = React.useState(true);
   const [fullscreen, setFullscreen] = React.useState(false);
-  const [dims, setDims] = React.useState(() => Dimensions.get('window'));
+  const [win, setWin] = React.useState(() => Dimensions.get('window'));
 
-  // Track rotations/resizes so the fullscreen math stays correct.
   React.useEffect(() => {
-    const sub = Dimensions.addEventListener('change', ({ window }) => setDims(window));
+    const sub = Dimensions.addEventListener('change', ({ window }) => setWin(window));
     return () => sub.remove();
   }, []);
 
+  // Reset when the media changes.
   React.useEffect(() => {
     setLoading(true);
     setFullscreen(false);
   }, [media]);
 
-  const SW = dims.width;
-  const SH = dims.height;
-  // Windowed player: full width, 16:9.
-  const winW = SW;
-  const winH = Math.round((SW * 9) / 16);
+  // Always restore portrait when the player unmounts.
+  React.useEffect(() => {
+    return () => {
+      lockPortrait();
+    };
+  }, []);
+
+  const toggleFullscreen = () => {
+    setFullscreen((f) => {
+      const next = !f;
+      if (next) lockLandscape();
+      else lockPortrait();
+      return next;
+    });
+  };
 
   const handleClose = () => {
+    if (fullscreen) lockPortrait();
     setFullscreen(false);
     onClose();
   };
+
+  // Largest 16:9 rectangle that fits within the given bounds (so the video AND
+  // YouTube's control bar always fit on screen — no scrolling).
+  const fit16x9 = (maxW: number, maxH: number) => {
+    let w = maxW;
+    let h = Math.round((w * 9) / 16);
+    if (h > maxH) {
+      h = maxH;
+      w = Math.round((h * 16) / 9);
+    }
+    return { w, h };
+  };
+
+  // Windowed: fit to width. Fullscreen: fit to the whole (landscape) screen.
+  const size = fullscreen
+    ? fit16x9(win.width, win.height)
+    : fit16x9(win.width, Math.round((win.width * 9) / 16));
+  const winW = size.w;
+  const winH = size.h;
 
   const renderPlayer = (w: number, h: number) => {
     if (!media) return null;
@@ -73,13 +136,14 @@ export default function MediaPlayerModal({ media, onClose }: Props) {
       }
       return (
         <YoutubePlayer
-          key={`${media.id}-${w}x${h}`}
+          key={media.id}
           height={h}
           width={w}
           play
           videoId={media.id}
           initialPlayerParams={{ modestbranding: true, rel: false, preventFullScreen: true }}
           onReady={() => setLoading(false)}
+          webViewProps={{ scrollEnabled: false }}
         />
       );
     }
@@ -98,9 +162,16 @@ export default function MediaPlayerModal({ media, onClose }: Props) {
     }
     return (
       <WebView
+        key={`${media.channel}-${w}x${h}`} // re-layout the embed when the size changes (e.g. fullscreen)
         source={{ html: twitchHtml(media.channel), baseUrl: `https://${TWITCH_PARENT}` }}
-        style={{ flex: 1, backgroundColor: '#000' }}
+        style={{ width: w, height: h, backgroundColor: '#000' }}
         allowsInlineMediaPlayback
+        allowsFullscreenVideo
+        scrollEnabled={false}
+        bounces={false}
+        // Our CSS already sizes the iframe to 100%; letting Android rescale the
+        // page on top of that is what shrinks the player.
+        scalesPageToFit={false}
         mediaPlaybackRequiresUserAction={false}
         javaScriptEnabled
         domStorageEnabled
@@ -109,36 +180,48 @@ export default function MediaPlayerModal({ media, onClose }: Props) {
     );
   };
 
-  // A small control button.
-  const CtrlButton = ({ children, onPress }: { children: React.ReactNode; onPress: () => void }) => (
-    <TouchableOpacity onPress={onPress} className="w-9 h-9 rounded-full justify-center items-center" style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}>
-      {children}
-    </TouchableOpacity>
-  );
-
-  const fullscreenBtn = (
+  const FsButton = () => (
     <TouchableOpacity
-      onPress={() => setFullscreen((f) => !f)}
-      className="w-9 h-9 rounded-full justify-center items-center"
-      style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}
+      onPress={toggleFullscreen}
+      className="w-10 h-10 rounded-full justify-center items-center"
+      style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
     >
       {fullscreen ? <ArrowsIn size={18} color="#FFFFFF" weight="bold" /> : <ArrowsOut size={18} color="#FFFFFF" weight="bold" />}
     </TouchableOpacity>
   );
 
   return (
-    <Modal visible={!!media} transparent={false} animationType="fade" onRequestClose={handleClose} supportedOrientations={['portrait', 'landscape']}>
-      <StatusBar hidden={fullscreen} />
+    <Modal
+      visible={!!media}
+      transparent={false}
+      animationType="fade"
+      onRequestClose={handleClose}
+      statusBarTranslucent
+      supportedOrientations={['portrait', 'landscape']}
+    >
+      <StatusBar hidden />
+      <SafeAreaProvider>
       <View className="flex-1" style={{ backgroundColor: '#000' }}>
-        {!fullscreen ? (
+        {fullscreen ? (
+          // ---------- Fullscreen: device is in landscape, fit 16:9 to the screen ----------
+          <View className="flex-1 justify-center items-center" style={{ backgroundColor: '#000' }}>
+            <View style={{ width: winW, height: winH, backgroundColor: '#000' }}>
+              {renderPlayer(winW, winH)}
+            </View>
+            {/* Exit button kept clear of the status bar / nav bar / notch */}
+            <SafeAreaView edges={['top', 'right', 'left', 'bottom']} style={{ position: 'absolute', top: 0, right: 0 }}>
+              <View style={{ padding: 14 }}><FsButton /></View>
+            </SafeAreaView>
+          </View>
+        ) : (
           // ---------- Windowed (centered, YouTube-app size) ----------
           <View className="flex-1 justify-center">
             {/* Header */}
             <View className="absolute top-0 left-0 right-0 flex-row items-center justify-between px-4 pt-12 pb-3 z-10">
               <Text className="flex-1 text-base font-bold mr-3 text-white" numberOfLines={1}>{media?.title || 'Player'}</Text>
-              <CtrlButton onPress={handleClose}>
+              <TouchableOpacity onPress={handleClose} className="w-10 h-10 rounded-full justify-center items-center" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
                 <X size={18} color="#FFFFFF" weight="bold" />
-              </CtrlButton>
+              </TouchableOpacity>
             </View>
 
             {/* Player */}
@@ -149,13 +232,12 @@ export default function MediaPlayerModal({ media, onClose }: Props) {
                   <ActivityIndicator size="large" color={colors.teal} />
                 </View>
               )}
-              {/* Fullscreen toggle (bottom-right over the player) */}
-              <View className="absolute bottom-2 right-2">{fullscreenBtn}</View>
+              <View className="absolute bottom-2 right-2"><FsButton /></View>
             </View>
 
             {/* Footer: open-in-app fallback (e.g. age-restricted videos) */}
-            <View className="absolute bottom-0 left-0 right-0 items-center pb-10">
-              {media?.type === 'youtube' && (
+            {media?.type === 'youtube' && (
+              <View className="absolute bottom-0 left-0 right-0 items-center pb-10">
                 <TouchableOpacity
                   onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${media.id}`)}
                   className="flex-row items-center px-4 py-2.5 rounded-full"
@@ -164,30 +246,12 @@ export default function MediaPlayerModal({ media, onClose }: Props) {
                   <YoutubeLogo size={18} color="#FF0000" weight="fill" />
                   <Text className="text-white font-semibold ml-2 text-sm">Open in YouTube</Text>
                 </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        ) : (
-          // ---------- Fullscreen (rotated to landscape) ----------
-          <View className="flex-1" style={{ backgroundColor: '#000' }}>
-            <View
-              style={{
-                position: 'absolute',
-                width: SH,
-                height: SW,
-                top: (SH - SW) / 2,
-                left: (SW - SH) / 2,
-                transform: [{ rotate: '90deg' }],
-                backgroundColor: '#000',
-              }}
-            >
-              {renderPlayer(SH, SW)}
-              {/* Exit fullscreen (top-right of the rotated view) */}
-              <View style={{ position: 'absolute', top: 12, right: 12 }}>{fullscreenBtn}</View>
-            </View>
+              </View>
+            )}
           </View>
         )}
       </View>
+      </SafeAreaProvider>
     </Modal>
   );
 }
